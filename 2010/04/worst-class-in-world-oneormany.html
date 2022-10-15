@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>The worst class in the world: OneOrMany - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Psst! Hey you! Yes, you - the one reading this post. Do you want to see something truly terrible? Do you dare peer into the depths of ridiculous &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/04/worst-class-in-world-oneormany.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">The worst class in the world: OneOrMany</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-04-14T23:51:00+10:00" pubdate data-updated="true">14 Apr 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Psst! Hey you! Yes, you - the one reading this post. Do you want to see something truly terrible? Do you dare peer into the depths of ridiculous coding? Then read on, friend! And rejoice in the fact that you don&#8217;t work with me! :)</p>
+
+<h2>Some background</h2>
+
+<p>I have a class that holds some parameters. This gets passed around a bit &#8211; a parameters instance starts life with some defaults given to it by a factory, has some parameters overidden by whatever presenter happens to be display a view to the user, gets routed through a controller that executes some logic on a device based on the provided parameters, and finally ends its life in a persistence class being written out to disk.</p>
+
+<p>There are several different variations on the logic run on the device, but all revolve around these core parameters &#8211; the parameters are the sole differentiator between all these variations. This lets us use common plumbing to pass these parameters around, and the only thing that changes is how these parameters are interpretted to run specific logic on the device.</p>
+
+<p>Now say that one of these parameters is Frequency, and integer property that is used to determine the frequency with which the device widgets the throddle. This works fine for almost all cases &#8211; except the one case where we want the throddle to be widgetted at a number of different frequencies.</p>
+
+<p>So what do we do? Do we create a subclasses of <code>Parameters</code>, some with an <code>int Frequency</code> and the other with <code>IEnumerable&lt;int&gt; Frequency</code>? As we deal with <code>Parameters</code> everywhere, that would mean some ugly casting going on. And, in this case, frequency doesn&#8217;t really seem to suit being pushed into another place in the design so we can follow the &quot;Tell don&#8217;t ask&quot; principle.</p>
+
+<p>We could also replace make the <code>Frequency</code> property be of type <code>IEnumerable&lt;int&gt;</code>. But that would mean that in the majority of cases we&#8217;d need to call <code>Frequency.First()</code> &#8211; there would be an implicit contract buried in the code that was not obvious just by looking at the <code>Parameters</code> class. We&#8217;d also be optimising for the least common case &#8211; we only need the enumerable once, the rest of the time we just want a single value.</p>
+
+<p>Maybe we could provide two properties: <code>Frequency</code> and <code>Frequencies</code>? This is an ugly but workable solution, although it does mean our persistence service needs to be smart enough to exclude one property or the other, which will introduce some tight coupling.</p>
+
+<p>And then there is the option of committing object-oriented evil. Let&#8217;s try that&#8230; what could possiblie go rong?</p>
+
+<h2>My eyes! The googles do nothing!</h2>
+
+<p>Let&#8217;s write a class that can hold either one value, or many values. I shall call it: <strike>mini-Me</strike> OneOrMany&lt;T&gt;.</p>
+
+<pre class="brush:csharp">
+public class OneOrMany&lt;T&gt; : IEnumerable&lt;T&gt; {
+    private readonly IEnumerable&lt;T&gt; _manyValues;
+    private readonly T _singleValue;
+
+    public OneOrMany(T value) { _singleValue = value; }
+    public OneOrMany(IEnumerable&lt;T&gt; manyValues) { _manyValues = manyValues; }
+
+    public static implicit operator T(OneOrMany&lt;T&gt; oneOrMany) {
+        if (oneOrMany._manyValues != null) 
+            throw new InvalidOperationException(&quot;This instance contains more than one value, so you cannot it treat as a single value.&quot;);
+        return oneOrMany._singleValue;
+    }
+        
+    public static implicit operator OneOrMany&lt;T&gt;(T value) {
+        return new OneOrMany&lt;T&gt;(value);
+    }
+        
+    public static implicit operator OneOrMany&lt;T&gt;(T[] values) {
+        return new OneOrMany&lt;T&gt;(values);
+    }        
+
+    public IEnumerator&lt;T&gt; GetEnumerator() {
+        return (_manyValues ?? new[] {_singleValue}).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
+
+    public override string ToString() {
+        var values = this.Select(x =&gt; x.ToString()).ToArray();
+        return string.Join(&quot;,&quot;, values);
+    }
+}
+</pre>
+
+<p>Say we now have our parameters defined like this:</p>
+
+<pre class="brush:csharp">
+public class Parameters {
+    /* lots of different parameters here */
+    public OneOrMany<int> FrequencyInHertz { get; set; }
+}
+</pre>
+
+<p>We can now treat frequency as a single value (the standard case):</p>
+
+<pre class="brush:csharp">
+[Test]
+public void Can_use_frequency_as_single_value() {
+    var parameters = new Parameters {FrequencyInHertz = 10};
+    int asOneValue = parameters.FrequencyInHertz;
+    Assert.That(asOneValue, Is.EqualTo(10));
+}
+</pre>
+
+<p>And occasionally as multiple values:</p>
+
+<pre class="brush:csharp">
+[Test]
+public void Can_use_frequency_as_many_values() {
+    var parameters = new Parameters {FrequencyInHertz = new[] {1, 2, 3, 4, 5}};
+    Assert.That(parameters.FrequencyInHertz, Is.EqualTo(new[] {1,2,3,4,5}));
+}
+</pre>
+
+<p>And our persistence service can simply use <code>ToString()</code> to write the frequency used out to disk:</p>
+
+<pre class="brush:csharp">
+[Test]
+public void Can_write_out_frequency_as_string_without_worrying_how_many_values_it_has() {
+    var paramsWithSingleFrequency = new Parameters {FrequencyInHertz = 10};
+    var paramsWithMultipleFrequencies = new Parameters {FrequencyInHertz = new[] {1,2,3,4,5}};
+    Assert.That(paramsWithSingleFrequency.FrequencyInHertz.ToString(), Is.EqualTo(&quot;10&quot;));
+    Assert.That(paramsWithMultipleFrequencies.FrequencyInHertz.ToString(), Is.EqualTo(&quot;1,2,3,4,5&quot;));
+}
+</pre>
+
+<h2>I told you it was bad!</h2>
+
+<p>Wow that&#8217;s nasty. I&#8217;m hacking around with implicit cast operators to make assignments react in a completely non-obvious way. This post is a fantastic justification for the Java folk to keep disallowing operator overloading. :) We are completely and utterly reliant on users of our <code>Parameters</code> class knowing the context in which it is being used. In my particular case, this is always true. But still&#8230; ugh.</p>
+
+<h2>Cue the excuses!</h2>
+
+<p>The one redeeming feature of this code is that it sort of matches the domain. Generally our parameters specify one frequency to use. In one specific case multiple frequencies will be used. The only place that really needs to know about this difference is a class handling one particular variation of communications with our device. It absolutely, positively <b><i>has</i></b> to have multiple frequencies &#8211; it is its sole purpose for existence. It can iterate over the <code>OneOrMany&lt;T&gt;</code> instance and know for certain that it makes sense to do so. Everything else can go on blissfully using frequency as an int.</p>
+
+<p>Another possible excuse is that I think this is pretty similar to what I&#8217;d do using a dynamic language. I&#8217;d have a Frequency property, and fill it with an single int or several ints. For example, this would work fine in Ruby:</p>
+
+<pre>
+class Parameters
+  attr_accessor :freq
+end
+
+param_with_one_freq = Parameters.new
+param_with_one_freq.freq = 5
+
+param_with_many_freqs = Parameters.new
+param_with_many_freqs.freq = [1..5]
+</pre>
+
+<p>Sure, we might miss a bit of compiler help, but we have everything covered by unit tests, so this kind of dynamic approach (both the Ruby and C# class) are pretty safe.</p>
+
+<p>If we wanted to make the code a bit more robust we could have a <code>Value</code> property for accessing the single value, and <code>HasManyValues</code> to determine whether it needs to be iterated over. Sort of similar to <code>Nullable&lt;T&gt;</code> in a way.</p>
+
+<p>As a final plea for mercy, the fact that we have a strange <code>OneOrMany&lt;T&gt;</code> type on our <code>Parameters</code> class immediately tells the reader that something a bit whacky is going on. Unlike the option of using <code>IEnumerable&lt;T&gt;</code> and accessing the first one most of the time, we are being explicit about the use of that property.</p>
+
+<p>That&#8217;s about as far as I got grasping at the short straws of justification&#8230; :)</p>
+
+<h2>Conclusion</h2>
+
+<p>Don&#8217;t do this. I&#8217;ve been playing around with it, but I don&#8217;t know if I can bring myself to commit it. My main problem is that the other solutions, despite being less ethically despicable, still sort of suck.</p>
+
+<p>I have seen (and written) a number of fairly bad classes in my time, but I think this one takes the cake for one main reason. It&#8217;s not that there is a poor, constraining process in place; there&#8217;s no ivory-tower architects requiring classes with thousands of lines; no push to use every buzzword under the sun; no defence of language ignorance or of being a well-intentioned but misguided newbie. No, the reason this code is so bad is because the author should have known better. And so I declare this class the worst class ever.</p>
+
+<p><i>Think you&#8217;ve seen worse? Let me know. :)</i></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-04-15T09:27:23+10:00" class="updated">Updated 15 Apr 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/04/worst-class-in-world-oneormany.html" data-via="" data-counturl="http://davesquared.net/2010/04/worst-class-in-world-oneormany.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/03/easier-way-to-set-up-diff-and-merge.html" title="Previous Post: An easier way to set up diff and merge tools for Git on Windows">&laquo; An easier way to set up diff and merge tools for Git on Windows</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/05/test-driving-while-refactoring.html" title="next Post: Friends don't let friends test-drive while refactoring">Friends don't let friends test-drive while refactoring &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/04/worst-class-in-world-oneormany.html';
+        var disqus_url = 'http://davesquared.net/2010/04/worst-class-in-world-oneormany.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

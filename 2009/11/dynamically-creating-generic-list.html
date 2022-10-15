@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Dynamically creating a generic list - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I overheard an interesting question today: how to create a generic list instance when we don&#8217;t know the type at compile time? I&#8217;m sure &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2009/11/dynamically-creating-generic-list.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Dynamically creating a generic list</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2009-11-27T21:15:00+11:00" pubdate data-updated="true">27 Nov 2009</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I overheard an interesting question today: how to create a generic list instance when we don&#8217;t know the type at compile time? I&#8217;m sure there are lots of great answers to this out there on the intrawebs (this won&#8217;t be one of them), but I thought I&#8217;d give it a quick go myself as it doesn&#8217;t sound too tricky to get working for the most basic of cases, and it would also help my reflecton-fu which is fairly lacking.</p>
+
+<p>Here is the test I would like to pass:</p>
+
+<pre class="brush:csharp">
+[Test]
+public void CreateAGenericListFromAType() {
+    var list = (IList&lt;int&gt;) CreateList(typeof (int), new object[] {1, 2, 3});
+    Assert.That(list, Is.EquivalentTo(new[] {1,2,3}));
+}
+</pre>
+
+<p>So given a <code>Type</code> (in this case an <code>int</code>), we want <code>CreateList(...)</code> to return the equivalent of an <code>IList&lt;Type&gt;</code>. Of course the compiler won&#8217;t have a reference to the exact type when compiling <code>CreateList(...)</code>, and generic types have to be closed at compile time for us to work with them normally. This means we will have to resort to reflection. Here&#8217;s one way of passing the test:</p>
+
+<pre class="brush:csharp">
+IList CreateList(Type type, object[] objects) {
+    var genericListType = typeof (List&lt;&gt;);
+    var specificListType = genericListType.MakeGenericType(type);
+    var list = (IList) Activator.CreateInstance(specificListType);
+    foreach (var o in objects) {
+        list.Add(Convert.ChangeType(o, type));
+    }
+    return list;
+}
+</pre>
+
+<p>Here we close the list type down using <code>MakeGenericType()</code>, then use <code>Activator.CreateInstance()</code> (yuk) to instantiate our dynamically, generically-typed list. I&#8217;m also choosing to work with the non-generic <code>IList</code> interface, as this means I don&#8217;t need to resort to reflection to call the <code>Add(T)</code> method.</p>
+
+<p>I&#8217;m probably overlooking lots of details, but at least this basic approach passed the test.</p>
+
+<p><b>Update:</b> As expected, a StackOverflow answer has <a href="http://stackoverflow.com/questions/307984/declare-a-generic-type-instance-dynamically/308040#308040">a neater way</a> that avoids using <code>Activator</code>.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2009-11-27T21:15:00+11:00" pubdate data-updated="true">27 Nov 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2009/11/dynamically-creating-generic-list.html" data-via="" data-counturl="http://davesquared.net/2009/11/dynamically-creating-generic-list.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/11/impact-of-mocking-framework-limitations.html" title="Previous Post: The impact of mocking framework limitations on design">&laquo; The impact of mocking framework limitations on design</a>
+      
+      
+        <a class="basic-alignment right" href="/2009/12/3-years-of-davesquared.html" title="next Post: 3 years of Davesquared">3 years of Davesquared &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2009/11/dynamically-creating-generic-list.html';
+        var disqus_url = 'http://davesquared.net/2009/11/dynamically-creating-generic-list.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: +nbdn | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/-nbdn/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Nothin' but .NET, Sydney 2009: Final thoughts]]></title>
+    <link href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-final.html"/>
+    <updated>2009-08-21T21:27:00+10:00</updated>
+    <id>http://davesquared.net/2009/08/nothin-but-net-sydney-2009-final</id>
+    <content type="html"><![CDATA[<p>It's been almost two weeks since the Sydney edition of <a href="http://www.jpboodhoo.com/training.oo">Nothin' but .NET</a> finished. I've blogged my thoughts from <a href="http://davesquared.net/categories/-nbdn">each day of the course</a>, but the time since the course has given me a chance to reflect on the whole event and has provided me with some much needed perspective. Please excuse me while I rant, but I need to get this off my chest.</p>
+
+
+
+
+<div class="note"><b>Note:</b> this post contains little to no technical content and is filled with disgusting sentimentality. This post may induce feelings of nausea, boredom, or the desire to unsubscribe from this blog. We recommend that, if you choose to read this post, you do so with a vomit bag or bowl in close proximity. Do not ingest this blog post. This post is for external use only. This post is highly flammable. This post may contain traces of nuts. If you are pregnant, or think you might be pregnant, then congratulations! This post may cause hair loss, wind, bloating, itching, convulsions and/or the desire to listen to Rick Astley. Using this post for the disposal of human remains may be a violation of local health ordinances. You have been warned...</div>
+
+
+
+
+<h2>A brave new world</h2>
+
+
+
+
+<p>By far the most important, exciting, daunting, confronting and demoralising thing that I found out from the course is that I know nothing about what Object Oriented design is really about. I know a couple of design patterns, <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">SOLID</a>, a bit of <a href="http://en.wikipedia.org/wiki/GRASP_%28Object_Oriented_Design%29">GRASP</a>, and OO techniques like polymorphism and inheritance, but I've never put it all together in the way JP demonstrated in class.</p>
+
+
+
+
+<p>The average size of each class was around 20 lines of code, including noise like whitespace, braces on new lines, namespace declarations etc. Each class had only one responsibility which was concisely implemented and easy to understand. This made testing really pleasant -- there was no time spent fighting the design, it all just fell into place. And this wasn't just for stuff that JP had done before, this kind of design emerged no matter what we threw at him.</p>
+
+
+
+
+<p>My first reaction was, somewhat embarrassingly, a feeling of complete and utter incompetence. I've been doing OO programming professionally for a decade or so, and all that time I've been doing it wrong! This was quickly followed up by a feeling of demoralisation: now that I'd seen what OO design is meant to look like, I still couldn't pick up the skill to do it myself.</p>
+
+
+
+
+<p>But somewhere behind my fairly pathetic self deprecation I was excited. This was amazing! This was what I'd been desperately trying to work out for myself for years, and it was using all the tools I already knew about!</p>
+
+
+
+
+<p>The best way I can describe it is with a classic DaveSquared contrived analogy (TM). Say you've spent the entirety of your life in one house. Never been outside. You get by ok, but you've always felt that you were missing something. So you've kept tweaking the rooms, repainting the walls, rearranging the furniture. Then one day someone comes along, opens the front door and shows you this entire other world you never knew existed. While the basic laws of physics work the same between your house and this new world, it's full of all these complicated things that fit together in ways you can't even begin to comprehend: people, cars, trains, people, planes, shops, people, towns, countries, commerce, politics, laws, education, planets, galaxies, quantum mechanics, twitter etc. It's confronting, it's daunting, and you feel like a complete idiot for never noticing it before. But it is also brimming with exciting opportunities.</p>
+
+
+
+
+<h2>The journey</h2>
+
+
+
+
+<p>Being shown that this other world of OO design existed was invaluable, but I still had no idea how to actually work with it. I knew the basic values and concepts, and could understand JP's explanations, but I just couldn't apply it all when it came time to code.</p>
+
+
+
+
+<p>Initially this was a huge source of disappointment for me. My expectation from the course was that I would walk out of it a better developer. But come the end of the final day I found I couldn't do a single thing any better than when I had walked in. It seemed all I was left with was a few bits of knowledge I couldn't use, and the feeling that I was a much worse developer than I initially thought (and, as people who know me can probably confirm, this is coming off a fairly low opinion of myself already! Quite an achievement!). This is quite a realisation to face up to when you've spent around 80 hours with a top notch developer and your company has shelled out a huge amount of money for the privilege.</p>
+
+
+
+
+<p>Part of the reason for this was that JP, as he pointed out several times during the week, is a developer, not a teacher. He simply demonstrates this awesome stuff, and answers any questions you can throw at him. It's kind of up to the attendees to extract as much from the week as they can. But demonstrations alone (IMO) don't really help build you into a better developer. That's sort of left up to you. Another major contributing factor was that I was probably well out of my depth in terms of my existing knowledge.</p>
+
+
+
+
+<p>But I think the most important factor was a matter of misaligned expectations. I don't think I was really meant to come out of the course a better developer. I was meant to be pointed in a direction, given some tips as preparation for my journey, then sent off on my way to become a better developer.</p>
+
+
+
+
+<p>Since the course ended I've had a number of surprises. First up was just how much stuff I managed to learn during the course, which I only realised as I worked through posting <a href="http://davesquared.net/categories/-nbdn">summaries of each day</a> (which incidentally is the reason I blog -- it helps me learn stuff and collect my thoughts :)). Sure, I couldn't figure out how to apply much of it, but the sheer amount of really important revelations I got was amazing.</p>
+
+
+
+
+<p>The second surprise took me completely off guard. One week after the course, after the sleep deprivation and system shock were beginning to wear off, I started on a new bit of code at work. And I started writing tests, top-down. And I could divide the responsibilities fairly nicely. The abstractions weren't perfect, but the design was neat. The classes were small. It all just started to flow. All the stuff I failed at during the course had started to fall into place. I could apply some of this stuff! A colleague of mine who had also been on the course started pairing with me, and he started churning out some awesome code. We started talking about the design in terms of the stuff we had learnt, and it was making sense to us.</p>
+
+
+
+
+<p>Now this was just a small win, but a win nonetheless. I know I'm going to keep struggling with this, but less than two weeks after the course I felt I had started to make some progress -- a single, small step -- on my journey to become a better developer.</p>
+
+
+
+
+<p>And it wasn't until that point that I truly understood what JP was saying on <a href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-1.html?showComment=1249337203010#c3001916000776242244">Day 1</a> about competing with and comparing yourself to other developers. He was stressing that you shouldn't look at a developer and think &quot;I want to be able to do that!&quot;. By the time you can eventually do &quot;that&quot;, the developer you admired has moved on to a better way of doing it. And even if you do overtake him or her, there will always be someone else to try and catch up to. If you look at it like this, then you'll always be behind. What you do will never seem good enough. And that's a fantastic way to sap all the joy out of coding. And let's face it, the reason most of us are developers is because we <i>love</i> to code, so once you lose that you're in trouble.</p>
+
+
+
+
+<p>Instead, JP recommended trying to improve yourself just a little bit each day, and focus on enjoying coding. No comparisons, no competitions. The sum of all these little improvements over the years can be great, but more importantly the enjoyment and the satisfaction you get from continually improving can be life changing.</p>
+
+
+
+
+<p>Now I'm probably one of the least competitive people you're ever likely to meet, but the one thing I do compete mercilessly against is my own expectations for myself. When I felt like I was failing to perform in the course as I expected, that was rough. But now I can see that what JP was really getting at was that I shouldn't expect to be able to do all the stuff he was showing us. I just needed to start the journey.</p>
+
+
+
+
+<p>So my initial disappointment from the course has been turned around now. I was shown this amazing new world of OO design. It's possible I could have stumbled across it myself I guess, but the course pointed out, in fairly dramatic fashion, a direction in which to head. I learnt some really important coding tips that can help me along the way. And, now the course is done, I've finally started my journey -- and it feels awesome. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Nothin' but .NET, Sydney 2009: Day 5]]></title>
+    <link href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-5.html"/>
+    <updated>2009-08-12T11:43:00+10:00</updated>
+    <id>http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-5</id>
+    <content type="html"><![CDATA[<p>The fifth and final day of <a href="http://www.jpboodhoo.com/training.oo">Nothin' but .NET</a> kicked off a bit later than normal (once the breakfast chats were over it was closer to 10am, but wound up around 1:45am (I think, my brain was well and truly fried by that point).</p>
+
+
+
+
+<h2>Tell, don't ask</h2>
+
+
+
+
+<p>We talked for quite a while on this. The idea is to push responsibilities on to the class that owns the data related to that responsibility. The most common violation of this principle is an object acting on data it asked another object for. For example, instead of having <code>if (game.genre == "Platform") { /* do something */ }</code>), we should push the <code>do something</code> code into the game itself. That way we are telling the <code>game</code> to do something, rather than asking it for information and doing it ourselves. Violating <a href="http://www.pragprog.com/articles/tell-dont-ask">tell don't ask</a> strips our objects of behaviour and leads to things like anaemic domain models.</p>
+
+
+
+
+<h2>Testing</h2>
+
+
+
+
+<p>I think I've rolled most of the testing stuff from the course into previous posts, but I'll rehash some of the stuff that came up on day 5 about using tests to drive design.</p>
+
+
+
+
+<p>Again I saw that the context/SetUp of the scenario/test seems to drive most of the design. The way the context is setup determines the responsibilities and API for the SUT's collaborators and dependencies. By the time they become the SUT and their assertions are being written most of those decisions are made. In that case the only remaining decisions are the design of dependencies' dependencies. :) It is this relationship that really lets us use the tests to drive the design from the top down.</p>
+
+
+
+
+<p>The &quot;because&quot; block is the API generated from the assertion and the context of the higher level component's tests. For example, if a test for our <code>FrontController</code> asserts that <code>command.AssertWasCalled(c =&gt; c.Run());</code>, then the &quot;because&quot; blocks of our tests around <code>Command</code> implementations become <code>command.Run();</code>. We get a similar result when we stub return values for dependencies while setting up the test context: we need to write scenarios around those calls.</p>
+
+
+
+
+<p>Here's a pseudo-code example. Say we have a test for an <code>HttpRequestHandler</code> class which asserts that <code>frontController.AssertWasCalled(fc =&gt; fc.Process(request))</code>. We can then write tests for the <code>FrontController</code> around that scenario:</p>
+
+
+
+
+<pre>
+When the FrontController is told to process a request:
+  It should run the command able to handle this request:
+    command.AssertWasCalled(c =&gt; c.Run());
+  Because:
+    sut.Process(request);
+  Context:
+    request = MockRepository.GenerateStub&lt;Request&gt;();
+    command = MockRepository.GenerateStub&lt;Command&gt;();
+    commandRegistry = MockRepository.GenerateStub&lt;CommandRegistry&gt;();
+
+    commandRegistry.Stub(c =&gt; c.GetCommandFor(request)).Returns(command);
+    sut = new FrontController(commandRegistry);
+</pre>
+
+
+
+
+<p>This scenario is telling us that when our <code>FrontController</code> is told to process a request, it needs to <code>Run()</code> a command. This is its sole responsibility. Note how well this responsibility is summarised by the scenario and test name, &quot;When the FrontController is told to process a request, it should run the command able to handle this request&quot;. In our context/SetUp method, we've made a design decision to have a <code>CommandRegistry</code> responsible for mapping a request to the right command. We'll then need to drive out the behaviour of what happens when the <code>CommandRegistry.GetCommandForm(Request r)</code> method is called.</p>
+
+
+
+
+<p>I also noticed there a two different styles of TDD: incrementally driving the design vs. incrementally driving the implementation. JP's "simplest thing that makes sense" approach (see <a href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-3.html">Day 3 wrap up</a>) tends to focus the developer on driving the design, whereas sometimes the "simplest thing that works" can lead me to procedural thinking (first it should do this, test, refactor, then it should do that, test, refactor...). I'm sure this is due to me misusing TDD in this manner, but I'm reasonably confident I'm not the only TDD novice to fall into this trap of driving implementation from the tests instead of design.</p>
+
+
+
+
+<h2>Other notes from Day 5</h2>
+
+
+<ul>
+<li>With a FrontController architecture Commands are similar to MVC actions.</li>
+<li>Pipelines (Pipes and Filters pattern) can be a good way to get into event-driven and message-passing architectures.</li>
+<li>Moving away from layered and onion architectures to component layers that are loosely affiliated. The direction of communication can be guided by the Dependency Inversion Principle and specific requirements (like having Query objects accessible from anywhere via their interface, but consumed only below the service layer).</li>
+<li>Query object pattern (as used for NHibernate's Criteria and DetachedCriteria). Related to the Specification pattern.</li>
+<li>Collaborators for a test can be injected into the SUT, retrieved from another dependency, or retrieved from a Static Gateway (although be careful with that last one).</li>
+<li>Don't bother creating interfaces for DTOs.</li>
+<li>The Service Layer is responsible for unwrapping DTOs packaged by higher layers. DTOs shouldn't go lower down than that, they are strictly for communication between the Service Layer and higher levels.</li>
+<li>Had a whirlwind tour of some Domain Driven Design (DDD) concepts.</li>
+<li>Separating data updates using repositories from queries using Query Object pattern. Don't just dump create/read/update/delete functions on a repository. Enforce Command Query Separation (CQS).</li>
+<li>Command and Visitor design patterns are really under-used and under-appreciated.</li>
+<li>Introducing Pure Fabrications over primitives to help encapsulate behaviour and make writing aggregates and entities easier. An example, instead of using an <code>IDictionary&lt;Product,int&gt;</code> to map products to quantities in a shopping cart, introduce a <code>CartItem</code> fabrication that can be used to track both and encapsulate useful behaviour for the <code>Cart</code> aggregate.</li>
+<li>Concept of <a href="http://en.wikipedia.org/wiki/Shuhari">Shu Ha Ri</a> for describing the stages of learning.</li>
+<li><code>if</code> and <code>for</code> (loops and conditions) are a tad evil. Getting rid of them makes code nice. :)</li>
+<li>Problem decomposition is more important than patterns.</li>
+<li>Always look for the higher level of abstraction. Step back from the details of the problem, and tackle the abstraction instead.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Nothin' but .NET, Sydney 2009: Day 4]]></title>
+    <link href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-4.html"/>
+    <updated>2009-08-10T23:23:00+10:00</updated>
+    <id>http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-4</id>
+    <content type="html"><![CDATA[<p>Day 4 of <a href="http://www.jpboodhoo.com/training.oo">Nothin' but .NET</a> started before 9am and finished after 2:45am (including eating breakfast and dinner in the conference room while still discussing stuff).</p>
+
+
+
+
+<h2>The day's activities</h2>
+
+
+<p>We started out talking about IoC containers, and their role in controlling object creation, lifecycle, autowiring dependencies, and also in dynamic interception for AOP (using Reflection.Emit, RealProxy from System.Runtime.Remoting.Proxies, Dynamic Proxy etc). Then it was up to us to implement a simple container. The class started off trying to convert the poor man's dependency injection approach we had used to quickly hack everything together. <a href="http://www.xerxesb.com/">Xerx</a> made a great suggestion that we could simply use <code>Func&lt;object&gt;</code> delegates as factory methods, and just map requested types to those methods.</p>
+
+
+
+
+<p>Once we had configured all the mappings using our container and removed all the no arg constructors we had used for poor man's DI, the next challenge was to drive out a fluent interface for application startup. Here I had my first and only success of the week, where I actually managed to test drive out a few classes without doing my normal trick of becoming hopelessly stuck. JP needed to make a few changes to it but it seemed like I ended up fairly close to a reasonable design. I finally felt like I might be making some progress.</p>
+
+
+
+
+<p>We were going to end the day by chatting about and implementing the domain and the service layers, but we started to lose some attendees due to illness and exhaustion, so we decided to defer the domain stuff until the morning (or, technically, later that morning). We did end up having a quick chat about service layer styles as described in <a href="http://martinfowler.com/books.html#eaa">Martin Fowler's PoEA</a>, and contrasted the <a href="http://martinfowler.com/eaaCatalog/transactionScript.html">Transaction Script</a> approach (i.e. a big ol' procedural method or script) to keeping a thin service layer over a domain. A couple of us worked 'til the end of class implementing some of the front controller stuff we had skipped from earlier in the course.</p>
+
+
+
+
+<p>In contrast to previous days, after Day 4 I felt like I was finally on track to becoming a better developer. (Spoiler alert: it wasn't to last :-\)</p>
+
+
+
+
+<h2>Writing tests</h2>
+
+
+
+
+<p>I continued to build on the testing concepts I had started uncovering on previous days, although I still struggled to apply all them. I covered a lot about trying the &quot;simplest thing that makes sense&quot; instead of the &quot;simplest thing that works&quot; in my summary of <a href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-3.html">Day 3</a>, and this continued to be an important theme for Day 4.</p>
+
+
+
+
+<p>I finally started to get an appreciation of the impact which each part of a test definition has on design. The scenario name, test case name and assertion became the fundamental behaviour and purpose for the SUT's existence. The &quot;because&quot; block showed why the SUT was exhibiting this behaviour (a call to a particular method). The context/setup was then used to drive the design of the SUT's collaborators and dependencies and dole out their responsibilities, as required for the SUT to do its job. This then helped us get down to the next level of abstraction.</p>
+
+
+
+
+<p>JP seemed to use the SUT's dependencies, as setup in the test definition, as axes by which the overall design could be varied. By decomposing the problem the SUT is trying to solve into sub-responsibilities, then pushing these responsibilities down into dependencies, the SUT stayed very clean, small and simple. Finding the right abstraction for these responsibilities (in particular, programming to the API you would <i>like</i> them to have) made it easier to design these dependencies once they became the SUT. Any pain, duplication or smells detected while writing tests became a clear sign that we needed to look for a different abstraction around the SUT's dependencies. For example, instead of injecting in a dependency with a required behaviour, we might need to inject a factory or other dependency that would figure out the behaviour needed and return the relevant dependency.</p>
+
+
+
+
+<p>I quizzed JP to try and find out the process he used to make all these design decisions which he seemed to effortlessly drive out while writing the tests. A lot of it seemed to come down to the context he has built up over the years by experience, and (somewhat unfortunately for me) down to an amazing talent for spotting and thinking in abstractions. Still, here is the best approximation of his approach that I could come up with:</p>
+
+
+
+
+<ol id="aug2009_nbdn_day4_writingtestssteps">
+<li>What responsibility does this SUT have? This becomes the scenario name.</li>
+<li>Decompose this into sub-responsibilities. If the SUT is responsible for running a command, then it cannot also be responsible for creating or locating that command. This becomes a responsibility of the next level down the abstraction chain.</li>
+<li>Identify collaborators/dependencies required so we can push these other responsibilities to them, rather than burdening the SUT with doing too much. If the other responsibility is creating a command, we might make a design decision to use a factory to do this.</li>
+<li>How should the SUT react under this scenario? The description of this becomes the test title. JP often used long, descriptive titles loaded with design implications. For example, the SUT  &quot;should call the run method on the command returned by the command factory&quot;. This became a broad overview of the design intention and design decisions made, with the details fleshed out in later steps.</li>
+<li>How do I assert this? Write the test case body in one logical assertion, as simply as possible. It should reflect the fundamental purpose of the SUT's existence.</li>
+<li>Why does this happen? Write the &quot;because&quot; block, which is basically the method call that triggers the behaviour.</li>
+<li>Work out the context/test setup. Setup the collaborators. During this time you'll be making design decisions about the responsibilities and behaviours of the dependencies.</li>
+</ol>
+
+
+
+
+<h2>Today's tidbits</h2>
+
+
+
+
+<p>Here's a quick round up of some other miscellaneous things I picked up on Day 4:</p>
+
+
+
+
+<ul>
+<li>I need to write more code. Lots of code. Tonnes of code! Anything to get some practice in and get more context for my design decisions. Try tackling the same problem with completely different techniques. Try functional style. Try not using dependencies. Try different patterns. Try writing tests differently. Try having no tests. Regardless of the result it will help grow your context on which to base future design decisions.</li>
+<li>Top down design is incredibly powerful for driving down from the required behaviour to the lowest levels of abstraction. Because test-driving each SUT in turn drives out the design of its dependencies, JP ended up with the problem broken down into incredibly simple abstractions. I'm not sure how you could come up with that using bottom-up design, as then your tests don't really give you any feedback on what the design of the higher level code should be.</li>
+<li>Three essential abilities for OO design: problem decomposition, finding abstractions, and segregation of responsibilities. I have no idea how to learn the first two, but <a href="http://en.wikipedia.org/wiki/GRASP_%28Object_Oriented_Design%29">GRASP</a> can probably help with the third.</li>
+<li>Using dependencies as axes to vary the design of the SUT.</li>
+<li>Keep to one logical assertion per test.</li>
+<li>Test context/SetUp can hold design decisions and indirect assertions (e.g. stubbing a return value which is used in the test assertion is a design decision).</li>
+<li>JP said not to think too far ahead, because "it will kill you". Keep at the current level of abstraction, and break the problem down. Don't think "what if?", think "what now?".</li>
+<li>Concentrate on writing tests around the &quot;happy&quot; path. This helps to focus on the SUT's single responsibility, and defer exception handling etc. to different levels of abstraction.</li>
+<li>Focus on outside-in testing using dependency injection. By passing dependencies in we can assert their state or calls made to them by the SUT, therefore making previously untestable internal state testable.</li>
+<li>Static gateways may need direct access to Service Locator (IOC, or abstraction over our container).</li>
+<li>Orchestrator pattern, an object that takes care of the sequence of operations in a pipeline.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Nothin' but .NET, Sydney 2009: Day 3]]></title>
+    <link href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-3.html"/>
+    <updated>2009-08-08T22:51:00+10:00</updated>
+    <id>http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-3</id>
+    <content type="html"><![CDATA[<p>Day 3 of <a href="http://www.jpboodhoo.com/training.oo">Nothin' but .NET</a> was a bit more laid back than previous days as we spent most of it in teams trying to apply some of the stuff we had learned. We had an early finish (10:45) in preparation for a longer day on Thursday. </p>
+
+
+
+
+<p>I actually found this day immensely frustrating. After seeing so much cool stuff the previous two days and feeling like I was starting to understand the main concepts, it was completely demoralising to be given a fairly basic problem and utterly fail to make even the vaguest hint of progress with it. The only reason I didn't feel completely incompetent was because of the overwhelming feeling of stupidity I had, and it didn't feel quite right for someone so obviously stupid to think of a big word like &quot;incompetence&quot;. :\  :)</p>
+
+
+
+
+<p>This wasn't helped by the fact that as soon as JP started demonstrating how to proceed to the next stage, he made the solution seem so obvious and effortless. At the start of the course JP went to great lengths to encourage us not to compare ourselves to or compete with other developers, and that instead we should just aim to better ourselves one small step at a time. But in this case comparing JP's work to mine wasn't like comparing the work of two developers. It was more like comparing the works of <a href="http://en.wikipedia.org/wiki/Leonardo_da_vinci">Leonardo da Vinci</a> to those of a small, under-watered cabbage. It was fairly difficult not to notice the difference.</p>
+
+
+
+
+<p>Despite this the under-watered cabbage did manage to pick up a few things from this day. First up I got to see an end-to-end, test-driven development of a Front Controller architecture for processing web requests using Commands. The Front Controller itself was more of a component -- it consisted of several classes all grouped together to perform the front controller related tasks. It's a bit like a &quot;layer&quot;, although the architecture wasn't really layered in a traditional sense. It was just a bunch of components working together in a pretty loosely coupled way. Not having a more traditional layered approach seemed to make the design much more flexible.</p>
+
+
+
+
+<div class="note"><b>Note:</b> As a source of examples for the following sections I'll refer to a specific class within the Front Controller component -- the slightly-confusingly named <code>FrontController</code> implementation (confusing because it is just one part of the entire Front Controller component). This class's responsibility is to receive an <code>IncomingRequest</code> (an abstraction of an HTTP get or post) and run a <code>Command</code> that will do whatever this request is asking.</div>
+
+
+
+
+<p>I also picked up a couple of TDD tips. The first was to start with a test case that reflects the simplest, most fundamental description of the subject under test's (SUT's) behaviour, rather than asserting little facts about the SUT. For example, when writing a test for when our <code>FrontController</code> is handling a request, we shouldn't start by asserting it gets a non-null <code>Command</code> from its <code>CommandFactory</code>, or assert that <code>CommandFactory.Create()</code> was called on a mock object. Instead our test was that it &quot;should tell the command that can process the request to process it&quot;.</p>
+
+
+
+
+<p>As I started picking up on later in the week, the former is really focussed on the mechanics of an implementation, while the latter is about the required behaviour. By being very descriptive about the behaviour, we end up driving out a lot of design in that one statement (in this case, the design decision is that we need a collaborator that can return a command that can process a request, and that our SUT will run that command). This technique also encourages the use of a very simple, targeted assertion in code, which lets us defer design decisions about the SUT's dependencies until we start writing the context/SetUp method for the test.</p>
+
+
+
+
+<p>This really comes down to the identification and segregation of responsibilities (as per the <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">Single Responsibility Principle (SRP)</a>). This process is really helped by attempting to identify the most abstract responsibilities beneath the SUT, while ensuring the SUT is still responsible for adding some behaviour. Or, put another way, the SUT should have only one small part to play in achieving it's overall reason for existence -- this is its single responsibility. Everything else is deferred to the implementation of its collaborators.</p>
+
+
+
+
+<p>Another TDD technique JP used was doing the &quot;simplest thing that makes sense&quot;, instead of the &quot;simplest thing that could possibly work&quot;. For the <code>FrontController</code> example, the simplest thing that could work when initially coding it would be injecting a single <code>Command</code> into the <code>FrontController</code> and asserting that the command was run. Then what? Move on to another SUT and leave a very defficient implementation of our <code>FrontController</code>? In this case, we know with absolute certainty that this class will need to process more than one type of <code>Command</code>, so the simplest thing that makes sense is for the <code>FrontController</code> to get a relevant command implementation from a <code>CommandRegistry</code> or similar type, rather than hard-wiring in a single command. This not only gives our <code>FrontController</code> less reasons to change (as per the <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">Open Closed Principle (OCP)</a>), but it also points out the next SUT we can drive out, the <code>CommandRegistry</code> implementation.</p>
+
+
+
+
+<div class="note"><b>Aside:</b> In retrospect, we could potentially get the same design in a more incremental fashion by still doing the simplest thing that will work but being especially diligent during the refactoring step of TDD. Just say our first attempt was to inject a single <code>Command</code> and assert it's run method was called. The test passes, and the next step is to look for refactoring opportunities. We notice the OCP violation, and refactor to introduce the <code>CommandFactory</code>, all under the protective cover of our passing test. I have a suspicion that it might be more reliable to think about the problem in abstract terms and have a <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">SOLID</a> design naturally fall out than to do the simplest thing that could work, and then run it through the gauntlet of SOLID principles, <a href="http://en.wikipedia.org/wiki/GRASP_%28Object_Oriented_Design%29">GRASP patterns</a> etc. Still, I find it comforting that if I miss the abstraction up front I still have a chance to get there via refactoring.</div>
+
+
+
+
+<h2>Other tidbits</h2>
+
+
+
+
+<p>Here is some other stuff that came up during day 3:</p>
+
+
+
+
+<ul>
+<li>A long context/SetUp for a test is a test smell that indicates we're probably doing too much. Push some of it down into other collaborators so we can defer decisions about it.</li>
+<li>Creating something is a responsibility. If a SUT needs to create something and act on it, then the creation should probably be pushed out into a Factory. The SUT is then only responsible for using the factory and its output (i.e. mediating between the two types).</li>
+<li>When designing and writing tests, focus on abstraction and intention rather than focussing on implementation and mechanics. Yes, I've written this already in this post. No, I probably haven't stressed it enough. </li>
+<li>If stubbed values are required for a test to work then these are tested implicitly when the test runs. In our <code>FrontController</code> example where it uses a <code>CommandRegistry</code> to get a <code>Command</code> and call its <code>Run()</code> method, we don't need to explicitly test that <code>CommandRegistry.Create()</code> was called. Instead we can stub out <code>Create()</code> to return a specific <code>Command</code> instance, and assert that its <code>Run()</code> method was called. We don't need to explicitly assert that the factory was used if the test's assertion already depends on it. This is a side-effect of identifying the simplest, fundamental assertion for a SUT rather than thinking about the implementation mechanics.</li>
+<li>By constraining ourselves to one ViewModel per View we can use convention over configuration to wire everything up.</li>
+<li>Went through the concept of a Service Layer, which is a type of Facade for operating on the domain.</li>
+<li>Went over Command Query Separation (CQS)</li>
+<li>Covered <a href="Separated Interface - implementation lives at a lower level than interface http://martinfowler.com/eaaCatalog/separatedInterface.html">Separated Interface</a>, where an implementation lives at a lower level than the interface itself. An example is a <code>Query</code> interface which is defined somewhere with visibility from all layers/components, but the implementation within the domain or by the ORM or persistence layer/component. This is why its ok to use NHibernate's criteria interfaces from pretty much anywhere within the application, provided the implementation is abstracted appropriately into a lower layer. The <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">Dependency Inversion Principle (DIP)</a> is used as a guide for applying the Separated Interface pattern (i.e. higher levels should not depend upon lower levels, but instead on interfaces using the Separated Interface pattern).</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Nothin' but .NET, Sydney 2009: Day 2]]></title>
+    <link href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-2.html"/>
+    <updated>2009-08-05T09:15:00+10:00</updated>
+    <id>http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-2</id>
+    <content type="html"><![CDATA[<p>Day 2 of <a href="http://www.jpboodhoo.com/training.oo">JP Boodhoo's Nothin' but .NET bootcamp</a> has come and gone. JP's been aiming for an 11pm stop, but we went through until about 12:30am. Which was awesome, because we had started covering some really interesting stuff. Apologies in advance for the rambling nature of this post, but most of it was done after 2am. :-\ I'll try and distil this stuff into some decent posts after the course.</p>
+
+
+
+
+<p>The main highlight I took away from the day was finally identifying the source of and solution to a lot of the problems I have when designing OO systems. Whenever I've tried test-driving a solution from top-down I've commonly found my tests seem to raise more questions than they answer. I'd struggle through writing one test, and have to almost-arbitrarily whack in a number of dependent classes that I'd need to contort in some strange way via mocking to get the assertion to pass.</p>
+
+
+
+
+<p>Turns out that this was on the right track (driving out dependencies), but for the wrong reason. I had been looking for any form of collaborator for my subject under test (SUT) in a vain effort to find something (anything!) to test. It all felt pretty contrived. The reason I was struggling is for the same reason I identified on <a href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-1.html">day 1</a>: I suck at segregation and assignment of responsibilities. When you start thinking of things you want to test on your SUT, they should all relate to one behaviour/concern/responsibility (SRP). Anything else, no matter how trivial it seems, really needs to be pushed into a collaborator. (The <a href="http://en.wikipedia.org/wiki/GRASP_%28Object_Oriented_Design%29">GRASP patterns</a> can really help in identifying what these collaborators should be.) This collaborator will most of the time need to be accessed via an interface, not a concrete class (DIP). This let's you drive out the intention behind each collaborator, without needing to fill in the shape, structure or implementation of them.</p>
+
+
+
+
+<p>This approach gives lots of very small, very focussed classes. It also produces very focussed interfaces for each collaborator (ISP). When it's done right it also means that when a responsibility needs to be added, it can generally be done without modifying existing classes, but instead producing another implementation of one of your collaborator interfaces (OCP).</p>
+
+
+
+
+<p>You'll notice I've littered a whole lot of TLAs (Three Letter Acronyms ;)) through those last couple of sentences -- that's my effort to tie these things back to the fundamental <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">SOLID principles</a>. Now I felt I had a really good understanding of SOLID, and I am very careful to consider any code I write in light of those principles, but I'd never taken them to their full, logical conclusion.</p>
+
+
+
+
+<p>Now there is one big downside to the designs that come out of thinking like this. The object model is very, very abstract and complex. You can't just hold the entire model in your head at once. It is not immediately obvious how some input at the top layer of the application works its way through the web of myriad of incredibly simple objects to give you some output at the other end. And you know what? I'm dead certain that this is the absolute entire point of Object Oriented development.</p>
+
+
+
+
+<p>Understanding the entire flow of an operation or application is the point of procedural programming. We know that if this value is x then it will go down this branch of an <code>if</code> condition, then that will call a method with this argument that will check some argument to call some other method... this is done in OO languages all the time. Sure there might be some OO niceties sprinkled around like polymorphism, composition etc but classes and objects can still end up being little more than glorified namespaces for organising functions.</p>
+
+
+
+
+<p>By contrast if you use OO programming to its fullest, you lose that immediately-apparent result you get from a more procedural style, and instead you get a whole bunch of almost-endless abstraction. The point of abstraction is that you don't need to understand the entire model, just the bit you are working on. But the benefit you get is that it becomes trivial to understand that small piece and affect how it works via its collaborators, whose implementations are equally easy to understand once you have stepped down into the next level of abstraction.</p>
+
+
+
+
+<p>Sure, it is hard to maintain context during huge leaps through abstraction layers, but again you don't really need the entire context. It seems to me that I need to let go of that procedural safety net of knowing all the complete paths through my application to truly start doing OO design right. And doing OO right means getting a new safety net -- having each piece of my application being trivial to understand, and almost as trivial to change its behaviour. As an aside, having these trivial components also makes your design very easy to test.</p>
+
+
+
+
+<h2>Patterns and principles</h2>
+
+
+
+
+<p>We also covered a few more patterns and principles today:</p>
+
+
+
+
+<ul>
+<li>Static Gateway as a static entry point to a DSL/fluent interface.</li>
+<li>A simple version of the Event Aggregator pattern for decoupling listeners and publishers. Basically you just have system-wide events published to and subscribed via an Event Aggregator, and then let multiple components respond independently to events of system-wide significance. This also makes it easier to handle exceptions that occur during callbacks than with traditional .NET event handling (which will generally halt an invocation of a MulticastDelegate). Also learned a cool way of using attributes to tie into the Event Aggregator (so members can be decorated to get called on a system-wide event). And found out about the <code>System.ComponentModel.EventHandlerList</code> class.</li>
+<li>Collecting Parameter pattern.</li>
+<li>Registry pattern for lookups.</li>
+<li>Object Mother for creating and setting up unit test data.</li>
+<li>The Front Controller pattern, the forerunner (?) to MVC and other separated presentation patterns. The Front Controller object becomes the entry point that maps inputs (e.g. from UI) into Commands, and uses these Commands to coordinate between Models and Views. I've probably got the details wrong, but we'll be doing more on this tomorrow.</li>
+<li>Null Object pattern for eliminating null checks, including on basic things like event invocation.</li>
+<li>The Highlander Principle: there can only be one. Translated, this means that related methods should all delegate to the method with the biggest number and specificity of parameters. This is particularly important for overridding.</li>
+<li>Decorator pattern. I've sometimes been hesitant to decorate classes where it only does something very trivial to the calls it delegates too, but this is really the entire point. Sure you have to reproduce several methods, but the power it gives you to augment behaviour while conforming to OCP has made me love this pattern again. :)</li>
+<li>We went through the Dependency Inversion Principle.</li>
+</ul>
+
+
+
+
+<h2>Miscellaneous stuff</h2>
+
+
+
+
+<p>Some other things I jotted down from today:</p>
+
+
+
+
+<ul>
+<li>You can put generic constraints on delegate definitions (this is pretty obvious in retrospect, but I hadn't thought about it before).</li>
+<li>We went through the difference between the <code>Delegate</code> type and the <code>delegate</code> keyword.</li>
+<li>The idea of closing a lambda/anonymous method down to a known delegate type.</li>
+<li>Const fields are copied to other assemblies when compiled, so updating the original assembly won't change the values in the other assemblies until they are recompiled.</li>
+<li>Closures can be replaced by a class with state and then pointing to a function of that class (which is what the compiler generates for closures anyway).</li>
+<li>Referring to passing delegates around as "passing behaviours".</li>
+<li>Naming test contexts very simply helps to isolate responsibilities. Any behaviour not specified in the tests for a SUT generally means that those concerns are delegated to dependencies.</li>
+<li>When writing tests/specs, focus on the happy path where everything goes right. We can then choose to defer exceptions to this path to a dependency, or to flesh out the behaviour in later tests/specs.</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

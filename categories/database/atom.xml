@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: database | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/database/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Getting results from Oracle procedures for TSQL people]]></title>
+    <link href="http://davesquared.net/2008/07/getting-results-from-oracle-procedures.html"/>
+    <updated>2008-07-18T09:34:00+10:00</updated>
+    <id>http://davesquared.net/2008/07/getting-results-from-oracle-procedures</id>
+    <content type="html"><![CDATA[<p>I haven't used Oracle since Uni, and the small amount of PL/SQL I've had to do over the last year hasn't been enough to get me passed the awkward SQL Server developer-trapped-in-a-PL/SQL world phase yet. (Although I am enjoying it much more now I've got a real IDE in Toad, compared with the ancient, clunky piece of rubbish I was using before.)</p>
+
+
+
+
+<p>In SQL Server, anything you SELECT inside a procedure will be returned to the caller, which makes it really easy to call an SP in Query Analyzer or similar and see what's happening. Oracle is, well, different. You need to explicitly return cursors over results, and unless you call it the right way all you'll get is a handy &quot;PL/SQL procedure successfully completed&quot; message.</p>
+
+
+
+
+<p>Here's a quick example of how TSQL people can get results out of Oracle with a minimum of fuss. First, say we have a simple procedure that takes a postcode (aka ZIP code) and returns matching results:</p>
+
+
+
+
+<pre>
+CREATE OR REPLACE PROCEDURE GetSamplesByPostcode 
+(
+    pi_postCode IN NUMBER,
+    samples OUT SYS_REFCURSOR
+) 
+IS
+BEGIN
+    OPEN samples FOR
+    SELECT *
+    FROM SAMPLE s
+    WHERE s.PostCode = pi_postCode;
+END GetSamplesByPostcode;
+</pre>
+
+
+
+
+<p>We can then call this within SQL*Plus or Toad, by turning on autoprint, and by using a bind variable to get the results out:</p>
+
+
+
+
+<pre>
+SET AUTOPRINT ON
+VAR sample_cur REFCURSOR;
+BEGIN
+    GetSamplesByPostcode(2000, :sample_cur);
+END;
+</pre>
+
+
+
+
+<p>This will print the relevant results returned by the bound <code>sample_cur</code> variable, and give Toad users a nice grid view of the results too.</p>
+
+
+
+
+<p>Check the Oracle docs for more on <a href="http://download.oracle.com/docs/cd/B19306_01/server.102/b14357/ch5.htm#sthref1118">bind variables</a>.</p>
+
+
+
+
+<div class="note">If you want to get at the data using .NET, check out the <a href="http://download.oracle.com/docs/cd/B19306_01/win.102/b14307/toc.htm">Oracle .NET Data Provider documentation</a>, or MSDN for an overview on using the <a href="http://msdn.microsoft.com/en-us/library/ms971506.aspx">Microsoft .NET Oracle Provider</a>.</div>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Oracle PL/SQL's maximum identifier length]]></title>
+    <link href="http://davesquared.net/2007/09/oracle-plsql-maximum-identifier-length.html"/>
+    <updated>2007-09-28T11:11:00+10:00</updated>
+    <id>http://davesquared.net/2007/09/oracle-plsql-maximum-identifier-length</id>
+    <content type="html"><![CDATA[<p>I wanted to call it <code>GetTransactionTemplateCountForUser</code>. Oracle has decided that's not a good idea:</p>
+
+
+<p> <blockquote>Error: PLS-00114: identifier 'GETTRANSACTIONTEMPLATECOUNTFOR' too long</blockquote> <p>I guess <a href="http://pls-00114.ora-code.com/">30 characters</a> <a href="http://tickletux.wordpress.com/2007/02/20/did-bill-gates-say-the-640k-line/">ought to be enough for anyone</a>, right?</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Everything about dynamic search conditions in T-SQL]]></title>
+    <link href="http://davesquared.net/2007/09/everything-about-dynamic-search.html"/>
+    <updated>2007-09-25T14:02:00+10:00</updated>
+    <id>http://davesquared.net/2007/09/everything-about-dynamic-search</id>
+    <content type="html"><![CDATA[<p>There are several common methods for using dynamic search conditions (a.k.a. optional parameters) in SQL. By dynamic search conditions, I am talking about passing through several criteria to a stored procedure or similar, but only filtering by the criteria that have values specified (i.e. are not null).</p>
+
+
+<p> <p>To illustrate this, here is one <a href="http://weblogs.asp.net/rmclaws/archive/2004/02/18/75381.aspx">common method</a>:</p><pre>SELECT *<br>FROM Orders<br>WHERE<br> (@productName IS NULL OR Orders.ProductName LIKE @productName + '%')<br> AND<br> (@orderDate IS NULL OR Orders.DatePlaced = @orderDate)<br></pre><br></p>
+
+<p>This will let you filter the orders by product name, the date placed, or return all results unfiltered. Unfortunately SQL Server can't figure out how to use an index for this situation, so you end up with full table scans and the subsequent performance hit (which may or may not be a problem for you depending on things like your table size). </p>
+
+
+<p>There are several variations on this theme, including <a href="http://blogs.technet.com/wardpond/archive/2006/07/10/database-programming-one-last-gasp-on-optional-parameters.aspx">using COALESCE</a> (note retraction at top of that post), or inverting the conditions (using <code>(@productName IS NOT NULL AND Orders.ProductName=@productName) OR ...</code>) which can help by calculating the filter earlier and potentially allowing index scans. Another option is to use dynamic SQL to build up the appropriate condition, but that way is <a href="http://www.sommarskog.se/dynamic_sql.html">fraught with its own perils</a>.</p>
+
+
+<p><a href="http://www.sommarskog.se/">Erland Sommarskog's</a> article, <a href="http://www.sommarskog.se/dyn-search.html">Dynamic Search Conditions in T-SQL</a>, covers everything you ever wanted to know about this topic, but were afraid to ask. It really is a must read for anyone working with SQL (unless you've given up on the whole structured query language thing and are holding out for LINQ-to-SQL ;)).</p>
+
+
+<p><hints id="hah_hints"></hints></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Guard against SQL injection in dynamic PL/SQL]]></title>
+    <link href="http://davesquared.net/2007/09/guard-against-sql-injection-in-dynamic.html"/>
+    <updated>2007-09-25T12:23:00+10:00</updated>
+    <id>http://davesquared.net/2007/09/guard-against-sql-injection-in-dynamic</id>
+    <content type="html"><![CDATA[<p>I am slowly coming to terms with Oracle again, after a decade or so of using SQL Server exclusively. One way to guard again SQL injection in SQL Server is to use <a href="http://blogs.msdn.com/raulga/archive/2007/01/04/dynamic-sql-sql-injection.aspx">parameterisation and sp_executesql</a>.</p>
+
+
+<p> <p>From <a href="http://blogs.msdn.com/raulga/archive/2007/01/04/dynamic-sql-sql-injection.aspx">Raul Garcia's example</a>:</p><pre>  declare @cmd nvarchar(max)
+  declare @parameters nvarchar(max)
+  set @cmd = N'SELECT * FROM sys.database_principals WHERE name = @name'
+  set @parameters = '@name sysname'
+  EXEC sp_executesql @cmd, @parameters, @name = @name </pre></p>
+
+<p>To do this <a title="parameterisation in Oracle" href="http://download.oracle.com/docs/cd/B28359_01/appdev.111/b28370/dynamic.htm#BJEDAHEE">parameterisation in Oracle</a> (I am using 10g) you can&nbsp;use <a href="http://download.oracle.com/docs/cd/B28359_01/appdev.111/b28370/dynamic.htm#BJEDAHEE">bind arguments</a>, as per this code snippet:</p>
+
+
+<pre>  l_username := 'dav';
+  OPEN l_cursor FOR
+    'SELECT *
+     FROM myTable t
+     WHERE 
+       t.created_by LIKE <strong>:username</strong> || ''%'''
+     USING <strong>l_username</strong>; 
+<em>  -- fetch from, then close cursor --</em></pre>
+
+
+<p>Here <code>:username</code> is bound to the value in <code>l_username</code> via the <code>USING</code> clause,&nbsp;so no tricky <code>'''; DROP TABLE myTable; --'</code> style nonsense here, thanks very much :).</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Rob Conery on text mining and analysis]]></title>
+    <link href="http://davesquared.net/2007/09/rob-conery-on-text-mining-and-analysis.html"/>
+    <updated>2007-09-14T07:48:00+10:00</updated>
+    <id>http://davesquared.net/2007/09/rob-conery-on-text-mining-and-analysis</id>
+    <content type="html"><![CDATA[<p>Rob has posted <a title="part 1 of a series on mining unstructured data" href="http://blog.wekeroad.com/2007/09/12/text-mining-and-analysis-with-linqtosql-part-1/">part 1 of a series on mining unstructured data</a>. He goes through some basics on ETL (Extraction, Transformation, Loading) and natural language parsing, implements a text miner using LinqToSql, and analyses the results. For the next part we are promised some data warehousing tricks, more analysis techniques, and some OLAP with Excel.&nbsp;It has been an interesting read for me as I am pretty unfamiliar with this area of IT. </p>
+
+]]></content>
+  </entry>
+  
+</feed>

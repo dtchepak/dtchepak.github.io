@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Random software dev thoughts (June 2011 edition) - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I&#8217;ve been struggling with a few thoughts on software development lately, and said as much on Twitter. OJ suggested I blog it, so here goes a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2011/06/random-software-dev-thoughts-june-2011.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Random software dev thoughts (June 2011 edition)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-06-03T21:13:00+10:00" pubdate data-updated="true">03 Jun 2011</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I&#8217;ve been struggling with a few thoughts on software development lately, and <a href="https://twitter.com/davetchepak/status/76402646948380674">said as much</a> on Twitter. <a href="http://twitter.com/thecolonial">OJ</a> suggested I blog it, so here goes a rambling, incoherent post (even more so than usual). Entirely OJ&#8217;s fault. ;)</p>
+
+<h2>Abstraction</h2>
+
+<p>Back in the old days I spent more time than I care to admit writing procedural code in classes. More recently I&#8217;ve also played around with <a href="http://davesquared.net/2010/09/wrap-up-from-tdd-and-ooo-at-sydney.html">Over-enthusiastic OO (OOO)</a>, using insanely fine-grained objects for everything. These approaches roughly correspond to not enough and too much abstraction.</p>
+
+<p>And so begins my hunt for the right amount of abstraction. I find fine-grained objects with single responsibilities really nice to work with at a micro level, but at a macro level the weight of useless abstractions can be crushing.</p>
+
+<p>This weight is a symptom of violating the <a href="http://www.codemanship.co.uk/parlezuml/blog/?postid=934">Reused Abstractions Principle (RAP)</a>, which Mark <a href="http://blog.ploeh.dk/2010/12/02/InterfacesAreNotAbstractions.aspx">explains very nicely</a>. (I&#8217;ve also experienced this as the NAF problem, or &#8220;Not Another Factory&#8221;. Anyone else felt this?) The trick is finding the &#8220;right&#8221; abstraction that captures a reusable aspect of the system. This is made harder in C# by the fact(?) that it makes effective unit testing difficult without creating abstractions everywhere.</p>
+
+<p>So my options include hoping to drive out the right abstractions and assume that this will magically make it easy to test without using otherwise useless abstractions, or starting to use more real stuff in unit tests (having larger units, with potentially more suitable abstractions), in which case my tests get messier as I <a href="http://davesquared.net/2009/11/favour-test-driving-logic-over-data.html">throw loads of data through my tests</a> to exercise all the code paths.</p>
+
+<p>One thing I&#8217;ll definitely rule out is going back to procedural code where classes are little more than a namespace, as I found this quickly became unmanageable; difficult to change, impossible to test effectively, and a nightmare to build on. At least my poorly chosen, testable abstractions are better than untestable spaghetti.</p>
+
+<h2>Refactoring</h2>
+
+<p>Another thing I&#8217;m struggling with is refactoring. I find the distinction between <a href="http://davesquared.net/2010/02/refactor-or-redesign.html">refactoring and redesign</a> helps, but it&#8217;s not always quite that simple. Sometimes despite refactoring the little section of the code you&#8217;re currently working in and around, the tendrils of previous design decisions still reach out across many other classes. Once you have coupling like this, when can you ever clean it up by refactoring alone?</p>
+
+<p>Contrived example: if you have ye olde layered architecture and are passing data (or transformations of the same data) through the layers and through multiple classes, untangling all the places this data has spread can only really be tackled in a redesign. And, as described in my original post, once you are in the territory of redesign you are optimising for today&#8217;s cases and possibly making your next change harder if it tries to flex in a different direction. On the other hand, the overall design is getting increasingly bloated and harder to understand as you continue to build on it while making localised design changes using refactoring.</p>
+
+<p>Is it possible to gradually refactor even these wide-spread problems? Or are there times when you just have to bite the bullet and redesign? Is it just a case of writing off the redesign time that could otherwise be spent on features your customers care about, in the hope it will speed you up later? Or is it a case of admitting defeat; the design can actually become too compromised to completely fix if we miss too many cues to refactor, and we just have to go into legacy code mode and keep making local improvements in the hope that these isolated changes will eventually link up and restore a fairly clean, usable design?</p>
+
+<h2>End rant</h2>
+
+<p>So those are the problems that are currently weighing on my mind.</p>
+
+<p>On one hand, I can see an incredible amount of value in using very fine abstractions, but on the other abstractions can quickly turn into a dead weight that impedes progress. I&#8217;m torn between continuing to get the benefit of lots of small classes, and trying to reduce the amount of weight and noise contributed by the less-useful of my abstractions.</p>
+
+<p>On the refactoring side, I&#8217;ve advocated small, localised refactoring in the hope of gradually pushing a design into good shape, but I&#8217;ve also observed times when this just doesn&#8217;t seem possible. In these cases the only options seem redesigning larger areas of code, or just capitulating to entropy and keeping small islands of cleanliness within the mess (this is in keeping with Eric Evans&#8217; somewhat depressing observation that &#8220;the natural state of all software is a big ball of mud&#8221;). The problem here is trying to decide what approach to take, and balancing time invested now versus the future cost of not making that investment. I&#8217;m also bothered by the idea that the only evidence we have to base this decision on is poorly-informed guesswork and gambling based on that.</p>
+
+<p>Experience over multiple projects would most definitely help this, but as the real pain of this stuff seems to be felt in large-ish, multi-year projects, this experience and chances to experiment with different approaches is hard to come by.</p>
+
+<p>As a quick aside, I&#8217;m pretty sure these two problems I&#8217;m having are closely related.</p>
+
+<p>Appreciate any thoughts or counselling on offer. :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-06-03T21:13:00+10:00" pubdate data-updated="true">03 Jun 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/dev-practices/'>dev practices</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2011/06/random-software-dev-thoughts-june-2011.html" data-via="" data-counturl="http://davesquared.net/2011/06/random-software-dev-thoughts-june-2011.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/05/rx-newbie-observes-property-changes.html" title="Previous Post: An Rx newbie observes property changes">&laquo; An Rx newbie observes property changes</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/06/abstraction-and-oo.html" title="next Post: Abstraction and OO">Abstraction and OO &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2011/06/random-software-dev-thoughts-june-2011.html';
+        var disqus_url = 'http://davesquared.net/2011/06/random-software-dev-thoughts-june-2011.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

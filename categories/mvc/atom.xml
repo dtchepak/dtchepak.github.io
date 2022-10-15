@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: mvc | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/mvc/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Link: Tutorial on ASP.NET MVC]]></title>
+    <link href="http://davesquared.net/2007/10/link-tutorial-on-aspnet-mvc.html"/>
+    <updated>2007-10-18T09:33:00+10:00</updated>
+    <id>http://davesquared.net/2007/10/link-tutorial-on-aspnet-mvc</id>
+    <content type="html"><![CDATA[<p>Sergio Pereira has a great overview of the recently announced, pre-release&nbsp;ASP.NET MVC Framework:</p>
+
+
+<p> <p><a href="http://www.sergiopereira.com/articles/aspnetmvc.html">Developer Notes for the ASP.NET MVC Framework</a> </p> <p>He covers the file system layout, routing, implementing each part of the triad, and testing.</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ASP.NET MVC framework]]></title>
+    <link href="http://davesquared.net/2007/10/aspnet-mvc-framework.html"/>
+    <updated>2007-10-08T10:03:00+10:00</updated>
+    <id>http://davesquared.net/2007/10/aspnet-mvc-framework</id>
+    <content type="html"><![CDATA[<p>Jeffrey Palermo has blogged his thoughts on the new <a title="ASP.NET MVC framework" href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/10/05/altnetconf-scott-guthrie-announces-asp-net-mvc-framework-at-alt-net-conf.aspx">ASP.NET MVC framework</a> ScottGu is covering at the Alt.Net conference. This is the one <a href="http://haacked.com/archive/2007/09/17/why-is-microsoft-removing-my-mvp-status.aspx">Phil Haack has signed up for</a>. Besides the overall niceness of MVC (and the option to skip some of the standard WebForm complexity), I love that it will have hooks to plug other offerings in, such as using MonoRail as the view engine instead of ASPX. </p>
+
+
+<p> <p><strong>UPDATE 2007-10-15</strong>: ScottGu has posted his <a href="http://weblogs.asp.net/scottgu/archive/2007/10/14/asp-net-mvc-framework.aspx">summary of the MVC framework</a>, and is promising some tutorials exploring the framework in more depth over the coming weeks.</p></p>
+]]></content>
+  </entry>
+  
+</feed>

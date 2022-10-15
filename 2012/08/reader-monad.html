@@ -1,0 +1,354 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Reader monad - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="The Reader monad is used to pass one value as an argument to a number of function calls. This can be useful when you require some configuration or &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/08/reader-monad.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Reader monad</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-08-12T18:00:00+10:00" pubdate data-updated="true">12 Aug 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>The Reader monad is used to pass one value as an argument to a number of function calls. This can be useful when you require some configuration or environment information accessible from a block of functions.</p>
+<p>This monad is provided in Haskell’s standard libraries, but let’s have a go at creating it ourselves.</p>
+<!-- more -->
+<h2 id="a-sample-problem">A sample problem</h2>
+<p>Say we have a <code>Person</code> data type with a <code>name</code>, <code>age</code> and <code>address</code>, and we want to write a <code>showPerson</code> function to display these details in a string.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">data</span> <span class="kt">Person</span> <span class="ow">=</span> <span class="kt">Person</span> <span class="p">{</span> <span class="n">name</span> <span class="ow">::</span> <span class="kt">String</span><span class="p">,</span> <span class="n">age</span> <span class="ow">::</span> <span class="kt">Int</span><span class="p">,</span> <span class="n">address</span> <span class="ow">::</span> <span class="kt">String</span> <span class="p">}</span>
+
+<span class="nf">showPerson</span> <span class="ow">::</span> <span class="kt">Person</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">showPerson</span> <span class="n">person</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">x</span> <span class="ow">=</span> <span class="s">&quot;Name: &quot;</span> <span class="o">++</span> <span class="n">name</span> <span class="n">person</span>
+        <span class="n">y</span> <span class="ow">=</span> <span class="s">&quot;Age: &quot;</span> <span class="o">++</span> <span class="p">(</span><span class="n">show</span> <span class="o">.</span> <span class="n">age</span><span class="p">)</span> <span class="n">person</span>
+        <span class="n">z</span> <span class="ow">=</span> <span class="s">&quot;Address: &quot;</span> <span class="o">++</span> <span class="n">address</span> <span class="n">person</span>
+    <span class="kr">in</span> <span class="n">unlines</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">]</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Notice how we need to pass the <code>person</code> argument around everywhere? It would be nice to be able to have all this run in the context of a particular <code>person</code>, and that’s what the Reader monad lets us do.</p>
+<p>Rather than having the <code>x</code>, <code>y</code>, and <code>z</code> parts of the <code>showPerson</code> function each evaluating to a string, how about we instead treat them as functions of type <code>Person -&gt; String</code>. We’d like to compose all these together and return a value which is a combination of the previous results, which <a href="/2012/06/fp-newbie-learns-monads.html">sounds like something we can use a monad for</a>.</p>
+<h2 id="implementing-a-monad-for-single-argument-functions">Implementing a monad for single argument functions</h2>
+<p>Rather than the specific <code>Person -&gt; String</code> functions from the example, we can look at the general case of a function <code>r -&gt; a</code>, or a function that reads some value of type <code>r</code> and returns some other value. We are interested in the <code>r -&gt;</code> bit, but Haskell won’t let us do that. Instead we need to write it as <code>(-&gt;) r</code>.</p>
+<div class="note">
+<strong>Aside:</strong> In Haskell we can move an operator from infix position such as <code>1 + 2</code> to prefix position as <code>(+) 1 2</code>. This is just what we’ve done in moving <code>r -&gt; a</code> to <code>(-&gt;) r a</code>.
+</div>
+<p>All monads are functors, so let’s implement that first:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="c1">-- For some functor f:</span>
+<span class="c1">--     fmap :: (a -&gt; b) -&gt; f a -&gt; f b</span>
+<span class="c1">-- For ((-&gt;) r), substitute in for f:</span>
+<span class="c1">--     fmap :: (a -&gt; b) -&gt; ((-&gt;) r) a -&gt; ((-&gt;) r) b</span>
+<span class="c1">-- Rewrite in infix position:</span>
+<span class="c1">--     fmap :: (a -&gt; b) -&gt; (r -&gt; a) -&gt; (r -&gt; b)</span>
+<span class="c1">-- The only real way to implement a function of this type is</span>
+<span class="c1">-- using function composition.</span>
+<span class="kr">instance</span> <span class="kt">Functor</span> <span class="p">((</span><span class="ow">-&gt;</span><span class="p">)</span> <span class="n">r</span><span class="p">)</span> <span class="kr">where</span>
+    <span class="n">fmap</span> <span class="ow">=</span> <span class="p">(</span><span class="o">.</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can follow the same trail of types to implement the monad type class:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="c1">-- For a monad m:</span>
+<span class="c1">--     (&gt;&gt;=) :: m a -&gt; (a -&gt; m b) -&gt; m b</span>
+<span class="c1">-- Substitute ((-&gt;) r) for m:</span>
+<span class="c1">--     (&gt;&gt;=) :: (r -&gt; a) -&gt; (a -&gt; r -&gt; b) -&gt; r -&gt; b</span>
+<span class="kr">instance</span> <span class="kt">Monad</span> <span class="p">((</span><span class="ow">-&gt;</span><span class="p">)</span> <span class="n">r</span><span class="p">)</span> <span class="kr">where</span>
+    <span class="n">return</span> <span class="ow">=</span> <span class="n">const</span>
+    <span class="n">f</span> <span class="o">&gt;&gt;=</span> <span class="n">g</span> <span class="ow">=</span> <span class="nf">\</span><span class="n">r</span> <span class="ow">-&gt;</span> <span class="kr">let</span> <span class="n">a</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">r</span>
+                    <span class="kr">in</span> <span class="n">g</span> <span class="n">a</span> <span class="n">r</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can now rewrite our <code>showPerson</code> example by binding together the functions that read the <code>Person</code> information using <code>&gt;&gt;=</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">showPerson</span> <span class="ow">::</span> <span class="kt">Person</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">showPerson</span> <span class="ow">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s">&quot;Name: &quot;</span> <span class="o">++</span><span class="p">)</span> <span class="o">.</span> <span class="n">name</span>        <span class="o">&gt;&gt;=</span> <span class="nf">\</span><span class="n">x</span> <span class="ow">-&gt;</span>
+        <span class="p">(</span><span class="s">&quot;Age: &quot;</span> <span class="o">++</span><span class="p">)</span> <span class="o">.</span> <span class="n">show</span> <span class="o">.</span> <span class="n">age</span>   <span class="o">&gt;&gt;=</span> <span class="nf">\</span><span class="n">y</span> <span class="ow">-&gt;</span>
+        <span class="p">(</span><span class="s">&quot;Address: &quot;</span> <span class="o">++</span><span class="p">)</span> <span class="o">.</span> <span class="n">address</span>  <span class="o">&gt;&gt;=</span> <span class="nf">\</span><span class="n">z</span> <span class="ow">-&gt;</span>
+        <span class="n">return</span> <span class="p">(</span><span class="n">unlines</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">])</span>
+    <span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Alternatively we can use Haskell’s do-notation. (The two forms are equivalent; Haskell will turn this into the same code as the above snippet, but do-notation tends to look neater.)</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">showPerson</span> <span class="ow">::</span> <span class="kt">Person</span> <span class="ow">-&gt;</span> <span class="kt">String</span>
+<span class="nf">showPerson</span> <span class="ow">=</span> <span class="kr">do</span>
+    <span class="n">x</span> <span class="ow">&lt;-</span> <span class="p">(</span><span class="s">&quot;Name: &quot;</span> <span class="o">++</span><span class="p">)</span> <span class="o">.</span> <span class="n">name</span>
+    <span class="n">y</span> <span class="ow">&lt;-</span> <span class="p">(</span><span class="s">&quot;Age: &quot;</span> <span class="o">++</span><span class="p">)</span> <span class="o">.</span> <span class="n">show</span> <span class="o">.</span> <span class="n">age</span>
+    <span class="n">z</span> <span class="ow">&lt;-</span><span class="p">(</span><span class="s">&quot;Address: &quot;</span> <span class="o">++</span><span class="p">)</span> <span class="o">.</span> <span class="n">address</span>
+    <span class="n">return</span> <span class="o">.</span> <span class="n">unlines</span> <span class="o">$</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">]</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="built-in-reader">Built-in reader</h2>
+<p>We can import <a href="http://hackage.haskell.org/packages/archive/mtl/2.1.1/doc/html/Control-Monad-Reader.html">Control.Monad.Reader</a> to make our <code>showPerson</code> examples compile without having to define the reader implementation ourselves.</p>
+<p>This implementation also provides a <code>Reader</code> type and <code>ReaderT</code> monad transformer, along with <code>ask</code>, <code>asks</code>, and <code>local</code> functions to access the passed in environment, and a <code>runReader</code> function to pass an environment to a <code>Reader</code> and get the result. I haven’t had a need for these yet, but thought I’d mention them as they crop up in examples all the time. (I’m guessing these functions are most useful when using reader with monad transformers, but I’m still trying to work those out. :))</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-08-12T18:00:00+10:00" pubdate data-updated="true">12 Aug 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/08/reader-monad.html" data-via="" data-counturl="http://davesquared.net/2012/08/reader-monad.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/07/composition-via-scary-sounding-maths-terms.html" title="Previous Post: Composition via scary-sounding maths terms">&laquo; Composition via scary-sounding maths terms</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/09/imperative-world.html" title="next Post: It's an imperative, mutable world out there">It's an imperative, mutable world out there &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/08/reader-monad.html';
+        var disqus_url = 'http://davesquared.net/2012/08/reader-monad.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

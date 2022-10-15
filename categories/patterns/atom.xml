@@ -1,0 +1,1361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: patterns | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/patterns/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Aggregation]]></title>
+    <link href="http://davesquared.net/2017/11/aggregation.html"/>
+    <updated>2017-11-04T17:30:00+11:00</updated>
+    <id>http://davesquared.net/2017/11/aggregation</id>
+    <content type="html"><![CDATA[<p>Today I wanted to look at an approach for producing aggregate data from multiple measurements over a source. I'm learning <a href="https://kotlinlang.org/">Kotlin</a> at the moment so I'll use that for the examples in this post, but we can apply the same idea to pretty much any language (I've used similar approaches in F#, and it would work with C# albeit with a bit more code noise). <!-- more --> Any feedback on the approach in general and on my Kotlin-ing attempts is appreciated.</p>
+
+<h2>Motivating example</h2>
+
+<p>For this post we'll consider the example of a list of <code>Sample</code> values we want aggregate information for. A <code>Sample</code> includes the month and year it was collected, and an integer representing the value sampled. For each set of samples we are required to show the following information:</p>
+
+<ul>
+<li>The total value sampled for each month and year</li>
+<li>The earliest sample date in this data set</li>
+<li>The largest individual sample collected</li>
+<li>A count of how many samples where within a specific range.</li>
+</ul>
+
+
+<pre><code class="kotlin">data class MonthYear(val year: Int, val month: Int) : Comparable&lt;MonthYear&gt; { /* ... */ }
+data class Sample(val date: MonthYear, val value: Int)
+</code></pre>
+
+<h2>Initial attempts</h2>
+
+<p>We could neatly get each individual bit of information by using multiple queries<a href="Example">^multipleQueries</a>, but requiring multiple iterations seems quite wasteful, especially for larger data sets. Instead we could use multiple variables, or an aggregate type containing those variables, and update each as we loop or fold over the data set:</p>
+
+<pre><code class="kotlin">data class CandidateAggregate(var data: Map&lt;MonthYear, Int&gt;,
+                              var earliestSampleDate: MonthYear?,
+                              var largestSample: Int,
+                              var inRangeCount: Int)
+
+val result = samples.fold(
+        CandidateAggregate(emptyMap(), null, 0, 0), // empty case
+        { acc, s -&gt;
+            CandidateAggregate(
+                acc.data.insertOrUpdate(s.date) { if (it==null) s.value else it + s.value },
+                minOf(acc.earliestSampleDate ?: s.date, s.date),
+                maxOf(acc.largestSample, s.value),
+                acc.inRangeCount + if ((100..200).contains(s.value)) 1 else 0
+            )
+        })
+
+/** Helper for updating the value for a key in a map, or inserting it if it does not exist. */
+private fun &lt;K, V&gt; Map&lt;K, V&gt;.insertOrUpdate(key: K, transform: (V?) -&gt; V): Map&lt;K, V&gt; =
+        plus(key to transform(get(key)))
+</code></pre>
+
+<p>This seems a reasonable approach to me, and we'll take this and adapt it in an attempt to get a few additional benefits:</p>
+
+<ul>
+<li>Include more information about the type of calculation used for each field in the aggregate</li>
+<li>Enable reuse of specific calculations in other aggregates</li>
+<li>Enable independent testing of each calculation type</li>
+<li>Make it fairly simple to change existing aggregates, and to create new ones.</li>
+</ul>
+
+
+<h2>Representing aggregate calculations</h2>
+
+<p>First we'll create a type to represent values that can be combined. We'll use Kotlin's <code>plus</code> operator for this purpose.</p>
+
+<pre><code class="kotlin">/** A type [T] with an associative binary operation. Must satisfy the associative property:  `a + (b + c) == (a + b) + c` */
+interface Semigroup&lt;T&gt; {
+    operator fun plus(other: T): T
+}
+</code></pre>
+
+<p>We'll steal the term "<a href="https://en.wikipedia.org/wiki/Semigroup">semigroup</a>" from mathematics as its definition includes the constraints our <code>plus</code> operation needs<a href="A">^semigroup</a>, although we could also call it <code>Combinable</code> or <code>Addable</code> or something else if we prefer.</p>
+
+<p>If you haven't used Kotlin before, defining a <code>plus</code> operator function lets us also use the <code>+</code> symbol, so <code>a + b</code> will get translated to <code>a.plus(b)</code>. Whenever you see two semigroups being added using <code>+</code> for the remainder of this post, keep in mind it will be calling the <code>plus</code> function defined by that semigroup instance. (If you don't like co-opting <code>+</code> in this way feel free to change the interface to declare <code>fun combine(other: T): T)</code> or similar.)</p>
+
+<p>Next, we'll define instances that represent sum, max, and min aggregation:</p>
+
+<pre><code class="kotlin">data class Sum(val value: Int) : Semigroup&lt;Sum&gt; {
+    override fun plus(other: Sum): Sum = Sum(value + other.value)
+}
+
+data class Max&lt;T : Comparable&lt;T&gt;&gt;(val value: T) : Semigroup&lt;Max&lt;T&gt;&gt; {
+    override operator fun plus(other: Max&lt;T&gt;) = Max(maxOf(value, other.value))
+}
+
+data class Min&lt;T : Comparable&lt;T&gt;&gt;(val value: T) : Semigroup&lt;Min&lt;T&gt;&gt; {
+    override operator fun plus(other: Min&lt;T&gt;) = Min(minOf(value, other.value))
+}
+</code></pre>
+
+<p>Looking at our <code>CandidateAggregate</code> from earlier, we also need to handle nullable values (<code>earliestSampleDate: MonthYear?</code>), as well as combining <code>Map&lt;MonthYear, Int&gt;</code> values. Rather than building these specifically for this case, we can express these concepts more generally in terms of other semigroups, so they can be reused for different cases:</p>
+
+<pre><code class="kotlin">/**
+ * Combine nullable values. Use the semigroup instance to combine if both have values, or if only
+ * one value is present use that.
+ */
+data class Nullable&lt;T : Semigroup&lt;T&gt;&gt;(val value: T?) : Semigroup&lt;Nullable&lt;T&gt;&gt; {
+    override fun plus(other: Nullable&lt;T&gt;): Nullable&lt;T&gt; =
+            if (value != null &amp;&amp; other.value != null) {
+                Nullable(value + other.value) // Reminder: `+` here will call T.plus defined for the Semigroup&lt;T&gt;.
+            } else {
+                Nullable(this.value ?: other.value)
+            }
+}
+
+/**
+ * Merge [Map]s where the values have a semigroup instance. If both maps have an entry for the same key, these
+ * will be combined using the semigroup operation.
+ */
+data class Mapped&lt;K, V : Semigroup&lt;V&gt;&gt;(val value: Map&lt;K, V&gt;) : Semigroup&lt;Mapped&lt;K, V&gt;&gt; {
+    override fun plus(other: Mapped&lt;K, V&gt;): Mapped&lt;K, V&gt; =
+            value.entries.fold(other.value) { acc, entry -&gt;
+                acc.insertOrUpdate(entry.key) { if (it != null) it + entry.value else entry.value }
+            }.let { Mapped(it) }
+}
+</code></pre>
+
+<p>Each of these operations is implemented quite similarly to the code we used for each field in <code>CandidateAggregate</code>, but now we can reuse them for different aggregates, as well as test each in isolation. The cost is we have now spread this code across more types.</p>
+
+<p>We can also write some general functions, <code>concat</code> and <code>concatMap</code>, to combine any list of <code>Semigroup&lt;T&gt;</code> values into a single <code>Semigroup&lt;T&gt;</code> value, effectively combining aggregates^[Both <code>concat</code> and <code>concatMap</code> take an <code>empty: T</code> value for cases where the <code>items</code> lists are empty. We could use a <code>Monoid</code> constraint instead of <code>Semigroup</code>, which adds the concept of an empty identity element, but I found this messy to implement in Kotlin.]. Here is an example of how to define and use these functions (as well as an example of testing <code>Sum</code> and <code>Max</code> in isolation):</p>
+
+<pre><code class="kotlin">/** Reduce a list of `T` to a single `T` using a semigroup operation */
+fun &lt;T : Semigroup&lt;T&gt;&gt; concat(empty: T, items: Iterable&lt;T&gt;) = items.fold(empty) { acc, t -&gt; t + acc }
+
+/** Reduce a list of [A] by converting each item to a [T] with a semigroup instance, then combining to a single value using [concat]. */
+fun &lt;T : Semigroup&lt;T&gt;, A&gt; concatMap(empty: T, items: Iterable&lt;A&gt;, f: (A) -&gt; T) =
+        items.fold(empty) { acc, t -&gt; f(t) + acc }
+        /* Note: this is logically equivalent to the simpler:
+         *      concat(empty, items.map(f))
+         * But this would do two passes through the list.
+         */
+
+@Test
+fun examples() {
+    val list = listOf(42, 123, 19, 73)
+    assertEquals(Sum(257), Semigroup.concatMap(Sum(0), list) { Sum(it) })
+    assertEquals(Max(123), Semigroup.concatMap(Max(0), list) { Max(it) })
+}
+</code></pre>
+
+<h2>Using our aggregation types</h2>
+
+<p>Now we can rewrite <code>CandidateAggregate</code> using our aggregation types:</p>
+
+<pre><code class="kotlin">data class Aggregate(var data: Mapped&lt;MonthYear, Sum&gt;,
+                     var earliestSampleDate: Nullable&lt;Min&lt;MonthYear&gt;&gt;,
+                     var largestSample: Max&lt;Int&gt;,
+                     var inRange: Sum) : Semigroup&lt;Aggregate&gt; {
+    companion object {
+        val empty = Aggregate(Mapped(emptyMap()), Nullable(null), Max(0), Sum(0))
+    }
+
+    override fun plus(other: Aggregate): Aggregate =
+            Aggregate(data + other.data,
+                    earliestSampleDate + other.earliestSampleDate,
+                    largestSample + other.largestSample,
+                    inRange + other.inRange)
+}
+</code></pre>
+
+<p>The type of aggregation used appears explicitly for each field in <code>Aggregate</code>. For example <code>largestSample: Max&lt;Int&gt;</code> conveys both the type of the result (<code>Int</code>), as well as the process being used to calculated it (<code>Max</code>). In <code>CandidateAggregate</code> only the former was expressed. We also build some field types by composing semigroups, such as <code>Mapped&lt;MonthYear, Sum&gt;</code>, which specifies we will be adding values using <code>Sum</code> rather than some other approach. This also makes it very simple to update the method of aggregation (as illustrated <a href="#what-have-we-gained-for-the-price">below</a>).</p>
+
+<p>We have made <code>Aggregate</code> itself a semigroup to define how we combine these composite aggregates. We've also added an <code>empty</code> property to make it easier to call <code>concat</code> and <code>concatMap</code>.</p>
+
+<p>The last piece we need is to translate a single <code>Sample</code> into an <code>Aggregate</code>, then we can do the entire aggregation using <code>concatMap</code> as shown in the <code>aggregateSamples()</code> test. Each <code>Sample</code> gets transformed into an <code>Aggregate</code> representing that individual sample (an aggregate of 1), then each <code>Aggregate</code> in turn gets combined to calculate the required information across all the samples.</p>
+
+<pre><code class="kotlin">fun aggregateSample(sample: Sample): Aggregate =
+        Aggregate(Mapped(mapOf(sample.date to Sum(sample.value))),
+                Nullable(Min(sample.date)),
+                Max(sample.value),
+                sample.value.countWithin(100..200))
+
+fun &lt;T : Comparable&lt;T&gt;&gt; T.countWithin(range: ClosedRange&lt;T&gt;) =
+        Sum(if (range.contains(this)) 1 else 0)
+
+@Test
+fun aggregateSamples() {
+    // Aggregation
+    val result = Semigroup.concatMap(Aggregate.empty, samples) { aggregateSample(it) }
+
+    // Actual results are equivalent to the individual queries on the left:
+    assertEquals(samples.minBy { it.date }?.date, result.earliestSampleDate.value?.value)
+    assertEquals(samples.maxBy { it.value }?.value, result.largestSample.value)
+    assertEquals(samples.count { (100..200).contains(it.value) }, result.inRange.value)
+    val june2017 = MonthYear(2017, 6)
+    assertEquals(samples.filter { x -&gt; june2017 == x.date }.sumBy { it.value }, result.data.value[june2017]?.value)
+}
+</code></pre>
+
+<h2>What have we gained for the price?</h2>
+
+<p>This definitely has more pieces that the <code>CandidateAggregate</code> version (although the code for each piece has not changed much, it is now spread over multiple types). More pieces suggest a performance impact, but I have not measured this.</p>
+
+<p>We do get a few benefits for this price. Firstly, we now have some small, simple, genuinely reusable aggregation types (<code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Mapped</code> etc.). These can be combined into other aggregates, and they can be tested in isolation. Secondly, we explicitly define aggregate types in terms of the aggregates of which they are composed. We don't have an aggregate that contains an <code>Int</code>, we have a <code>Sum</code> or a <code>Max&lt;Int&gt;</code> which conveys more information as to the aggregation process, as well as preventing errors (summing two <code>Int</code> values that should have been combined using <code>maxOf</code> for example).</p>
+
+<p>We also make it simpler to change our aggregation. For example, if we wanted to change from reporting the total value to the maximum value for each month, we can change <code>Mapped&lt;MonthYear, Sum&gt;</code> to <code>Mapped&lt;MonthYear, Max&lt;Int&gt;&gt;</code> and the aggregation process will adjust accordingly.</p>
+
+<h2>Conclusion</h2>
+
+<p>We introduced a <code>Semigroup&lt;T&gt;</code> interface which represents values that can be combined with an associative, binary operation. We also introduced <code>concat</code> and <code>concatMap</code> operations that work for any instance of this interface. We created <code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Nullable</code> and <code>Mapped</code> instances of this interface to represent common methods of aggregation, then built a custom <code>Aggregate</code> semigroup composed of some of these instances.</p>
+
+<p>This is a bit more complex compared than manually aggregating a set of values over a loop or fold, but in return gives us reusable and testable aggregate types, more communicative types for our aggregate model, less opportunities for bugs in the aggregation process, as well as making the creation of new aggregates and modifications to existing aggregates simpler.</p>
+
+<h2>Suggested reading</h2>
+
+<ul>
+<li><p><a href="https://fsharpforfunandprofit.com/series/understanding-monoids.html">Understanding monoids</a>, a three part series on monoids (a special case of semigroup) by Scott Wlaschin at the excellent <a href="https://fsharpforfunandprofit.com/">F# for fun and profit</a> site.</p>
+
+<pre><code class="``kotlin">  val minDate = samples.map { it.date }.min()
+  val maxSample = samples.map { it.value }.max()
+  val inRangeCount = samples.count { (100..200).contains(it.value) }
+</code></pre>
+
+<pre><code class="``">  100 - (30 - 10) - 5 /= ((100 - 30) - 10) - 5
+  75 /= 55
+</code></pre>
+
+<p>  The end result is we can use associativity to combine values without having to also take evaluation order into account.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Functional programming newbie and something something monad something]]></title>
+    <link href="http://davesquared.net/2011/08/functional-programming-newbie-and.html"/>
+    <updated>2011-08-16T01:30:00+10:00</updated>
+    <id>http://davesquared.net/2011/08/functional-programming-newbie-and</id>
+    <content type="html"><![CDATA[<p>Let me get one thing straight: I know absolutely nothing about monads. I have never <a href="http://devhawk.net/2008/07/30/monadic-philosophy-part-2-the-linq-monad/">intentionally used something I've recognised as a monad</a>. I am dangerously unqualified to enhance your understanding of monads in any way. In fact <em><b>reading this may damage you and prevent you from ever learning what a monad actually is!!!</b></em></p>
+
+
+
+
+<p>The first reason I'm posting anything about monads at all is that I watched one of <a href="http://www.ndc2011.no/index.aspx?cat=1070&amp;id=1300">Robert "Uncle Bob" Martin's entertaining NDC 2011 talks</a> titled "WTF is a monad" (<a href="http://www.ndc2011.no/index.aspx?id=361621&amp;cat=1069">video available from the NDC site</a>). I'm unsure how approximated or mathematically correct he was intending the presentation to be, but I found it really interesting and was able to implement something I can only hope was vaguely monadic based on my interpretation of the information he presented. So I thought I'd share it with you in case you could correct me (it should go without saying, but any mistakes here are mine and have nothing to do with Bob or his presentation). Worst case is it gets you interested enough to look into the topic and find out all the stuff I got wrong. (<a href="https://twitter.com/#!/TheColonial/status/100725544697593859">Was that alright OJ?</a> ;))</p>
+
+
+
+
+<p>The second reason is that I like writing words like monad, monadic, and monoid because for a brief, shining moment it makes me feel like a real computer scientist. This moment generally comes crashing down as soon as I realise I have no idea what any of these terms mean, but it is a good couple of milliseconds. :)</p>
+
+
+
+
+<p>Did I mention I don't know what I'm talking about? For this post especially I mean. Yes? Good, you should be safe to read on then...</p>
+
+
+
+
+<h2>Something something monad something</h2>
+
+
+
+
+<p>As far as I can gather, a <a href="http://en.wikipedia.org/wiki/Monad_(functional_programming)">monad</a> is a structure that will let you use functions that take arguments of a certain type, and apply it to values from an another type (I'll call this the <em>monadic type</em>, but I could be misusing the term). We need to be able to map back and forth between these types. Bob roughly approximates a monad to an <em>adapter</em>; a monad is a way of adapting one type to another.</p>
+
+
+
+
+<p>It is the form of this adapter that makes it a monad. A monad can be expressed as two functions: the <em>unit function</em>, normally called <code>return</code> or <code>result</code>, that takes an argument of the original type and returns the monadic type; and a <code>bind</code> function that takes the monadic type and a function that works on original types. (Technically monads should also obey the <a href="http://www.haskell.org/haskellwiki/Monad_Laws">monad laws</a>. I'm sure I've missed other important points about them too, but let's run with this for now.)</p>
+
+
+
+
+<p>This structure has a few useful properties, mainly to do with being able to chain a sequence of functions that take arguments of the original type, then apply arguments of the monadic type to that chain. I think.</p>
+
+
+
+
+<h2>A dot monad?</h2>
+
+
+
+
+<p>Uncle Bob's first example was using a monad to manipulate a dots type using functions that normally work with integers. The dots type is simply a representation of an integer using '.' characters, so 5 maps to '.....' and back again. We'd like to be able to be able to use dots with standard integer operations like <code>add</code>, so that '..' + '...' gives '.....'.</p>
+
+
+
+
+<p>Let's look at an example in Python:</p>
+
+
+
+
+<pre class="brush:python">
+class DotMonad:
+    def result(self, i):
+        return '.' * i
+    def bind(self, dots, f):
+        return f(len(dots))
+</pre>
+
+
+
+
+<div class="note"><b>Aside:</b> If you haven't used Python before, the <code>self</code> arguments to the functions is required due to how instance methods work in Python. You can safely ignore them for this post, but if you know C# or Java <code>self</code> basically becomes like <code>this</code> in the context of an instance method.</div>
+
+
+
+
+<p>Here our <code>result</code> function just translates integers (<code>i</code>) into dots. The <code>bind</code> function takes some dots and a function <code>f</code> that takes an integer. First it converts <code>dots</code> to integers (using the length of the string of <code>dots</code>) then calls <code>f</code> using the result.</p>
+
+
+
+
+<p>This means that if we have an <code>add</code> function which takes integers, we can use our monad to adapt that function to take dots.</p>
+
+
+
+
+<pre class="brush:python">
+# Integer add function
+def add(a, b):
+    return a+b
+
+# Monadic add function for dots
+def addM(dotsA, dotsB):
+    m = DotMonad()
+    return m.bind(dotsA, 
+        lambda a: m.bind(dotsB, 
+        lambda b: m.result(a+b)
+        )
+    )
+</pre>
+
+
+
+
+<p>I've used <code>a</code> and <code>b</code> as the plain integer types, and <code>dotsA</code> and <code>dotsB</code> to represent our monadic dots type. We can now call <code>addM('..', '...')</code> and get <code>'.....'</code>.</p>
+
+
+
+
+<p>So how's this work? Well remember that <code>bind</code> takes a dot for a first argument, and calls the function provided as a second argument after converting the dot to an <code>int</code>. The function we provide will be called with <code>dotsA</code> converted to integer <code>a</code>, then recursively call <code>bind</code> to convert <code>dotsB</code> in the same way. The last function in the chain is to the monad's <code>result</code> method which will convert the result of <code>a+b</code> back to dots.</p>
+
+
+
+
+<p>Let's expand out and trace through the <code>addM('..', '...')</code> example to make sure we've got a handle on this:</p>
+
+
+
+
+<pre class="brush:python">
+return m.bind(dotsA,    # dotsA is '..', which is converted to int and passed to fn in 2nd arg
+    lambda a:           # bind calls function with a = len('..'), which is 2 
+        m.bind(dotsB,   # dotsB is '...', which is converted to int and passed to fn in 2nd arg
+    lambda b:           # 2nd bind calls function with b = len('...'), which is 3 
+        m.result(a+b)   # a+b is 2+3=5. m.result converts this back to '.....'
+)
+</pre>
+
+
+
+
+<p>I think this is called <a href="http://www.haskell.org/haskellwiki/Lifting">lifting</a> the add (<code>+</code>) function to work with our monad.</p>
+
+
+
+
+<h2>Lifting functions using monads</h2>
+
+
+
+
+<p>So we've now got a version of the basic integer <code>add</code> function that can work with our monadic dots type. But we'd like to be able to apply all integer functions to work with dots. In fact, we can generalise our <code>addM</code> function from before to lift any function which takes two arguments using a monad that can bind to that function's argument type .</p>
+
+
+
+
+<div class="note"><b>Aside:</b> We could also generalise to support functions with any number of arguments, but I'm struggling to keep up as it is. :\ :)</div>
+
+
+
+
+<p></p>
+
+
+
+
+<pre class="brush:python">
+def liftm(m, op):
+    return lambda a,b: m.bind(a,
+            lambda ax: m.bind(b,
+            lambda bx: m.result(op(ax, bx))
+            )
+    )
+</pre>
+
+
+
+
+<p>This is pretty much identical to our <code>addM</code> function, but we can now do some neat stuff. Let's import some standard Python operators and dot-erise them:</p>
+
+
+
+
+<pre class="brush:python">
+import operator
+
+addM = liftm(DotMonad(), operator.add)
+subM = liftm(DotMonad(), operator.sub)
+divM = liftm(DotMonad(), operator.div)
+mulM = liftm(DotMonad(), operator.mul)
+
+#Interactive python session
+&gt;&gt;&gt; addM('..', '.')
+'...'
+&gt;&gt;&gt; subM('....', '...')
+'.'
+&gt;&gt;&gt; divM(mulM('..', '...'), subM('...', '.'))
+'...'
+</pre>
+
+
+
+
+<h2>Should we try again? Maybe...</h2>
+
+
+
+
+<p>Let's try another monad (again, from one Bob showed in his talk). This time we're going to try and represent a type that can either have or be missing a value as a monadic type. So something very similar to .NET's <em>nullable types</em>, <code>Nullable&lt;T&gt;</code>. The difference with the monadic form is that, because of the way we chain sequences of <code>bind</code> operations, we can actually perform operations involving missing values without throwing null reference exceptions everywhere.</p>
+
+
+
+
+<pre class="brush:python">
+class MaybeMonad:
+    def result(self, x):
+        return x
+    def bind(self, maybe, f):
+        if (maybe is None):
+            return None
+        else:
+            return f(maybe)
+</pre>
+
+
+
+
+<p>Here our <code>result</code> function just returns whatever value it is given. If it has a value it will return that value; otherwise it will return <code>None</code> (Python's <code>null</code> or <code>nil</code> value).</p>
+
+
+
+
+<p>Now we can lift our standard operators to work with our <code>Maybe</code> type:</p>
+
+
+
+
+<pre class="brush:python">
+&gt;&gt;&gt; addm = liftm(MaybeMonad(), operator.add)
+&gt;&gt;&gt; mulm = liftm(MaybeMonad(), operator.mul)
+&gt;&gt;&gt; addm(2, 3)
+5
+&gt;&gt;&gt; addm(4, None)
+&gt;&gt;&gt; mulm(6, 7)
+42
+&gt;&gt;&gt; mulm(None, None)
+</pre>
+
+
+
+
+<p>Or we can lift null-safe versions of other functions:</p>
+
+
+
+
+<pre class="brush:python">
+def string_lens(a, b):
+    return len(a) + len(b)
+
+#Interactive python session
+&gt;&gt;&gt; string_lens("Hello", "World")
+10
+&gt;&gt;&gt; string_lens("Hello", None)
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "&lt;stdin&gt;", line 2, in string_lens
+TypeError: object of type 'NoneType' has no len()
+
+&gt;&gt;&gt; safe = liftm(MaybeMonad(), string_lens)
+&gt;&gt;&gt; safe("Hello", "World")
+10
+&gt;&gt;&gt; safe("Hello", None)
+</pre>
+
+
+
+
+<p>Here <code>string_lens</code> throws when we pass in <code>None</code>, but our <code>safe</code> lifted version takes them in its stride.</p>
+
+
+
+
+<h2>Real-world monads</h2>
+
+
+
+
+<p>Monads can actually be spotted out in the wild. They particularly enjoy frolicking with pure functional languages, where they can be used for (among other things) getting around the pesky limitation of not allowing side-effects in functions. Mutable state can be simulated by passing a State monad between functions. The I/O monad is used to encapsulate the side-effects of reading and writing from input and output.</p>
+
+
+
+
+<p>Reading through the <a href="http://en.wikipedia.org/wiki/Monad_(functional_programming)#Examples">examples in the Wikipedia entry</a> shows some collections can even be regarded as monads (for example, <code>result</code> can return a list from a single item, <code>bind</code> can map a function to each element in a list). In some instances <a href="http://tomasp.net/blog/idioms-in-linq.aspx">LINQ statements can also be used as monads</a>. I've even seen <a href="http://importantshock.wordpress.com/2009/01/18/jquery-is-a-monad/">JQuery accused on monadishness</a> (yes, I just made up a word).</p>
+
+
+
+
+<p>So where's this leave us? If you're like me: dazed, confused, craving a cup of tea, and also quite eager to resume working through the excellent <a href="http://learnyouahaskell.com/">Learn you a Haskell</a> tutorial. :)</p>
+
+
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Using conventions and StructureMap to wire up Views and View Models]]></title>
+    <link href="http://davesquared.net/2010/03/wiring-up-views-and-view-models-using.html"/>
+    <updated>2010-03-15T23:07:00+11:00</updated>
+    <id>http://davesquared.net/2010/03/wiring-up-views-and-view-models-using</id>
+    <content type="html"><![CDATA[<p>In the small WPF project I'm currently working on we are using <a href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html">MVVM (Model - View - ViewModel)</a> to separate our UI concerns from other logic.</p>
+
+
+
+
+<p>Now for various reasons we've ended up with two main projects (excluding tests): the core application DLL, and the WPF UI executable that references the core DLL. Our ViewModels are defined in the application DLL, which knows absolutely nothing about the UI executable. Our Views (XAML) live in the UI exe, and depend on the ViewModels in the core DLL. All pretty standard.</p>
+
+
+
+
+<p>The one hiccup is that sometimes our application DLL needs to do something that will result in getting a reference to a view. For example, an application controller, screen conductor, or in our case, an <code>ApplicationShellViewModel</code> needs to load up the relevant views (it's a small project, remember? :)). So how does it do this when it knows nothing about the views in the UI exe?</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-ui_and_core_components.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="109" src="http://davesquared.net/images/fromblogger/s320-ui_and_core_components.png" width="320" /></a></div>
+
+
+
+
+<p>In this case we decided to use a convention to map a ViewModel to a View. We've mandated that each View will have one and only one ViewModel (not strictly always the case, but works for us). So we can use our ViewModel types as "currency" to deal with our views, and exchange it for a view when required. We just need a way to map between a ViewModel and its View. </p>
+
+
+
+
+<p>The way we decided to do this mapping is to use an <code>IView</code> marker interface (defined in the core DLL) on all our views in the UI exe, and use a <code>ViewFactory</code> class to resolve an <code>IView</code> based on the name of a ViewModel, with the help of our IoC container (StructureMap 2.6). The naming convention we'll use is very simple: if we have a <code>GherkinViewModel</code>, we expect the matching view to be of type <code>Gherkin</code>. If you're new to IoC containers this all probably sounds a little confusing, so let's look at some code.</p>
+
+
+
+
+<div class="note"><b>Note:</b> This is probably a good time to stress that this post isn't about great ways to wire up MVVM components. It is more an example of using conventions and StructureMap to implement a fairly naive approach to View/View Model wire-up. If you are after more the former than the latter then you may want jump over to <a href="http://www.nikhilk.net/View-ViewModel-Hookup-Convention-Configuration.aspx">Nikhil's post on View/ViewModel association</a>. I won't take it personally. :)</div>
+
+
+
+
+<h2>The <code>ViewFactory</code></h2>
+
+
+
+
+<p>Given a ViewModel type, we want our <code>ViewFactory</code> to get an instance of the <code>IView</code> for that view model using our naming convention. Let's write a test for this, specifying that we want to resolve an <code>IView</code> named "Example" for our <code>ExampleViewModel</code>:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class ViewFactoryFixture {
+    [Test]
+    public void ShouldResolveViewForViewModelUsingNamingConvention() {
+        var exampleView = MockRepository.GenerateStub&lt;IView&gt;();
+        var applicationFactory = MockRepository.GenerateStub&lt;IApplicationFactory&gt;();
+        var viewFactory = new ViewFactory(applicationFactory);
+        applicationFactory.Stub(x =&gt; x.ResolveNamed&lt;IView&gt;(&quot;Example&quot;)).Return(exampleView);
+
+        var result = viewFactory.CreateViewFor&lt;ExampleViewModel&gt;();
+
+        Assert.That(result, Is.SameAs(exampleView));
+    }
+
+    public class ExampleViewModel {}
+}
+</pre>
+
+
+
+
+<p>The <code>ViewFactory</code> will need to use our IoC container to resolve the instance, which we've wrapped in an <code>IApplicationFactory</code> interface (not the best name perhaps -- it creates application objects). Our test is specifying that when we ask the <code>ViewFactory</code> to create a view for our <code>ExampleViewModel</code> type, it should return the instance resolved from the <code>IApplicationFactory</code> named "Example". Let's pass this:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class ViewFactory : IViewFactory {
+    private IApplicationFactory _applicationFactory;
+
+    public ViewFactory(IApplicationFactory applicationFactory) { _applicationFactory = applicationFactory; }
+
+    public IView CreateViewFor&lt;TViewModel&gt;() {
+        var viewNameByConvention = typeof (TViewModel).Name.Replace(&quot;ViewModel&quot;, &quot;&quot;);
+        return _applicationFactory.ResolveNamed&lt;IView&gt;(viewNameByConvention);
+    }
+}
+</pre>
+
+
+
+
+<p>Now we just need to implement an <code>IApplicationFactory</code> class and we're done.</p>
+
+
+
+
+<h2>Registering named views in StructureMap</h2>
+
+
+
+
+<p>For our project our core StructureMap configuration lives in the core application DLL -- the one with no references to the UI exe that has our views. Thankfully StructureMap has a really nice way of looking through assemblies and wiring up types you're interested in.</p>
+
+
+
+
+<pre class="brush:csharp">
+class CoreRegistry : Registry {
+    public CoreRegistry(IApplicationFactory applicationFactory) {
+        For&lt;IApplicationFactory&gt;().Use(applicationFactory);
+        Scan(x =&gt;
+            {
+                x.AssembliesFromApplicationBaseDirectory(
+                    assembly =&gt; assembly.FullName.StartsWith(&quot;DaveSquared.&quot;));
+                x.AddAllTypesOf&lt;IView&gt;().NameBy(type =&gt; type.Name);
+                x.WithDefaultConventions();
+            });
+    }
+}
+</pre>
+
+
+
+
+<p><code>Registry</code> is a StructureMap type that is used to configure the container. We're telling StructureMap to <a href="http://structuremap.github.com/structuremap/ScanningAssemblies.htm">scan</a> the assemblies in the application base directory, and add those that are specific to this project (which in this example will be <code>DaveSquared.MvvmConventionWireup.Core</code> and <code>DaveSquared.MvvmConventionWireup.UI</code>). The magic happens in this line:</p>
+
+
+
+
+<pre class="brush:csharp">
+x.AddAllTypesOf&lt;IView&gt;().NameBy(type =&gt; type.Name);
+</pre>
+
+
+
+
+<p>Here we're telling the StructureMap scanner to add all types that implement <code>IView</code> into the container, and name each specific type by the short type name. This, you'll remember, is our naming convention. When asked for the view for <code>ExampleViewModel</code> we'll lookup an <code>IView</code> called "Example" (which will live in the UI project in a <code>Example.xaml</code> file). </p>
+
+
+
+
+<p>Some other quick notes: <code>WithDefaultConventions()</code> tells StructureMap to automatically wireup cases where there is only one concrete type that implements an interface (for example, <code>Foo</code> for <code>IFoo</code>). Also we register a singleton <code>IApplicationFactory</code> instance, as we need this as a dependency into our <code>ViewFactory</code>.</p>
+
+
+
+
+<p>The last step is just to put this altogether for our <code>IApplicationFactory</code> implementation:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class ApplicationFactory : IApplicationFactory {
+    public ApplicationFactory() {
+        ObjectFactory.Initialize(x =&gt; x.AddRegistry(new CoreRegistry(this)));
+    }
+
+    public T Resolve&lt;T&gt;() {
+        return ObjectFactory.GetInstance&lt;T&gt;();
+    }
+
+    public T ResolveNamed&lt;T&gt;(string name) {
+        return ObjectFactory.GetNamedInstance&lt;T&gt;(name);
+    }
+
+    class CoreRegistry : Registry { /* ... snipped, already shown above ... */ }
+}
+</pre>
+
+
+
+
+<div class="note"><b>Aside:</b> I can't help but point out that this <code>ApplicationFactory</code> is covered by tests. We make sure we can resolve views by name, and resolve a view factory, and a few other key instances. These are integration tests, but I've made the mistake of not testing this stuff before and having it grow into a real mess, the lack of tests encouraging sloppiness to creep in. There are better ways to test more complex configurations, but this is a nice and simple approach for a nice and simple app.</div>
+
+
+
+
+<p>We can now resolve Views like this from within our core application DLL code:</p>
+
+
+
+
+<pre class="brush:csharp">
+public ApplicationShellViewModel(IViewFactory viewFactory) {
+    Top = viewFactory.CreateViewFor&lt;FunkyViewModel&gt;();
+    Bottom = viewFactory.CreateViewFor&lt;AwesomeViewModel&gt;();
+}
+public IView Top { get; set; }
+public IView Bottom{ get; set; }
+</pre>
+
+
+
+
+<div class="note"><b>Note:</b> Check out <a href="http://www.codeplex.com/CompositeWPF">Prism / Composite WPF</a> or <a href="http://www.codeplex.com/caliburn">Caliburn</a> for real ways to do view composition. :)</div>
+
+
+
+
+<h2>Final thoughts</h2>
+
+
+
+
+<p>This post has shown a basic example of how to use conventions to resolve Views from ViewModels in situations where you don't want to have hard references to View types. I have no idea if this is a blatant misuse of StructureMap or IoC containers in general (please correct me! :)), but it is working fine for us at the moment. It is especially nice to just name a View and have it auto-magically wireup to its ViewModel. It's not quite as nice for the poor designer, but in our case we're only doing fairly basic UI for which I've found it easier to deal directly with the XAML.</p>
+
+
+
+
+<p>One thing to keep in mind is that our <code>ViewFactory</code> and <code>ApplicationFactory</code> classes reference our container, which means we want to be very careful how widespread their use becomes in the application. Ideally you only want a couple of references to your IoC container in your application, so for us we only have it referenced in the class that handles our startup, and in our application shell (which is playing the role that an application controller or screen conductor might play in a larger app).</p>
+
+
+
+
+<p>Hope this gives you some idea of how easy it is to get some simple conventions going in your code. If I've glossed over anything you'd like to know more about feel free to drop me a line.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[An attempt at simple MVVM with WPF]]></title>
+    <link href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html"/>
+    <updated>2010-02-15T11:16:00+11:00</updated>
+    <id>http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf</id>
+    <content type="html"><![CDATA[<p>I have very little practical experience with MVVM and WPF, so I thought it would be incredibly useful for me to post some misinformation on the subject. Please feel free to correct any (or all) of my mistakes in the comments or via email, and I'll update the post accordingly.</p>
+
+
+
+
+<p>At work a few of us went through a very simple practice exercise to try and get the basics of the pattern. The goal was to create a screen that accepts two numbers and displays their sum, but do it using MVVM as if it were a real problem rather than a trivial one.</p>
+
+
+
+
+<p>MVVM, or <a href="http://msdn.microsoft.com/en-us/magazine/dd419663.aspx">Model - View - ViewModel</a> (a.k.a. <a href="http://www.martinfowler.com/eaaDev/PresentationModel.html">Presentation Model</a>), is a <a href="http://martinfowler.com/eaaDev/SeparatedPresentation.html">separated presentation pattern</a> for use with frameworks like WPF that have good support for data-binding and other view interations. This differs from Model View Presenter (MVP) in that MVP tends to be more prescriptive, the presenter explicitly controlling everything the view does (at least in the <a href="http://www.martinfowler.com/eaaDev/PassiveScreen.html">Passive View</a> incarnation of the pattern). This tends to result in a lot of plumbing code (these items should go in this list on the view, when a new item is selected the view should display a new list of items, etc.).</p>
+
+
+
+
+<p>MVVM relies on databinding, commands etc. in the framework to remove some of this plumbing code, leaving us to focus on the logical model of our view (or the ViewModel), and our application/domain logic (the Model). The View is then just the physical representation of our logical ViewModel, containing no logic other than how to physically represent the logical view.</p>
+
+
+
+
+<p>For this example we'll design a view for our adder screen, test drive a ViewModel representation of the screen, then wire them together using WPF databinding.</p>
+
+
+
+
+<h2>Designing our view</h2>
+
+
+
+
+<p>For our very useful Adder screen we'll need two text boxes so the user can enter the numbers to add, and a label that will display the result of the addition. Whenever one of the numbers is changed our result will need to be updated to reflect the number total. When we are done it might look a bit like this:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-AdderMockUp.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="245" alt="Mockup of how the adder application should look." src="http://davesquared.net/images/fromblogger/s320-AdderMockUp.png" width="320" /></a></div>
+
+
+
+
+<p>Because we are separating the physical from logical representation of the view, we will fairly easily be able to change how this looks, but in terms of how our screen will logically function, this contains all the details we need.</p>
+
+
+
+
+<h2>Test driving the ViewModel</h2>
+
+
+
+
+<p>Our view design requires input for two numbers. Whenever those numbers change our result will change. We'll write a test for that, and make it pass:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class AdderViewModelTests {
+    [TestFixture]
+    public class When_both_numbers_are_provided {
+        private Adder _adder;
+        private AdderViewModel _adderViewModel;
+        private int _expectedResult;
+
+        [SetUp]
+        public void SetUp() {
+            const int firstNumber = 10;
+            const int secondNumber = 123;
+            _expectedResult = 4545;
+            
+            _adder = MockRepository.GenerateStub&lt;Adder&gt;();
+            _adder.Stub(x =&gt; x.Add(firstNumber, secondNumber)).Return(_expectedResult);
+            _adderViewModel = new AdderViewModel(_adder);
+            
+            _adderViewModel.FirstNumber = firstNumber;
+            _adderViewModel.SecondNumber = secondNumber;
+        }
+
+        [Test]
+        public void Should_set_result_from_adder() {
+            Assert.That(_adderViewModel.Result, Is.EqualTo(_expectedResult));
+        }
+    }
+}
+
+public class AdderViewModel {
+    private readonly Adder _adder;
+    public AdderViewModel(Adder adder) { _adder = adder; }
+    public int FirstNumber { get; set; }
+    public int SecondNumber { get; set; }
+    public int Result { get { return _adder.Add(FirstNumber, SecondNumber); } }
+}
+</pre>
+
+
+
+
+<p>This test is specifying that our <code>AdderViewModel</code> will use an <code>Adder</code>, and the result of the call to <code>_adder.Add(firstNumber, secondNumber)</code> will be used to set the <code>Result</code> in the view model.</p>
+
+
+
+
+<p>Now, logically, the element displaying our result will need to know when a new result is calculated so it can update. One way to do this in WPF is to make our ViewModel implement <code>INotifyPropertyChanged</code> and use a property changed event whenever the result changes . Let's add a test for that (there are better ways of doing this, but this will do for now):</p>
+
+
+
+
+<pre class="brush:csharp">
+[SetUp]
+public void SetUp() {
+    const int firstNumber = 10;
+    const int secondNumber = 123;
+    _expectedResult = 4545;
+    
+    _adder = MockRepository.GenerateStub<Adder>();
+    _adder.Stub(x => x.Add(firstNumber, secondNumber)).Return(_expectedResult);
+    _adderViewModel = new AdderViewModel(_adder);
+    RecordPropertyChangeOnViewModel();
+
+    _adderViewModel.FirstNumber = firstNumber;
+    _adderViewModel.SecondNumber = secondNumber;
+}
+
+private void RecordPropertyChangeOnViewModel() {
+    _adderViewModel.PropertyChanged += (sender, args) =&gt; _propertyChanged = args.PropertyName;
+}
+
+[Test]
+public void Should_indicate_that_result_has_changed() {
+    Assert.That(_propertyChanged, Is.EqualTo(&quot;Result&quot;), &quot;Should have raised property changed event for Result property&quot;);
+}
+
+[Test]
+public void Should_set_result_from_adder() {
+/* ... snip ... */
+</pre>
+
+
+
+
+<p>One thing I want to make absolutely, 100% clear here: <b><i>our tests are not driving this design decision</i></b>. We are doing this whole <code>INotifyPropertyChanged</code> thing because we know it is one of the ways to get our WPF view to update the displayed result. This is something that has tended to annoy me greatly when reading TDD UI examples, these patterns seem to pop out from nowhere and I can never see the link between the tests and the design. In this case there isn't any. I'll save my rant for another day, but just be aware that while tests can drive design, you still need to be aware of the basic direction you are heading: the fundamental algorithm you are building, and the UI framework you'll be interacting with. When I did this exercise I didn't even have the changed event tested. But it is an easy enough test to write, and is essential for our binding to work, so we may as well include it (before the code, after the code, it's all good!).</p>
+
+
+
+
+<p>We start by making <code>AdderViewModel</code> implement <code>INotifyPropertyChanged</code>, then add the <code>PropertyChanged</code> event. We'll then want to fire this event whenever the <code>Result</code> changes. As the result changes as the numbers do, we can do this from the setters of our <code>FirstNumber</code> and <code>SecondNumber</code> properties. While we could just raise the property changed event directly from these setters, I think it makes more sense to raise this when the <code>Result</code> itself changes. To me it is a bit more intention-revealing that way (in other situations where we had delayed execution or an out-of-proc service call then it would also make more sense to update when the value is set rather than when a dependency changes).</p>
+
+
+
+
+<div class="note">
+<p><b>Update 2010-05-02:</b> There is a problem with this approach! The ViewModel is meant to be a logical representation of the physical view. In the implementation below, if we set the <code>FirstNumber</code> or <code>SecondNumber</code> properties via code then there will not be <code>PropertyChanged</code> events raised specifically for those properties. As a result, the data-binding on our view will not be notified of the update and the text boxes will still show the old numbers. Not a good representation of our view!</p>
+
+<p>In this case we're only setting these properties from the view, so we won't see the problem, but the fact our ViewModel does not adequately represent the view could cause problems later. To fix it we can raise <code>PropertyChanged</code> when any data-bindable properties are changed (not just when <code>Result</code> changes). We can cover this with tests just as we did for when <code>Result</code> changes.</p>
+
+<p>Thanks a lot to Hüseyin Tüfekçilerli for <a href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html?showComment=1272737976310#c1288989468056178507">pointing this out</a> in the comments.</p>
+</div>
+
+
+
+
+<pre class="brush:csharp">
+public class AdderViewModel : INotifyPropertyChanged {
+    private readonly Adder _adder;
+    private int _firstNumber;
+    private int _secondNumber;
+    private int _result;
+
+    public AdderViewModel(Adder adder) {
+        _adder = adder;
+    }
+
+    public int FirstNumber {
+        get { return _firstNumber; }
+        set { _firstNumber = value; NumberChanged(); }
+    }
+
+    public int SecondNumber {
+        get { return _secondNumber; }
+        set { _secondNumber = value; NumberChanged(); }
+    }
+
+    private void NumberChanged() {
+        Result = _adder.Add(_firstNumber, _secondNumber);
+    }
+
+    public int Result {
+        get { return _result; }
+        set { _result = value; OnResultChanged(); }
+    }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    private void OnResultChanged() {
+        var handler = PropertyChanged;
+        if (handler == null) return;
+        handler(this, new PropertyChangedEventArgs(&quot;Result&quot;));
+    }
+}
+</pre>
+
+
+
+
+<p>Test's pass, so let's hit the XAML.</p>
+
+
+
+
+<h2>Implementing a physical view over our view model</h2>
+
+
+
+
+<p>When I created my project for this exercise I used the basic WPF Application template, which creates an <code>App.xaml</code> and <code>MainWindow.xaml</code>. Let's just get an ugly <code>MainWindow</code> working first.</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;WpfCalculatorKata.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;Adder&quot; Width=&quot;200&quot; Height=&quot;200&quot;&gt;
+    &lt;StackPanel&gt;
+        &lt;TextBox Name=&quot;firstNumber&quot; Text=&quot;{Binding FirstNumber}&quot; /&gt;
+        &lt;TextBox Name=&quot;secondNumber&quot; Text=&quot;{Binding SecondNumber}&quot; /&gt;
+        &lt;Label Name=&quot;result&quot; Content=&quot;{Binding Result}&quot; /&gt;
+    &lt;/StackPanel&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<p>Here we're just shoving two textboxes and one label into a stack panel, and attempting to bind each control to the relevant property on the view model.</p>
+
+
+
+
+<h2>A word or two on XAML</h2>
+
+
+<p>We now interrupt this example to provide a 5 second overview of XAML. The easiest way I've found to think of XAML is an XML version of C#'s object initialisation syntax. For example, when I see <code>&lt;TextBox Name=&quot;FirstNumber&quot; Width=&quot;120&quot; /&gt;</code> I think of something more like this:</p>
+
+
+
+
+<pre class="brush:csharp">
+TextBox textBox = new TextBox {Name = &quot;FirstNumber&quot;, Width = 120};
+</pre>
+
+
+
+
+<p>Similarly for the <code>StackPanel</code> node shown above, I picture using a list initialisation to populate the control's <code>Children</code> property (or <code>Content</code> property for most other controls):</p>
+
+
+
+
+<pre class="brush:csharp">
+StackPanel stackPanel = new StackPanel { 
+    Children = new List&lt;Control&gt; {
+                    new TextBox {Name = &quot;FirstNunber&quot;},
+                    new TextBox {Name = &quot;SecondNumber&quot;}
+                }};            
+</pre>
+
+
+
+
+<p>This won't actually compile as the <code>Children</code> property is not settable, but the basic idea is the same. Nested elements get added to a property of the parent object (for many controls this is the <code>Content</code> property, but the exact mapping is object-specific).</p>
+
+
+
+
+<p>In the process of building the project, the compiler will create the code required to instantiate each object, initialise its properties (mainly via the XML attributes on the node), and basically build up a nice, big object graph. It also has some additional smarts to handle binding and other expressions, cascading properties etc. I'm not sure if this helps you at all, but this idea really helped demystify XAML for me, even if it is not an exact representation of what actually occurs.</p>
+
+
+
+
+<h2>Getting our view to work</h2>
+
+
+
+
+<p>How does our app know what <code>{Binding FirstNumber}</code> means? Well, if you try and run the code we have at the moment it's not going to work. While binding WPF searches the control's <code>DataContext</code> for the specific (and public!) property. If it can't find that it will check the parent's <code>DataContext</code>, and the parent's parent's and so on up the object tree. What we want to do is set our view's <code>DataContext</code> to our view model. We can easily do this in the <code>MainWindow.xaml.cs</code>  code behind:</p>
+
+
+
+
+<pre class="brush:csharp">
+public partial class MainWindow : Window {
+    public MainWindow(AdderViewModel viewModel) {
+        DataContext = viewModel;
+        InitializeComponent();
+    }
+}
+</pre>
+
+
+
+
+<p>Unfortunately our <code>App.xaml</code> is expecting <code>MainWindow</code> to have a default constructor, so we'll need to remove the startup attribute and override the application started event to show our view. For a real application this would be a great place for an IoC container call and/or screen activator, but we'll just new it up for now.</p>
+
+
+
+
+<pre>
+&lt;Application x:Class=&quot;WpfCalculatorKata.App&quot;
+             xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+             xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;&gt;
+    &lt;Application.Resources&gt;         
+    &lt;/Application.Resources&gt;
+&lt;/Application&gt;
+</pre>
+
+
+
+
+<pre class="brush:csharp">
+public partial class App : Application {
+    protected override void OnStartup(StartupEventArgs e) {
+        var window = new MainWindow(new AdderViewModel(new ConreteAdder()));
+        window.Show();
+    }
+}
+
+public class ConreteAdder : Adder {
+    public int Add(int firstNumber, int secondNumber) {
+        return firstNumber + secondNumber;
+    }
+}
+</pre>
+
+
+
+
+<p>You'll notice that to create our <code>AdderViewModel</code> we need an implementation of our <code>Adder</code> interface. I've just chucked in a <code>ConcreteAdder</code> here, completely and utterly uncovered by automated testing (gasp!). It looks close to right from here though, so let's run it.</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-Adder.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" alt="Screenshot of the basic adder application" src="http://davesquared.net/images/fromblogger/s1600-Adder.png" /></a></div>
+
+
+
+
+<p>Here we see our UI, happily adding the numbers it's given. As an aside, if you enter an invalid number while debugging you'll see data binding errors appear in the output window, but the application will continue running. If you've got bindings setup but nothing is happening when you run the app, check the output window and see if there are any messages there.</p>
+
+
+
+
+<h2>Updating our view to match our initial mockup</h2>
+
+
+
+
+<p>To get a similar UI to our initial mockup, we just need to add some labels to our textboxes and adjust the spacing on our form. We'll use a <code>Grid</code> instead of our original <code>StackPanel</code> so we can easily align our labels with their textboxes, and we'll use a style to hard code in the height and vertical alignment of our text boxes. The final XAML and application look like this:</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;WpfCalculatorKata.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;Adder&quot; Width=&quot;250&quot; Height=&quot;200&quot;&gt;
+    &lt;Window.Resources&gt;
+        &lt;Style TargetType=&quot;{x:Type TextBox}&quot;&gt;
+            &lt;Setter Property=&quot;Height&quot; Value=&quot;23&quot; /&gt;
+            &lt;Setter Property=&quot;VerticalAlignment&quot; Value=&quot;Top&quot; /&gt;
+        &lt;/Style&gt;
+    &lt;/Window.Resources&gt;
+    &lt;Grid Margin=&quot;15&quot;&gt;
+        &lt;Grid.RowDefinitions&gt;
+            &lt;RowDefinition /&gt;
+            &lt;RowDefinition /&gt;
+            &lt;RowDefinition /&gt;
+        &lt;/Grid.RowDefinitions&gt;
+        &lt;Grid.ColumnDefinitions&gt;
+            &lt;ColumnDefinition Width=&quot;100&quot; /&gt;
+            &lt;ColumnDefinition /&gt;
+        &lt;/Grid.ColumnDefinitions&gt;
+        &lt;Label Content=&quot;First Number&quot; Grid.Row=&quot;0&quot; /&gt;
+        &lt;Label Content=&quot;Second Number&quot; Grid.Row=&quot;1&quot; /&gt;
+        &lt;Label Content=&quot;Result&quot; Grid.Row=&quot;2&quot; /&gt;
+        &lt;TextBox Name=&quot;firstNumber&quot; Text=&quot;{Binding FirstNumber}&quot; Grid.Row=&quot;0&quot; Grid.Column=&quot;1&quot; /&gt;
+        &lt;TextBox Name=&quot;secondNumber&quot; Text=&quot;{Binding SecondNumber}&quot; Grid.Row=&quot;1&quot; Grid.Column=&quot;1&quot; /&gt;
+        &lt;Label Name=&quot;result&quot; Content=&quot;{Binding Result}&quot; Grid.Row=&quot;2&quot; Grid.Column=&quot;1&quot;/&gt;
+    &lt;/Grid&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-FinalAdder.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" alt="Screenshot of the adder application with similar layout to the initial mockup." src="http://davesquared.net/images/fromblogger/s1600-FinalAdder.png" /></a></div>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>We've implemented a tremendously useful calculator (well, more correctly, a completely useless small integer adder)  using MVVM and WPF. We represented the logical view of our screen using a testable <code>AdderViewModel</code>, which we then bind to from our XAML view. While we used TDD to flesh out how the <code>AdderViewModel</code> was going to interact with our domain model (the <code>Adder</code>), we also needed to know enough about the end goal (to bind to a WPF form) to tell us which tests to write -- our tests were not magically going to guide us to a bindable view model. Finally we changed our physical view to better match the layout of our initial mock up, but didn't have to change any non-XAML code as we did not change the logical model of the view.</p>
+
+
+
+
+<p>Feel free to <a href="http://davesquared.googlecode.com/files/WpfCalculatorKata.zip">download the code</a> and have a play. Hope this helps! And remember to correct any n00b mistakes I've made. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Attempting to understand Dependency Injection]]></title>
+    <link href="http://davesquared.net/2008/06/attempting-to-understand-dependency.html"/>
+    <updated>2008-06-12T23:40:00+10:00</updated>
+    <id>http://davesquared.net/2008/06/attempting-to-understand-dependency</id>
+    <content type="html"><![CDATA[<p>Watching <a href="http://blog.wekeroad.com/">Rob Conery</a> and <a href="http://codebetter.com/blogs/jeremy.miller/default.aspx">Jeremy Miller</a> work through <a href="http://blog.wekeroad.com/mvc-storefront/mvcstore-part-13/">Dependency Injection for the MVC Storefront project</a> really helped me to piece together a few ideas that had been rattling around in my generally deserted cranium. Dependency injection (DI) is sometimes dismissed as &quot;just&quot; a tool for unit testing and mocking dependencies. But I think DI, and DI containers, offer a bit more to software design than simply providing a way to use mocks for interaction testing. So as usual I'm polluting the blogosphere with my ramblings in an effort to solidify my understanding. Let's work through an example and see what we can find.</p>
+
+
+
+
+<p>Here is how we could write a class to send invoice reminder emails without any thought given to design or testability:</p>
+
+
+
+
+<pre>
+public class InvoiceReminderService {
+  public void SendReminders() {
+    var emailService = <b>new EmailService()</b>;
+    var invoiceRepository = <b>new InvoiceRepository()</b>;  
+    var invoicesDueForReminderEmail = invoiceRepository.GetInvoicesDueForReminders();
+    foreach (var invoice in invoicesDueForReminderEmail) {
+      var reminderMessage = createReminder(invoice);
+      emailService.Send(reminderMessage);
+    }
+  }
+  //...
+}
+</pre>
+
+
+
+
+<p>Here we have dependencies on <code>InvoiceRepository</code>, for getting invoices due for reminder emails, and <code>EmailService</code>, for sending out the emails over SMTP. These dependencies could be instantiated at many different places all over our code base. Without worrying about design principles or testability, let's simply pull out these dependencies and rely on constructor injection to instantiate them.</p>
+
+
+
+
+<pre>
+public class InvoiceReminderService {
+  private EmailService emailService;
+  private InvoiceRepository invoiceRepository;
+
+  public InvoiceReminderService(<b>InvoiceRepository invoiceRepository, EmailService emailService</b>) {
+    this.invoiceRepository = invoiceRepository;
+    this.emailService = emailService;
+  }
+
+  public void SendReminders() {
+    var invoicesDueForReminderEmail = invoiceRepository.GetInvoicesDueForReminders();
+    foreach (var invoice in invoicesDueForReminderEmail) {
+      var reminderMessage = createReminder(invoice);
+      emailService.Send(reminderMessage);
+    }
+  }
+  //...
+}
+</pre>
+
+
+
+
+<p>Here we've just created a constructor that takes the required dependencies and adds them to private fields. <code>SendReminders()</code> has been updated so that it is no longer responsible for instantiating the dependencies. I can then instantiate an <code>InvoiceReminderService</code> by creating the dependencies and passing them to the constructor, or I can use a DI container (I'm using a pre-release build of StructureMap 2.5 for this post) to automatically create my dependencies for me:</p>
+
+
+
+
+<pre>var invoiceReminderService = ObjectFactory.GetInstance&lt;InvoiceReminderService&gt;();</pre>
+
+
+
+
+<p>By default our DI container looks at the <a href="http://structuremap.sourceforge.net/FAQ.htm#FAQ10">greediest constructor</a> (the one with the most parameters) to see what dependencies it needs to create. Because <code>InvoiceRepository</code> and <code>EmailService</code> are both concrete classes (i.e. not interfaces or abstract), we don't need to give StructureMap any additional information, it can simply instantiate the required objects and pass them through to the <code>InvoiceReminderService</code> constructor.</p>
+
+
+
+
+<p>So what has this accomplished? Well, <code>SendReminders()</code> is now a lot clearer without the dependencies in the way. And we also have an easy way to tell exactly what the dependencies of the class are (the constructor). We are also skirting dangerously close to having a testable class that could easily be modified to follow the <a href="http://en.wikipedia.org/wiki/Dependency_inversion_principle">Dependency Inversion Principle (DIP)</a> (by extracting interfaces from our dependencies and relying on those instead of on concrete classes) and the <a href="http://en.wikipedia.org/wiki/Open/closed_principle">Open/Closed Principle (OCP)</a> (by allowing us to change the behaviour of our class by providing different implementations for the dependencies).</p>
+
+
+
+
+<p>But the main, obvious thing this has accomplished is that our class is no longer responsible for instantiating its dependencies. I guess you could almost link this back to the <a href="http://en.wikipedia.org/wiki/Single_responsibility_principle">Single Responsibility Principle (SRP)</a> -- we are limiting this class' responsibilities and given it one less reason to change. Why is this good? Well, let's imagine our <code>EmailService</code> class is used by a number of classes throughout our application. We want to change our <code>EmailService</code> so that it no longer sends emails directly via SMTP. Now it simply queues up the email in a database, and another process is responsible for firing off emails from the queue. To create an <code>EmailService</code> without a DI container I now need to do this to every class that builds an <code>EmailService</code>:</p>
+
+
+
+
+<pre>emailService = new EmailService(new EmailRepository());</pre>
+
+
+
+
+<p>Or we can just let my DI container handle it for me, and keep our original <code>ObjectFactory</code> call unchanged. This reduces the friction experienced whenever we need to factor out a new class to provide new functionality or to avoid an SRP violation.</p>
+
+
+
+
+<pre>//No change need here, even though the EmailService constructor has changed...
+var invoiceReminderService = ObjectFactory.GetInstance&lt;InvoiceReminderService&gt;();</pre>
+
+
+
+
+<p><p>(Yes, this is slightly circular logic as I am assuming we using DI for the new <code>EmailRepository</code> class too, but the logic is equally valid if we want to change the constructor to include a connection string or some other parameter. The point is that we can vary the instantiation without affect dependent classes.)</p>
+
+<p><p>Now I'm not suggesting for a moment that you want to globally replace <code>new</code> with a DI container, but for me the realisation that DI containers were all about abstracting the responsibility of dependency creation, rather than simply providing a testing seam, was a bit of an A-HA! moment. Of course, I am a bit slower than your average developer, so sometimes the things like this take me a while :-)</p></p>
+
+<p><h2>From abstracting dependency creation to SOLID designs</h2></p>
+
+<p><p>Now there are still a number of <a href="http://www.lostechies.com/blogs/chad_myers/archive/2008/03/07/pablo-s-topic-of-the-month-march-solid-principles.aspx">SOLID design principles</a> the code above is violating. This doesn't mean we need to instantly refactor to be compliant (you're never going to be, they are general guidelines that can be somewhat contradictory when taken to the n'th degree), but it is something we can look at.</p></p>
+
+<p><p>First up is the <a href="http://en.wikipedia.org/wiki/Dependency_inversion_principle">DIP</a>. We are depending on concrete types rather than abstractions. This also limits our options of altering the behaviour of the class via its dependencies to subclassing those dependencies, which is a minor strike against the <a href="http://en.wikipedia.org/wiki/Open/closed_principle">OCP</a>. This is easily fixed by extracting interfaces from the dependencies:</p></p>
+
+<p><pre>
+public class InvoiceReminderService {
+  private IEmailService emailService;
+  private IInvoiceRepository invoiceRepository;</p>
+
+<p>  public InvoiceReminderService(<b>IInvoiceRepository invoiceRepository, IEmailService emailService</b>) {
+    this.invoiceRepository = invoiceRepository;
+    this.emailService = emailService;
+  }
+  //...
+}
+</pre></p>
+
+<p><p>StructureMap will auto-wireup these dependencies, but if we are using our <code>EmailService</code> implementation that depends on an extracted <code>IEmailRepository</code> interface, then we'll need to tell StructureMap's configuration about it, either at compile time in code or using a configuration file:</p>
+<pre>
+public static class Bootstrapper {
+  public static void ConfigureIoC() {          <br/>
+    StructureMapConfiguration.AddRegistry(new DiSampleRegistry());
+  }<br/>
+}
+public class DiSampleRegistry : Registry {
+  protected override void configure() {
+    ForRequestedType&lt;IEmailRepository&gt;()
+      .TheDefaultIsConcreteType&lt;EmailRepository&gt;();              <br/>
+  }
+}
+</pre></p>
+
+<p><p>We are now looking at a more traditional DI design. Our <code>InvoiceReminderService</code> is now completely independent of the specific implementations of its dependencies. All the code in the class is cohesive -- working at one responsibility with minimal background noise. This project doesn't even need a reference to the DLL containing the dependency implementations. This means we are fine changing implementations (although not interface contracts!) and we know our <code>InvoiceReminderService</code> is safe. If you were given this class to reuse, or simply to maintain, you wouldn't have to go pulling in a whole bunch of concrete dependencies. As a result and as a nice bonus, we have some good seams for running automated tests. We can easily stub or mock these dependencies and isolate the behaviour under test.</p></p>
+
+<p><p><i>Aside: DI containers are an obvious way to get plugin and provider-style implementations, by loading specific implementations of an interface at runtime. I'm focusing on more general design effects here -- if you're looking for a plugin/component/provider model you'll obviously be designing more explicitly for loose coupling and will choose your approach based on that.</i></p></p>
+
+<p><h2>Not all beer and Skittles?</h2></p>
+
+<p><p>That's the DI theory, as far as I can tell. But as always there is <a href="http://en.wikipedia.org/wiki/No_Silver_Bullet">no silver bullet</a>. It is now tougher for us to navigate from the <code>InvoiceReminderService</code> to the current implementations of its dependencies (as we've abstracted them away). We are also looking at a potential interface explosion. Why extract an interface for virtually every class you write? That's two units of code for every responsibility. And we now have a DI container to learn and troubleshoot when debugging. If we're happy with tight coupling between this class and its dependencies, then why go to these lengths? If you want to run unit tests why not just use <a href="http://www.typemock.com/">TypeMock</a> to break into tightly coupled dependencies? Or at the very least provide default implementations in the class' default constructor (a.k.a. the poor man's dependency injection, see <a href="http://blog.vuscode.com/malovicn/archive/2008/06/07/design-for-testability-transparent-and-opaque-dependencies-part-8.aspx">Nikola's post</a> for an interesting variation on this approach):</p></p>
+
+<p><pre>
+public class InvoiceReminderService {
+  private IEmailService emailService;
+  private IInvoiceRepository invoiceRepository;</p>
+
+<p>  <b>public InvoiceReminderService() {
+    this.invoiceRepository = new InvoiceRepository();
+    this.emailService = new EmailService();
+  }</b></p>
+
+<p>  public InvoiceReminderService(<b>IInvoiceRepository invoiceRepository, IEmailService emailService</b>) {
+    this.invoiceRepository = invoiceRepository;
+    this.emailService = emailService;
+  }<br/>
+  //...
+}
+</pre></p>
+
+<p><p>And how much of all this is just working around limitations of statically typed languages? To me these are all quite reasonable questions (some of these raised by Kevin Berridge in some nice posts <a href="http://kevin-berridge.blogspot.com/2007/12/dependency-injection.html">here</a> and <a href="http://kevin-berridge.blogspot.com/2008/03/ioc-and-di.html">here</a>, as well as a couple of posts from Jacob Proffitt starting <a href="http://scruffylookingcatherder.com/archive/2007/08/07/dependency-injection.aspx">here</a>).</p></p>
+
+<p><p>As always the key seems to lie in achieving a balance. The benefits of a loosely coupled design always need to be traded off with any additional complexity of that design. After watching the <a href="http://blog.wekeroad.com/mvc-storefront/mvcstore-part-13/">MVC Storefont DI screencast</a> and having a play around with StructureMap I can see a lot of very obvious benefits to DI containers, but at the same time it's not something to dive into without having an vague idea of the theory and problems it aims to solve (which is why I've spent so much time reading about DI containers, but generally sticking to poor man's DI until I had a pressing reason to move to a container). After all, we don't go around blindly applying the GOF patterns to every situation under the sun... right? :-)</p></p>
+
+<p><h2>Some interesting DI reads</h2>
+<p>As opposed to this post, here are a few interesting takes on DI.</p>
+<ul>
+<li>Frederik's <a href="http://frederikm.blogspot.com/2008/06/case-for-dependency-injection.html">Case for Dependency Injection</a>, which looks at DI as evolved from interface-based design.</li>
+<li>Nikola Malovic on <a href="http://blog.vuscode.com/malovicn/archive/2008/06/07/design-for-testability-transparent-and-opaque-dependencies-part-8.aspx">transparent dependencies</a> and <a href="http://blog.vuscode.com/malovicn/archive/2008/02/13/design-for-testability-dependency-injection-frameworks-part-4.aspx">DI frameworks</a>.</li>
+<li>Kevin Berridge on the DI-slippery slope: <a href="http://kevin-berridge.blogspot.com/2007/12/dependency-injection.html">here</a> and <a href="http://kevin-berridge.blogspot.com/2008/03/ioc-and-di.html">here</a></li>
+<li>Jacob Proffitt's <a href="http://scruffylookingcatherder.com/archive/2007/08/07/dependency-injection.aspx">war on dependency injection</a></li>
+<li>Nate Kohari's <a href="http://kohari.org/2007/08/15/defending-dependency-injection/">response to Jacob</a></li>
+<li>Ayende's views DI in response to Jacob and Nate: <a href="http://www.ayende.com/Blog/archive/2007/08/18/Dependency-Injection-IAmDonQuixote.aspx">here</a> and <a href="http://www.ayende.com/Blog/archive/2007/08/18/Dependency-Injection-More-than-a-testing-seam.aspx">here</a>.</li>
+<li>Jeremy Miller on the <a href="http://codebetter.com/blogs/jeremy.miller/archive/2005/10/06/132825.aspx">Dependency Injection Pattern</a>, and the <a href="http://codebetter.com/blogs/jeremy.miller/archive/2007/09/07/dependency-injection-still-has-some-good-years-left.aspx">pros and cons of DI</a>.</li>
+</ul></p>
+]]></content>
+  </entry>
+  
+</feed>

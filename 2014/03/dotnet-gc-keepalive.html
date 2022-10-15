@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Stayin' alive with .NET GC - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Most of the time .NET GC just works. Occasionally when dealing with things like interop with unmanaged code, things go wrong. Things I learned today &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2014/03/dotnet-gc-keepalive.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Stayin' alive with .NET GC</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-03-06T23:50:00+11:00" pubdate data-updated="true">06 Mar 2014</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Most of the time .NET GC just works. Occasionally when dealing with things like interop with unmanaged code, things go wrong. Things I learned today from this aforementioned going wrong include:</p>
+<ul>
+<li>Variable scope can be greater than the lifetime of the object it points to</li>
+<li>Mark-and-sweep GC marks objects for survival, not for collection</li>
+<li><code>GC.KeepAlive(object)</code> is a no-op</li>
+<li>Finalisers from collected objects can break active objects</li>
+<li>Use a release configuration build for reproducing GC issues, running without the debugger attached</li>
+<li>Non-deterministic finalisation makes me confused</li>
+</ul>
+<figure>
+<img src="/images/2014/one_does_not_simply_gc.jpg" alt="One does not simply reason about .NET Garbage Collection" /><figcaption>One does not simply reason about .NET Garbage Collection</figcaption>
+</figure>
+<!-- more -->
+<p>I know far less about this stuff than I should, so please post corrections in the comments and I’ll update the post.</p>
+<h2 id="scope-vs.-lifetime">Scope vs. lifetime</h2>
+<p>I tend to think of an object’s lifetime being at least equal to the scope of the single variable holding a reference to it. So the last reference goes out of scope, the GC comes along eventually and tidies up. This is not always the case. Take this fairly innocent-looking code:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="n">ILikeData</span> <span class="nf">GetData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">IDataPointCollection</span> <span class="n">dataPoints</span> <span class="p">=</span> <span class="n">source</span><span class="p">.</span><span class="n">GetPoints</span><span class="p">();</span>
+  <span class="k">return</span> <span class="n">processor</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">dataPoints</span><span class="p">.</span><span class="n">GetHelpfulOnes</span><span class="p">());</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The <code>dataPoints</code> variable goes out of scope at the end of the method, but its object’s lifetime could potentially be shorter or longer depending on the whims of the garbage collector and JIT. Once <code>dataPoints.GetHelpfulOnes()</code> starts executing <code>dataPoints</code> is no longer called and is therefore eligible for collection. Potentially even while <code>GetHelpfulOnes()</code> is still running.</p>
+<p>If the <code>IDataPointCollection</code> finaliser disposes of something <code>GetHelpfulOnes()</code> needs (like a handle to an unmanaged resource) or if it invalidates the object passed to <code>Process()</code>, then an ill-timed GC can cause <code>GetHelpfulOnes()</code> or <code>Process()</code> to fail. Intermittent failures are fun, right?</p>
+<h2 id="keepalive-is-a-no-op-to-foil-the-jitter">KeepAlive is a no-op to foil the JITter</h2>
+<p>We want to force the <code>dataPoints</code> instance to stay active until <code>Process</code> completes so the finaliser doesn’t break everything. Maybe we include a call after <code>Process</code> to ensure this?</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="n">ILikeData</span> <span class="nf">GetData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">IDataPointCollection</span> <span class="n">dataPoints</span> <span class="p">=</span> <span class="n">source</span><span class="p">.</span><span class="n">GetPoints</span><span class="p">();</span>
+  <span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">processor</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">dataPoints</span><span class="p">.</span><span class="n">GetHelpfulOnes</span><span class="p">());</span>
+  <span class="n">Log</span><span class="p">(</span><span class="n">dataPoints</span><span class="p">.</span><span class="n">Something</span><span class="p">());</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Now I have zero idea of how JIT compilation actually works, and my zero understanding includes the idea that it is possible for it to rearrange the code into what it thinks is an equivalent, more efficient form. For example, it might be able to inline <code>dataPoints.Something()</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="n">ILikeData</span> <span class="nf">GetData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">IDataPointCollection</span> <span class="n">dataPoints</span> <span class="p">=</span> <span class="n">source</span><span class="p">.</span><span class="n">GetPoints</span><span class="p">();</span>
+  <span class="kt">var</span> <span class="n">arg</span> <span class="p">=</span> <span class="n">dataPoints</span><span class="p">.</span><span class="n">GetHelpfulOnes</span><span class="p">();</span>
+  <span class="c1">//Boo, no more managed calls to dataPoints, so it&#39;s eligible for GC...</span>
+  <span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">processor</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+  <span class="kt">var</span> <span class="n">arg2</span> <span class="p">=</span> <span class="cm">/* method body of dataPoints.Something(). No dataPoints reference required. */</span><span class="p">;</span>
+  <span class="n">Log</span><span class="p">(</span><span class="n">arg2</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Here <code>dataPoints</code> is still eligible for collection, and its finalisation continues breaking <code>GetHelpfulOnes()</code> and/or <code>Process</code>. Boo! Hiss!</p>
+<p>One solution is to use <a href="http://msdn.microsoft.com/en-us/library/system.gc.keepalive(v=vs.110).aspx"><code>GC.KeepAlive()</code></a>. <code>KeepAlive()</code> is a no-op method marked with a <a href="http://msdn.microsoft.com/en-us/library/system.runtime.compilerservices.methodimploptions.aspx"><code>[MethodImpl(MethodImplOptions.NoInlining)]</code></a> attribute, so the JITter can’t inline it and knows it still needs to make a call with that reference, which means the GC has to mark it to live on to fight again another day.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="n">ILikeData</span> <span class="nf">GetData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">IDataPointCollection</span> <span class="n">dataPoints</span> <span class="p">=</span> <span class="n">source</span><span class="p">.</span><span class="n">GetPoints</span><span class="p">();</span>
+  <span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">processor</span><span class="p">.</span><span class="n">Process</span><span class="p">(</span><span class="n">dataPoints</span><span class="p">.</span><span class="n">GetHelpfulOnes</span><span class="p">());</span>
+  <span class="n">GC</span><span class="p">.</span><span class="n">KeepAlive</span><span class="p">(</span><span class="n">dataPoints</span><span class="p">);</span> <span class="c1">// have to keep dataPoints around until this returns</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>As soon as <code>GC.KeepAlive(dataPoints)</code> finishes doing nothing and returns, <code>dataPoints</code> is again eligible for collection, so we want to save this call until we know our object is ok to finalise.</p>
+<div class="note">
+<strong>Aside:</strong> I believe we’re meant to use the <a href="http://stackoverflow.com/a/898867/906">disposable pattern</a> with <code>using</code> blocks to keep objects alive, but if we’re using one that isn’t <code>IDisposable</code> I think we’re stuck with <code>KeepAlive()</code>.
+</div>
+<h2 id="debugging-my-gc-issue">Debugging my GC issue</h2>
+<p>In the particular case I faced <code>dataPoints</code> finalised before/while <code>Process()</code> was running which broke the child object instance returned from <code>GetHelpfulOnes()</code> that <code>Process()</code> was using.</p>
+<p>To reproduce this scenario I modified the <code>Process()</code> method to try to persuade the GC and finalisers run:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="n">ILikeData</span> <span class="nf">Process</span><span class="p">(</span><span class="n">IHelpfulData</span> <span class="n">d</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">GC</span><span class="p">.</span><span class="n">Collect</span><span class="p">();</span>
+    <span class="n">GC</span><span class="p">.</span><span class="n">WaitForPendingFinalizers</span><span class="p">();</span>
+    <span class="n">GC</span><span class="p">.</span><span class="n">Collect</span><span class="p">();</span>
+    <span class="cm">/* ... original method body ... */</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This was enough to make <code>GetData()</code> fail consistently, but only using a Release build rather than a Debug one. The debugger also changes GC behaviour, so running without the debugger is a good idea too. Using <code>GC.KeepAlive(dataPoints)</code> as described above made the problem go away.</p>
+<p>Of course, non-determinism being what it is, I can’t be sure its fixed, but at least it seems to have shut down one particular avenue for this bug to occur.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Much of the time and for many project types we can get away with blindly trusting the GC. Once we have finalisers that can affect other live objects we lose this luxury.</p>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="http://blogs.msdn.com/b/oldnewthing/archive/2010/08/13/10049634.aspx">Raymond Chen on “When do I need to use GC.KeepAlive?”</a></li>
+<li><a href="http://blogs.msdn.com/b/cbrumme/archive/2003/04/19/51365.aspx">Chris Brumme’s post on “Lifetime, GC.KeepAlive, handle recyling”</a></li>
+<li><a href="http://stackoverflow.com/questions/5530118/c-sharp-an-objects-scope/5530869#5530869">Eric Lippert’s SO answer about object scope</a></li>
+</ul>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-03-06T23:50:00+11:00" pubdate data-updated="true">06 Mar 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2014/03/dotnet-gc-keepalive.html" data-via="" data-counturl="http://davesquared.net/2014/03/dotnet-gc-keepalive.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2014/02/aristotle-and-parametricity.html" title="Previous Post: Aristotle and parametricity">&laquo; Aristotle and parametricity</a>
+      
+      
+        <a class="basic-alignment right" href="/2014/04/either.html" title="next Post: A hasty introduction to the Either type">A hasty introduction to the Either type &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2014/03/dotnet-gc-keepalive.html';
+        var disqus_url = 'http://davesquared.net/2014/03/dotnet-gc-keepalive.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

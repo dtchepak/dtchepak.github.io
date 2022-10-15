@@ -1,0 +1,467 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Reading type annotations - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="C and C-style languages like C++, Java, and C# tend to have method types written like this: returnType methodName(argType0 arg0, argType1 arg1); &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2016/02/reading-type-annotations.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Reading type annotations</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2016-02-09T22:30:00+11:00" pubdate data-updated="true">09 Feb 2016</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>C and C-style languages like C++, Java, and C# tend to have method types written like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>returnType methodName(argType0 arg0, argType1 arg1);</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Other typed languages and programming papers use a notation more like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>methodName : (argType0, argType1) -&gt; returnType</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>I found it took a bit of getting used to, but I now much prefer to read and write this style. I think it is worth becoming familiar with, as it is used in quite a few languages<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> and in all the programming papers I’ve seen. So here’s a quick guide on how to read this style of type annotation.</p>
+<!-- more -->
+<h2 id="structure">Structure</h2>
+<p>From the <code>methodName</code> example above, we can see the structure has changed from “return type - name - arguments” to “name - arguments - return type”. So the main change is moving the return type from the beginning to the end.</p>
+<p>A <code>:</code> separates the name from the type signature. <code>:</code> can be read as “has type”. Haskell unfortunately uses <code>::</code> for this, instead of the <code>:</code> character which seems to be used pretty much everywhere else.</p>
+<p>A <code>-&gt;</code> arrow separates function input from function output. So <code>a -&gt; b</code> reads as “I take values of type <code>a</code> and produce values of type <code>b</code>”.</p>
+<p>Arguments are shown as a tuple of one or more types. In some languages (like ML, OCaml, and F#) tuple types are shown denoted by types separated by <code>*</code> characters, so the signature would look like <code>methodName : argType0 * argType1 -&gt; returnType</code>.</p>
+<h2 id="generics">Generics</h2>
+<p>There are a few different ways of representing generic parameters. Let’s take a function that, given a single element of some type, returns a singleton list of that type.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>// C#
+List&lt;T&gt; Singleton&lt;T&gt;(T value);
+
+// Haskell
+singleton :: t -&gt; List t
+
+// F#
+singleton : 't -&gt; List&lt;'t&gt;
+// or F# can use postfix syntax where the type variable
+// is followed by the type constructor
+singleton : 't -&gt; 't list</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>In Haskell, any type starting with a lowercase character is a type variable rather than a concrete type. In F# type parameters begin with a quote character <code>'</code>. Not requiring an additional step to list generic parameters is handy.</p>
+<h2 id="higher-order-functions">Higher order functions</h2>
+<p>Where this notation starts to show some advantages is with higher order functions. For example, say we want a generic <code>map</code> function:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>// C#-style
+List&lt;A&gt; Select&lt;T,A&gt;(Func&lt;T,A&gt; f, List&lt;T&gt; list);
+
+// Haskell-style
+map :: (t -&gt; a) -&gt; List t -&gt; List a
+
+// or a more exact, less idiomatic translation:
+map :: ((t -&gt; a), List t) -&gt; List a</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>These functions take a function that translates Ts to As, and a list of Ts, to produce a list of As. The parentheses around the <code>(t -&gt; a)</code> in the Haskell-style signature show that this is a single argument (that happens to itself be another function). This is a bit cleaner than the equivalent <code>Func&lt;T, A&gt;</code> in the C# version, particularly when the explicit type parameter declarations are taken into account. The difference becomes more noticeable as we increase the number of functions and type parameters:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>// Example: function composition, (f ∘ g)(x) = f(g(x))
+
+// Haskell style:
+compose :: (b -&gt; c) -&gt; (a -&gt; b) -&gt; (a -&gt; c)
+
+// C#-style:
+Func&lt;A,C&gt; Compose&lt;A,B,C&gt;(Func&lt;B,C&gt; f, Func&lt;A,B&gt; g);</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="curried-functions">Curried functions</h2>
+<p>In the <code>map</code> example above a “more exact, less idiomatic translation” was shown:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>map1 :: (t -&gt; a) -&gt; List t -&gt; List a
+map2 :: ((t -&gt; a), List t) -&gt; List a</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p><code>map1</code> takes a function <code>(t -&gt; a)</code> and returns a function <code>List t -&gt; List a</code>. It would also be correct to write it as <code>map1 :: (t -&gt; a) -&gt; (List t -&gt; List a)</code>. In constrast, <code>map2</code> takes a single argument that happens to be a tuple of <code>((t -&gt; a), List t)</code>. If we are supplying both arguments at once there is not much difference, but the <code>map1</code> version also lets us supply just the <code>(t -&gt; a)</code> argument to create a new function.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>&gt; map1 (+1) [1..3]
+[2,3,4]
+&gt; map2 ((+1), [1..3])
+[2,3,4]
+
+&gt; let addOne = map1 (+1)
+addOne :: [List Int] -&gt; [List Int]
+&gt; addOne [1..3]
+[2,3,4]</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Being able to supply less than the full contingent of arguments to a function, and get back a function that takes the remainder of the arguments, is called partial application.</p>
+<p>The <code>map1</code> form of signature, where a function is built out of functions that each take a single argument, is called a curried function (<code>map2</code> is “uncurried”). We get partial application, the ability to provide one argument at a time, for free with curried functions.</p>
+<p>Curried function signatures in C# get unpleasant fairly quickly:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>// Haskell-style
+curriedEg :: a -&gt; b -&gt; c -&gt; d -&gt; e
+uncurriedEg :: (a, b, c, d) -&gt; e
+
+// C#
+Func&lt;B, Func&lt;C, Func&lt;D, E&gt;&gt;&gt; CurriedEg&lt;A,B,C,D,E&gt;(A a);
+E UncurriedEg&lt;A,B,C,D,E&gt;(A a, B b, C c, D d);
+
+// cluck cluck, bgark!</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="unit-values">Unit values</h2>
+<p>Some methods take no input and return a value (either a constant, or due to some side-effect). The “no input” value is normally represented by empty parenthesis <code>()</code>, and is called “unit” (because there is only a single legal value of this type, <code>()</code>).</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>DateTime GetDate();
+
+getDate : () -&gt; DateTime</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Similarly for things that take an argument but produce no direct output value (i.e. performs a side-effect)<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>. Again, this is represented by unit:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>void Save(Widget w);
+save : Widget -&gt; ()</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This starts to look a bit funny when methods take other calls with no input and no direct output:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>void Subscribe(Action callback);
+subscribe : (() -&gt; ()) -&gt; ()</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>It does give some immediate clues as to where side-effects are in a type signature thought.</p>
+<h2 id="types-inside-implementations">Types inside implementations</h2>
+<p>We’ve looked at different forms of type signatures, but this style also tends to work its way into method definitions, again using the form <code>name : type</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>// C#
+List&lt;T&gt; Singleton&lt;T&gt;(T t) {
+    return new List&lt;T&gt; { t };
+}
+
+// Haskell
+singleton :: t -&gt; [T]
+singleton t = [t]
+
+// F#
+let singleton (t : 'T) : List&lt;'T&gt; = [t]
+
+// Swift
+func singleton&lt;T&gt;(t : T) -&gt; [T] {
+    return [t]
+}</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Haskell tends to split the type signature from definition. F# specifies the arguments as <code>argName : argType</code>, and then gives the type of the resulting value (in this case <code>List&lt;'T&gt;</code>. Generic type parameters are indicated with a <code>'</code> prefix. Swift uses a similar style, but an arrow is used for the return type. Swift needs explicit declaration of generic type parameters.</p>
+<p>In both the Haskell and F# cases the type information can actually be omitted – the type system will infer the correct type signature.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>This has been a quick tour through the things that first tripped me up when reading type signatures from non-C-style languages.</p>
+<p>The main habit I needed to break was expecting to see a type then a name. Instead, names are first, then their type shown. So method types change like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>returnType blah()
+// becomes something like:
+blah : () -&gt; returnType</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Similarly arguments go from <code>ArgType name</code> to <code>name : ArgType</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<div class="highlight">
+<pre><code class=''>void Load(int id)
+// becomes something like:
+load(id : int) : ()</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Hope this helps!</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Such as Haskell, F#, Swift, Scala, OCaml, ML, Idris, Elm, PureScript, and TypeScript.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Note that <code>void</code> in C-style languages is different to the terms “unit” and “Void” in non-C-style languages. In C-style languages <code>void</code> means “has no return value”, where a return type of <code>()</code> means “returns the value ()”. In contrast, the type <code>Void</code> is one with no legal instance. We can never return a value of type <code>Void</code>, so my understanding is a function <code>a -&gt; Void</code> can never return.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2016-02-09T22:30:00+11:00" pubdate data-updated="true">09 Feb 2016</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2016/02/reading-type-annotations.html" data-via="" data-counturl="http://davesquared.net/2016/02/reading-type-annotations.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2015/07/apply-pattern.html" title="Previous Post: The Apply pattern">&laquo; The Apply pattern</a>
+      
+      
+        <a class="basic-alignment right" href="/2016/02/currying-vs-partialapp.html" title="next Post: Currying vs. partial application">Currying vs. partial application &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2016/02/reading-type-annotations.html';
+        var disqus_url = 'http://davesquared.net/2016/02/reading-type-annotations.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

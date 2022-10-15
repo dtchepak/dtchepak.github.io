@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Git-aware PowerShell prompt - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Today a colleague sent around an interesting link on how to put your git status in your bash prompt. I thought I&#8217;d spend a few minutes trying &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2009/02/git-aware-powershell-prompt.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Git-aware PowerShell prompt</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-02-04T23:54:00+11:00" pubdate data-updated="true">04 Feb 2009</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Today a <a href="http://www.shannoncornish.com/blog/">colleague</a> sent around an interesting link on how to put your <a href="http://www.intridea.com/posts/git-status-in-your-prompt">git status in your bash prompt</a>. I thought I&#8217;d spend a few minutes trying to get a similar effect in PowerShell (v2 CTP3). It&#8217;s not particularly useful, but I found it an interesting exercise. Here&#8217;s what I came up with, saved in <code>GitAwarePrompt.ps1</code>. <b>Disclaimer:</b> I know nothing about PowerShell so use anything from this post at your own risk. :) </p>
+
+<pre>
+function Get-GitBranchNameWithStatusIndicator {
+  $statusOutput = Invoke-Expression 'git status 2&gt;$null'  <b>#1</b>
+  if (!$statusOutput) { return } <b>#2</b>
+  $branch = $statusOutput[0] <b>#3</b>
+  if ($branch -eq &quot;# Not currently on any branch.&quot;) {
+    $branch = &quot;No branch&quot;
+  } else {
+    $branch =  $branch.SubString(&quot;# On branch &quot;.Length) 
+  }
+  $statusSummary = $statusOutput[-1] <b>#4</b>
+  if ($statusSummary -eq &quot;nothing to commit (working directory clean)&quot;) { <b>#5</b>
+    $statusIndicator = &quot;&quot; 
+  } else {
+    $statusIndicator = &quot;*&quot;
+  }
+  return $branch + $statusIndicator
+}
+
+function prompt { <b>#6</b>
+  $gitStatus = Get-GitBranchNameWithStatusIndicator
+  Write-Host (&quot;PS &quot; + $(get-location)) -nonewline
+  if ($gitStatus) {
+    Write-Host (&quot; [&quot; + $gitStatus +&quot;]&quot;) -nonewline -foregroundcolor Gray
+  }
+  Write-Host (&quot;&gt;&quot;) -nonewline
+  return &quot; &quot;
+}
+</pre>
+
+<p>I&#8217;ve put some numbered comments on a couple of lines so we can go through the main parts of the script, or you can skip to the next heading if you just want to try out the script.</p>
+
+<p>Line #1 uses the <code>Invoke-Expression</code> commandlet to run the <code>git status</code> command and store the output in the local <code>$statusOutput</code> variable. We are using <code>2&gt;$null</code> to drop any output written to standard error, otherwise whenever we try and write a prompt in a non-git directory we&#8217;ll get a git error message appearing. You&#8217;ll also notice we have the <code>git status 2&gt;$null</code> command surrounded by single quotes (&#8216;), rather than double quotes (&quot;). The reason is that PowerShell automatically performs variable substitution within double quoted strings. So if we used double quotes the <code>$null</code> would be replaced by with nothing (it&#8217;s current value), which will cause us no end of problems (go on, ask me how I know! :)). </p>
+
+<p>If the <code>git status</code> command errors out (say, if the current directory is not in a git repo), then <code>$gitStatus</code> will be null. Line #2 checks for this and returns void if <code>$statusOutput</code> is undefined. Otherwise <code>$statusOutput</code> will an array of objects, with an item for each line of the command output. Line #3 grabs the first line of output, which contains a string which contains our branch name, and stores it in a variable. The <code>if/else</code> that follow checks first to make sure we are actually on a branch, and parses the branch name from the line.</p>
+
+<p>Line #4 was a nice surprise for me &#8211; PowerShell supports wrapped array indexing! Using an index of <code>-1</code> grabs the last item in the array. Very pythonesque :). Line #5 then compares this with the output <code>git status</code> gives when there are no changes, and the rest of the <code>if/else</code> block sets the <code>$statusIndicator</code> based on this result. (No <a href="http://blogs.msdn.com/powershell/archive/2006/12/29/dyi-ternary-operator.aspx">built in ternary operator</a> apparently.)</p>
+
+<p>Finally, line #6 defines a <code>prompt</code> function, which PowerShell uses to write it&#8217;s prompt.</p>
+
+<h2>Using the script</h2>
+
+<p>If we just run this script from within PowerShell it will do absolutely nothing. The reason is because any functions or variables defined will be cleaned up when the script exits. To change the scope and affect the current environment we need to <a href="http://www.microsoft.com/technet/scriptcenter/topics/winpsh/manual/run.mspx#EMBAC">dot-source</a> the script, like this (depending on where you saved the script):</p>
+
+<pre>
+PS &gt; . $HOME/Documents/WindowsPowerShell/GitAwarePrompt.ps1
+</pre>
+
+<p>Without the dot and space, you get nothing. With the dot-sourced script, we have created a <code>prompt</code> function for PowerShell to call, and we get the status of our Git working directory from our command line:</p>
+
+<pre>
+PS C:\Development\git\HelloWorld <b>[helloGit]</b>&gt; &quot;Modify hello.txt&quot; &gt; hello.txt
+PS C:\Development\git\HelloWorld <b>[helloGit*]</b>&gt; git commit -a -m &quot;Commit change&quot;
+[helloGit]: created 8a7947c: &quot;Commit change&quot;
+ 1 files changed, 0 insertions(+), 0 deletions(-)
+PS C:\Development\git\HelloWorld <b>[helloGit]</b>&gt; git checkout master
+Switched to branch &quot;master&quot;
+PS C:\Development\git\HelloWorld <b>[master]</b>&gt; &quot;Change hello.txt again&quot; &gt; hello.txt
+PS C:\Development\git\HelloWorld <b>[master*]</b>&gt;
+PS C:\Development\git\HelloWorld <b>[master*]</b>&gt; cd ..
+PS C:\Development\Git&gt;
+</pre>
+
+<h2>Setting the default prompt</h2>
+
+<p>You can also more permanently modify your PowerShell prompt by putting the script in your PowerShell profile, which is set to something like <code>~\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1</code> by default (if it doesn&#8217;t exist, you can create it from PowerShell using <code> New-Item $PROFILE -ItemType file -Force</code>). This can be something like the Git-aware prompt shown here, or something <a href="http://mshforfun.blogspot.com/2006/05/perfect-prompt-for-windows-powershell.html">more interesting</a>. Be careful you don&#8217;t slow down your shell too much though: <code>prompt</code> is obviously called on every new line!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-02-06T23:05:04+11:00" class="updated">Updated 06 Feb 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/powershell/'>powershell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2009/02/git-aware-powershell-prompt.html" data-via="" data-counturl="http://davesquared.net/2009/02/git-aware-powershell-prompt.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/02/setting-up-diff-and-merge-tools-for-git.html" title="Previous Post: Setting up diff and merge tools for Git on Windows">&laquo; Setting up diff and merge tools for Git on Windows</a>
+      
+      
+        <a class="basic-alignment right" href="/2009/02/testing-legacy-code-when-simple.html" title="next Post: Testing legacy code when simple threading's involved">Testing legacy code when simple threading's involved &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2009/02/git-aware-powershell-prompt.html';
+        var disqus_url = 'http://davesquared.net/2009/02/git-aware-powershell-prompt.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

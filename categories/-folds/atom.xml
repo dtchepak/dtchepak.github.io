@@ -1,0 +1,673 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: +folds | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/-folds/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Folds Pt 3: Left fold, right?]]></title>
+    <link href="http://davesquared.net/2012/03/folds-pt3-left-fold-right.html"/>
+    <updated>2012-03-24T01:33:00+11:00</updated>
+    <id>http://davesquared.net/2012/03/folds-pt3-left-fold-right</id>
+    <content type="html"><![CDATA[<p>This post is part 3 of a <a href="/categories/-folds">series on folds</a>, which is my attempt to understand the topic. The examples are in Haskell, but hopefully you can follow along even if you're not familiar with the language. If you find yourself getting lost in the syntax, I've written a <a href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quick start</a> that goes through all the bits we'll use.</p>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we found that a fold is a way of abstracting recursive operations over lists. In <a href="/2012/02/folds-pt2-from-loops-to-folds.html">part 2</a> we saw that we could also express loops using recursion, which we could extract into a different type of fold. We learned that the loop-like fold is called a <em>left fold</em> (it accumulates its values on the left of the expression), and that our original fold was called a <em>right fold</em> (which accumulates to the right).</p>
+
+<pre><code class="haskell">foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+foldLeft f acc (head:tail) = foldLeft f (f acc head) tail
+foldLeft _ seed [] = seed
+
+foldRight :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+foldRight f acc (head:tail) = f head (foldRight f acc tail)
+foldRight _ seed [] = seed
+</code></pre>
+
+<p>We saw we could implement several functions using both left and right folds (like <code>sum</code>, <code>length</code>, and <code>mapFn</code>). As both folds abstract away explicit recursion, they seem capable of producing the same results, just with different orders of evaluation. It turns out these differences in evaluation have some important implications, so in this post we'll take a closer look at them.</p>
+
+<!-- more -->
+
+
+<h2>Flipped arguments and evaluation order</h2>
+
+<p>Both our folds take as arguments a function, a seed/accumulator, and a list. If we look closely at the type definitions of each, we can see that the first arguments differ:</p>
+
+<pre><code>foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+foldRight :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+</code></pre>
+
+<p>The function passed to <code>foldLeft</code> is called with the accumulator, then an item from the list (<code>f acc head</code>), but <code>foldRight</code> is called with the list item then the accumulator (<code>f head acc</code>). The function arguments are flipped. This can make some folds easier to write in one form than the other. In particular, folds that create lists seem to more naturally fit with <code>foldRight</code>:</p>
+
+<pre><code>addOneRight list = foldRight (\head acc -&gt; (head+1):acc) [] list
+</code></pre>
+
+<p>Here we add one to the list head, then prepend that onto the accumulated list using <code>(:)</code> (called <em>cons</em>, used for constructing lists).</p>
+
+<p>If we try and write this using a left fold, the order of the list head and accumulated list arguments passed to our lambda function gets flipped:</p>
+
+<pre><code>addOneLeft' list = foldLeft (\acc head -&gt; (head+1):acc) [] list
+</code></pre>
+
+<p>If we run these examples though, we get quite different results:</p>
+
+<pre><code>*Main&gt; addOneRight [1..5]
+[2,3,4,5,6]
+*Main&gt; addOneLeft' [1..5]
+[6,5,4,3,2]
+</code></pre>
+
+<p>This is due to the difference in evaluation order we identified between the fold types, although now it starts to have more impact than just where our parentheses end up. <code>foldRight</code> builds up an expression that evaluates from right to left, so our list gets built up like this:</p>
+
+<pre><code>addOneRight [1..5] 
+    = (1+1) : (addOneRight [2..5])
+    = (1+1) : (2+1) : (addOneRight [3..5])
+    = ...
+    = (1+1) : (2+1) : (3+1) : (4+1) : (5+1) : []
+    = [2,3,4,5,6]
+</code></pre>
+
+<p>Here our last list item <code>5</code> gets evaluated with our accumulator <code>[]</code> first. In other words, it is <a href="http://en.wikipedia.org/wiki/Operator_associativity">right-associative</a>; <code>foldRight (+) 0 [1..5]</code> will create the expression <code>1 + (2 + (3 + (4 + (5 + 0))))</code> which evaluates the right-most term first.</p>
+
+<p>But <code>foldLeft</code> works more like a loop, and evaluates from left to right (it is left-associative; <code>foldLeft (+) 0 [1..5]</code> creates <code>((((0 + 1) + 2) + 3) + 4) + 5</code>), so our first list item <code>1</code> gets evaluated with the accumulator <code>[]</code> first:</p>
+
+<pre><code>addOneLeft' [1..5]
+    = addOneLeft' ((1+1) : []) [2..5]            -- Evals 1 with accumulator [] first.
+    = addOneLeft' ((2+1) : (1+1) : []) [3..5]
+    = ...
+    = (5+1) : (4+1) : (3+1) : (2+1) : (1+1) : []
+    = [6,5,4,3,2]
+</code></pre>
+
+<p>To fix our <code>addOneLeft</code> function, we want to append the item to the end of the accumulated list, rather than add it to the front. We can do this by using <code>(++)</code> which concatenates lists, and use <code>[head+1]</code> to convert the list element to a list so we can concatenate it.</p>
+
+<pre><code>addOneLeft list = foldLeft (\acc head -&gt; acc ++ [head+1]) [] list
+{-
+addOneLeft [1..5]
+    = addOneLeft ([] ++ [1+1]) [2..5]
+    = addOneLeft ([] ++ [1+1] ++ [2+1]) [3..5]
+    = ...
+    = [] ++ [1+1] ++ [2+1] ++ [3+1] ++ [4+1] ++ [5+1]
+    = [2,3,4,5,6]
+-}
+</code></pre>
+
+<p>This gives us the <code>[2,3,4,5,6]</code> answer we expect.</p>
+
+<p>So not only do the functions we pass to both folds differ in argument order, but the order the accumulated value is populated is also reversed.</p>
+
+<h2>To infinity, and beyond!</h2>
+
+<p>In the last section we saw that <code>foldLeft</code> and <code>foldRight</code> evaluate in opposite orders. This difference in evaluation order has another important impact, and that is how the different folds handle infinite lists.</p>
+
+<h3>Taking just a bit of an infinite list</h3>
+
+<p>First we'll need to take a small digression to explain how Haskell works with infinite lists. The <code>take</code> function in Haskell grabs a specified number of elements from the start of a list. We can implement a basic version of this function so we can trace exactly what's happening when we call it.</p>
+
+<pre><code class="haskell">take' :: Num a =&gt; a -&gt; [b] -&gt; [b]
+take' 0 _ = []              -- The underscore '_' matches any argument value.
+take' _ [] = []
+take' i (head:tail) = head : (take' (i-1) tail)
+</code></pre>
+
+<p>We can use our <code>take'</code> function like this:</p>
+
+<pre><code>*Main&gt; take' 0 [1..10]
+[]
+*Main&gt; take' 5 [1..10]
+[1,2,3,4,5]
+*Main&gt; take' 3 [1..]
+[1,2,3]
+</code></pre>
+
+<p>The first two calls take 0 and 5 elements respectively from a list of 10 numbers. The third call takes 3 elements from <code>[1..]</code>, which is Haskell for "an infinite list starting from 1". We can get away with using infinite lists because Haskell uses <a href="http://en.wikipedia.org/wiki/Lazy_evaluation">lazy evaluation</a> (more precisely, it is <a href="http://www.haskell.org/haskellwiki/Lazy_vs._non-strict">non-strict</a>); it can evaluate only what it absolutely needs to in order to get a result from an expression.</p>
+
+<p>If you type <code>[1..]</code> into GHCi, the interpreter will try and print this list to the terminal. Because printing every element in a list requires evaluating every element, this will continually spit out numbers until you stop it with <code>Ctrl + c</code> or something catastrophic happens to the process (like being stopped by the heat death of the universe).</p>
+
+<p>If, instead of dumping <code>[1..]</code> to the terminal, we use it as an argument to our <code>take'</code> function, it will only evaluate the elements it needs from the list.</p>
+
+<pre><code>take' 3 [1..]
+    = 1 : take' 2 [2..]
+    = 1 : 2 : take' 1 [3..]
+    = 1 : 2 : 3 : take' 0 [4..]
+    = 1 : 2 : 3 : []        -- We defined take' 0 of any list as []
+</code></pre>
+
+<p>Because <code>take' 0 [4..]</code> can return <code>[]</code> without further evaluation of the infinite list <code>[4..]</code>, Haskell returns the result without getting stuck in an infinite loop.</p>
+
+<h3>Folding over infinite lists</h3>
+
+<p>Let's apply this knowledge to folds. I'll try adding one to each element of an infinite list using our addOne functions, and only taking the first three elements from the result:</p>
+
+<pre><code>*Main&gt; take' 3 (addOneRight [1..])
+[2,3,4]
+*Main&gt; take' 3 (addOneLeft [1..])
+^CInterrupted.
+</code></pre>
+
+<p>Hmm. The <code>addOneRight</code> call worked fine, but <code>addOneLeft</code> just hung until I interrupted it using <code>Ctrl + c</code>. We've already seen how the <code>addOneRight</code> and <code>addOneLeft</code> functions are evaluated, so let's trace through how that pattern works with infinite lists.</p>
+
+<pre><code>addOneRight [1..]
+    = (1+1) : addOneRight [2..]
+    = (1+1) : (2+1) : addOneRight [3..]
+    = (1+1) : (2+1) : (3+1) : ...
+
+addOneLeft [1..]
+    = addOneLeft ([] ++ [1+1]) [2..]
+    = addOneLeft ([] ++ [1+1] ++ [2+1]) [3..]
+    = addOneLeft ([] ++ [1+1] ++ [2+1] ++ [3+1] ++ ...) ...
+</code></pre>
+
+<p>The right fold version is able to evaluate elements straight away; first <code>(1+1)</code>, then <code>(2+1)</code> and so on, so <code>take'</code> can start consuming them immediately. The recursive call keeps generating elements off to the right, but if we stop needing to use the next element, Haskell's going to be lazy and not evaluate the next recursive step.</p>
+
+<pre><code>take' 3 (addOneRight [1..])
+    = take' 3 ((1+1) : addOneRight [2..])
+    = (1+1) : take' 2 (addOneRight [2..])
+    = (1+1) : take' 2 ((2+1) : addOneRight [3..])
+    = (1+1) : (2+1) : take' 1 (addOneRight [3..])
+    = (1+1) : (2+1) : take' 1 ((3+1) : addOneRight [4..])
+    = (1+1) : (2+1) : (3+1) : take' 0 (addOneRight [4..])
+    = (1+1) : (2+1) : (3+1) : []        -- take' 0 of any list is [], we don't need to eval it.
+</code></pre>
+
+<p>In contrast, the left fold version can't start evaluating until its recursive call reaches the end of the list.</p>
+
+<pre><code>take' 3 (addOneLeft [1..])
+    = take' 3 (addOneLeft ([] ++ [1+1]) [2..])
+    = take' 3 (addOneLeft ([] ++ [1+1] ++ [2+1]) [3..])
+    = take' 3 (addOneLeft ([] ++ [1+1] ++ [2+1] ++ [3+1]) [4..])
+    = take' 3 (addOneLeft ([] ++ [1+1] ++ [2+1] ++ [3+1] ++ ...) ...)
+</code></pre>
+
+<p>So while <code>take'</code> was able to get a list of the form <code>(1+1) : rest</code> from <code>addOneRight</code> that it could start using straight away, the left fold has to completely evaluate <code>addOneLeft</code> before it gets access to a list in that form. And because that requires evaluating a function over every element in an infinite list, that's going to take quite some time...</p>
+
+<h3>Strictly thwarting our conquest of infinity</h3>
+
+<p>So far we've seen that while left folds aren't going to do us any favours when it comes to infinite lists, right folds seem to take them in their stride. There is a wrinkle here though; if the function we pass to our right fold needs to evaluate both its arguments (or its right argument first), then the recursion is not going to terminate and we're going to end up hanging, just like our left fold.</p>
+
+<p>The arguments a function needs to evaluate to produce a result is described as its <a href="http://www.haskell.org/haskellwiki/Non-strict_semantics">strictness</a>. A function that always needs to evaluate both its arguments is said to be strict in both its arguments. If it can sometimes get away with only evaluating some of its arguments it is non-strict (or, for example, just strict in its first argument).</p>
+
+<p>An example of a function that is strict in both its arguments is <code>(+)</code>, which needs to evaluate both its left and right sides to return a result:</p>
+
+<pre><code>*Main&gt; foldRight (+) 0 [1..10]
+55
+*Main&gt; foldRight (+) 0 [1..]
+^CInterrupted.
+</code></pre>
+
+<p>While not being able to sum an infinite list does not come as a complete surprise, even code that we imagine could return a result early will not necessarily work. Let's try and see if the sum of our list exceeds 5:</p>
+
+<pre><code>*Main&gt; (&gt;5) ( foldRight (+) 0 [1..10] )
+True
+*Main&gt; (&gt;5) ( foldRight (+) 0 [1..] )
+^CInterrupted.
+</code></pre>
+
+<p>Why doesn't this stop as soon as the sum reaches 20?</p>
+
+<pre><code>(&gt;20) (foldRight (+) 0 [1..])
+    = (&gt;5) (1 + foldRight (+) 0 [2..])
+    = (&gt;5) (1 + (2 + foldRight (+) 0 [3..]))
+    = (&gt;5) (1 + (2 + (3 + foldRight (+) 0 [4..])))
+    = ...
+</code></pre>
+
+<p>Even though our total is now greater than 5, our <code>(+)</code> operator isn't able to give us a result because it needs to evaluate both its left and right sides. When it looks at <code>(1 + rest)</code>, it tries to evaluate <code>rest</code> to give us an answer, which brings it to <code>(1 + (2 + rest))</code>. Again it needs to evaluate <code>rest</code> to finish evaluating the original <code>(1 + rest)</code> call. So before we can check <code>(&gt;5)</code>, we have to wait until the infinite number of right-hand sides have been evaluated. And so again we reach for <code>Ctrl + c</code>.</p>
+
+<p>This is different to our <code>take'</code> example which used the <code>(:)</code> and <code>(++)</code> operators, which are non-strict. If a function only needs the head of a list, it can grab that from <code>1:rest</code> without having to strictly evaluate the <code>rest</code> argument.</p>
+
+<h2>Left or right?</h2>
+
+<p>So how to we know when to choose a left fold over a right fold? I'm not entirely sure, but we can make some guesses based on what we've found so far.</p>
+
+<p>First, if we want to work with infinite lists we're going to need a right fold. It can be quite handy to have functions like <code>map</code> (<code>mapFn</code> in previous posts) work with infinite lists, as they can give us elegant ways of writing some functions (for example, finding all square numbers less than 1000: <code>takeWhile (&lt; 1000) (map (^2) [0..])</code>. Thanks to <a href="https://twitter.com/puffnfresh">@puffnfresh</a> for this example). So we'd write <code>map</code> as a right fold. This also means we would pick the right fold version of our <code>addOne</code> function (as it is a mapping of <code>(+1)</code> over a list).</p>
+
+<p>If we can't work with infinite lists (say, because we're using a strict function like <code>(+)</code>), then we have a choice. We've seen arguments are passed in different orders to the function being folded, and the order of evaluation is reversed, either of which may better suit what we are trying to do with our fold. For example, reversing a list using <code>foldLeft (\acc h -&gt; h:acc) []</code>, or just <code>foldLeft (flip (:)) []</code>, seems quite neat.</p>
+
+<p>I've seen suggestions to consider <a href="http://stackoverflow.com/a/1446803/906">loop-like vs. list recursion</a> and <a href="http://stackoverflow.com/a/1446478/906">operator associativity</a> in making a choice, but I'm not entirely sure how to apply these suggestions yet, so at the moment I'm stuck considering infinite lists and which order of evaluation suits what I'm trying to achieve.</p>
+
+<p>When trying to work out how to write a fold and which variant to use, I find it useful to think about the accumulator (<code>acc</code>) argument in the function we're folding as <em>delving</em> into the recursion. For left fold the function is <code>(\acc head -&gt; ...)</code>, while right is <code>(\head acc -&gt; ...)</code>, and the <code>acc</code> argument in both represents the result (or eventual result) of recursing over the rest of the list. This not only helps me to work out if a function can be folded right over an infinite list, but also helps me to work out how I need to implement or compose that function to give me the required result from my fold.</p>
+
+<p>There is one other important difference between the folds we haven't covered yet, and that is the question of efficiency in time taken and space used. We'll look at this in the next post.</p>
+
+<h2>Conclusion</h2>
+
+<p>We've now seen a few key differences between left and right folds that give us an idea as to why we've bothered coming up with different ways of abstracting away recursion, despite both folds initially looking as if they produced identical results.</p>
+
+<p>First we saw that <code>foldRight</code> takes a function with the accumulator passed in on the right, while <code>foldLeft</code> has it passed in on the left. Depending on the arguments required to the function being folded, this can make certain folds simpler to call in one direction than the other (such as being able to use <code>(:)</code> instead of <code>(++)</code> to build up lists while maintaining its order).</p>
+
+<p>More importantly, we saw that the order of evaluation was different for the folds. Left folds start combining the first element with the initial accumulator, whereas for right folds the last element is the first combined with the initial accumulator value. This causes folding <code>(:)</code> using left fold to reverse a list, while the right fold preserves the initial order.</p>
+
+<p>This evaluation order means left folds don't work on infinite lists (it needs to get to the final element first before it can start evaluating the expression), while right folds (depending on a function's strictness) can sometimes work happily with an infinite list. To determine whether a function will work with infinite lists, we need to think about whether that function can return a result without accessing its second parameter (<code>acc</code>, or accumulator).</p>
+
+<p>We can use these differences to decide which type of fold to use. If we need to handle infinite lists then a right fold is our only choice. Otherwise we can consider which evaluation order seems to best suit what we're trying to achieve. We are also yet to cover a final discriminator, the efficiency of different folds, and this will give us a bit more of a clue as to when we want to use each type of fold. We'll look at this aspect in the next post of this series, starting with finding a significant problem with our current <code>foldLeft</code> implementation.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Folds Pt 2: From loops to folds]]></title>
+    <link href="http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds.html"/>
+    <updated>2012-02-25T15:35:00+11:00</updated>
+    <id>http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds</id>
+    <content type="html"><![CDATA[<p>This post is part 2 of a <a href="/categories/-folds">series on folds</a>. Folds seem to crop up quite often in functional programing, and this series is my attempt to learn a little about the topic.</p>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we found that a fold is a way of abstracting recursive operations over lists. In this post we'll look at a different way of folding; one that traverses lists in a similar way to a <code>for</code>/<code>foreach</code> loop.</p>
+
+<!-- more -->
+
+
+<p>The examples are in Haskell, but I'm not going to assume you've had a chance to try it and so I'll try to explain it as I go. Hopefully the concepts will make sense even if you're not familiar with Haskell. If you find yourself getting lost in the syntax, I've written a <a href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quick start</a> that goes through all the bits we'll use.</p>
+
+<h2>Previously, on davesquared.net...</h2>
+
+<p><a href="/2012/02/folds-pt1-from-recursion-to-folds.html">Last time</a> we looked at recursive functions over lists like this one:</p>
+
+<pre><code class="haskell">add :: Num a =&gt; [a] -&gt; a    -- Take a list of numbers, return a number
+add (head:tail) = head + add tail
+add [] = 0
+</code></pre>
+
+<p>We defined our <code>add</code> function as returning the head of the list added to the result of recursively calling <code>add</code> on the rest of the list (known as the tail). We also defined a stopping condition for our recursion: when <code>add</code> is called with an empty list <code>[]</code>, it returns <code>0</code>. Tracing through a call to this function showed something like this:</p>
+
+<pre><code>add [1,3,5]
+    = add (1:[3,5])         -- split list into head and tail: 1 and [3,5]
+    = 1 + (add [3,5])
+    = 1 + (3 + (add [5]))
+    = 1 + (3 + (5 + (add [])))
+    = 1 + (3 + (5 + 0))     -- recursive calls now stopped. Time to evaluate the expression.
+    = 1 + (3 + 5)
+    = 1 + 8
+    = 9
+</code></pre>
+
+<p>Here we evaluate the head of the list, and add it to the result of the expression accumulating on the right. Once the recursion reaches the stopping condition we've got a long line of brackets accumulated on the right, and we can start evaluating them all until they reduce back to our answer.</p>
+
+<p>In the last post we looked at a few recursive functions like this, and found they all had a few things in common: a seed value to return for the empty list case, and a two argument function that is applied to the head of the list and the accumulated result of calling the original function on the tail of the list. Using this realisation we abstracted the common bits of these recursive operations into a <code>fold</code> function:</p>
+
+<pre><code class="haskell">fold :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+fold f seed (head:tail) = f head (fold f seed tail)
+fold _ seed [] = seed
+
+-- Re-writing add function using fold:
+addWithFold :: Num a =&gt; [a] -&gt; a
+addWithFold list = fold (+) 0 list
+    -- (+) is a two arg function. In lambda syntax: (\x y -&gt; x + y)
+</code></pre>
+
+<p>And this <code>addWithFold</code> function worked exactly the same as our original <code>add</code> function, except we no longer have to explicitly use recursion, it's abstracted away in our <code>fold</code> function. Tracing through a call to <code>addWithFold</code> showed it expands out exactly as per our original <code>add [1,3,5]</code> example above, including the expressions accumulating on the right (you can see an example of tracing through a fold in <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a>).</p>
+
+<p>And that's where we left things last post.</p>
+
+<h2>Writing <code>add</code> using a loop</h2>
+
+<p>What if we rewrote our original, recursive version of <code>add</code> using a standard, imperative loop? Let's see how that would look in a C-like language (in this case, C#):</p>
+
+<pre><code class="csharp">int Add(int[] numbers) {
+    int acc = 0;
+    for (int i=0; i &lt; numbers.Length; i++) {
+        acc += numbers[i];
+    }
+    return acc;
+}
+</code></pre>
+
+<p>We initialise an accumulator <code>acc</code> to 0, then keep adding each member of the list of numbers to it before returning the final value of <code>acc</code>.</p>
+
+<p>Let's use a little bit of imagination now. Say C# was actually a language with <a href="http://en.wikipedia.org/wiki/Lazy_evaluation">lazy evaluation</a> like Haskell, so it does not actually evaluate any functions like <code>(+)</code> until it absolutely has to. If we were to trace through the execution of the loop in this lazy world we'd see something like this:</p>
+
+<pre><code>Add(new[] { 1, 3, 5 });
+    acc = 0                     // Initial value
+    acc = (0 + 1)               // 1st iteration
+    acc = ((0 + 1) + 3)         // 2nd iteration
+    acc = (((0 + 1) + 3) + 5)   // 3rd iteration and end of loop
+    acc = ((1 + 3) + 5)         // Start evaluating...
+    acc = (4 + 5)
+    acc = 9                     // ... return result
+</code></pre>
+
+<p>Notice that the here our expression is building up on the left side, instead of on the right-hand side we saw for our version which used <code>fold</code>?</p>
+
+<pre><code>    -- Loop version:
+    ((0 + 1) + 3) + 5
+
+    -- Fold version:
+    1 + (3 + (5 + 0))
+</code></pre>
+
+<p>Well, we could also write a Haskell function that uses an accumulator too. But Haskell doesn't have imperative-style loops, so we'll need to go back to recursion.</p>
+
+<pre><code class="haskell">add' list =
+    let accumulate acc (head:tail) = accumulate (acc+head) tail
+        accumulate acc []          = acc
+    in accumulate 0 list
+</code></pre>
+
+<p>Here we've used <code>let</code> to introduce a kind of nested function <code>accumulate</code> within <code>add'</code>. It includes an extra variable <code>acc</code> to store our accumulated value. The <code>accumulate</code> function recursively calls itself until it stops at the empty list. Our <code>add'</code> function kicks off this recursion with the initial accumulator value by calling <code>accumulate 0 list</code>.</p>
+
+<p>Now look at what happens when we trace through a call to <code>add'</code>:</p>
+
+<pre><code>add' [1,3,5]
+    = accumulate 0 [1,3,5]
+    = accumulate (0 + 1) [3,5]
+    = accumulate ((0 + 1) + 3) [5]
+    = accumulate (((0 + 1) + 3) + 5) []  -- stopping condition for recursion, returns acc
+    = (((0 + 1) + 3) + 5)                -- recursive calls now stopped. Time to evaluate
+    = ((1 + 3) + 5)
+    = (4 + 5)
+    = 9
+</code></pre>
+
+<p>Look familiar? This results in the same <code>((0 + 1) + 3) + 5</code> expression that is produced by the looping version of the function. We're accumulating our values in parentheses on the left hand side of our expression.</p>
+
+<h2>More examples of loop-style recursions</h2>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we implemented a few different functions using recursion that built up expressions on their right hand sides. We can also implement these using loop-like recursion as we did for <code>add'</code>. Here are <code>len</code> and <code>mapFn</code> from the previous post, rewritten to accumulate values on the left hand side:</p>
+
+<pre><code class="haskell">len :: [a] -&gt; Int
+len list =
+    let accumulate acc (head:tail) = accumulate (acc+1) tail
+        accumulate acc []          = acc
+    in accumulate 0 list
+
+mapFn :: (a -&gt; b) -&gt; [a] -&gt; [b]
+mapFn f list =
+    let accumulate acc (head:tail) = accumulate (acc ++ [f head]) tail  -- (++) concats lists
+        accumulate acc []          = acc
+    in accumulate [] list
+
+{-
+*Main&gt; len [1..10]
+10
+*Main&gt; mapFn (*2) [1,3,5,7]
+[2,6,10,14]
+-}
+</code></pre>
+
+<p>All these functions look strikingly similar. They perform an operation with the <code>acc</code> accumulator and the <code>head</code> of the list, and make a recursive call with this value as the new accumulator. And they all start off with an initial case, commonly called a <em>seed</em>. For <code>add'</code> and <code>len</code> the seed is 0, for <code>mapFn</code> it's <code>[]</code>.</p>
+
+<p>Last post we were able to generalise the common parts of recursive functions into a <code>fold</code> function that accumulated values on the right hand side. Can we write a fold function that evaluates in this loop-like way instead?</p>
+
+<h2>Looping using a fold</h2>
+
+<p>They key areas of difference between all these functions is the initial seed used for the accumulator, and the operation we perform on the accumulator <code>acc</code> and the head of the list. This means that, similar to the last time we wrote fold, we're going to have to pass in a seed and a function to operate on <code>acc</code> and head. And we'll need to pass in a list to fold over.</p>
+
+<h3>Type detective work</h3>
+
+<p>Let's try and work out what the types of these arguments need to be. Here's the types we need to figure out, with placeholders (indicated by question marks) for the argument types and the return type:</p>
+
+<pre><code>foldLeft :: (function?) -&gt; seed? -&gt; list? -&gt; return?
+</code></pre>
+
+<p>First let's take a look at the seed. For <code>add'</code> and <code>len</code> we passed in <code>0</code>, an <code>Int</code>, and this is the type we ended up returning from the functions. For <code>mapFn</code> we passed in a list <code>[]</code>, and we ended up returning a list which was the result of applying the mapping to each element. So it looks like the seed and the return value have to be the same type, but it doesn't really matter what that type is. Let's just call it type <code>a</code> for now.</p>
+
+<pre><code>foldLeft :: (function?) -&gt; a -&gt; list? -&gt; a
+</code></pre>
+
+<p>Next let's look at the list we pass in. For <code>add'</code> this was <code>[Int]</code>, a list of <code>Int</code>. For <code>len</code> and <code>mapFn</code> it was any type of list. So this can really be any type of list, and it doesn't have to be the same type that is used for the seed or the function return value (for example <code>len</code> takes any list <code>[a]</code> and returns an <code>Int</code> which represents the length of the list). So we'll say the list elements are of any type <code>b</code>, which means it can be any type, but that it does not have to be the same type as our accumulator of type <code>a</code>.</p>
+
+<pre><code>foldLeft :: (function?) -&gt; a -&gt; [b] -&gt; a
+</code></pre>
+
+<p>The last type we need to figure out is the function that operates on the accumulator <code>acc</code> and the head of the list and returns the new value of the accumulator. For <code>add'</code>, this function was <code>acc + head</code>. We already decided that our accumulator is of type <code>a</code>. We also know our list elements are of type <code>b</code>, so the head of the list that gets passed into the function will be something of type <code>b</code>. And then our function returns the new value of the accumulator, which will need to be the same type <code>a</code> as our previous accumulator. So the function will need to have the type <code>a -&gt; b -&gt; a</code>.</p>
+
+<p>All this gives the following type definition:</p>
+
+<pre><code class="haskell">foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+</code></pre>
+
+<p>Here we have 3 arguments: a function that takes an accumulator of type <code>a</code> and a list head of type <code>b</code> and returns the new accumulator; a value of type <code>a</code> as the seed for the accumulator; and a list <code>[b]</code>. Then our function will return the final accumulated value of type <code>a</code>.</p>
+
+<p>I find reasoning about all the types that go flying around quite tricky, but I've also found understanding them is a major part of the battle.</p>
+
+<h3>Implementing the left fold</h3>
+
+<p>Now we need to try and fit all of this together. I'm going to use our <code>add'</code>, <code>len</code> and <code>mapFn</code> examples as a template:</p>
+
+<pre><code class="haskell">foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+foldLeft f seed list =
+    let accumulate acc (head:tail) = accumulate (f acc head) tail
+        accumulate acc []          = acc
+    in accumulate seed list
+</code></pre>
+
+<p>This follows the same format as our previous functions. The only difference is that we're passing in <code>f</code> and calling <code>f acc head</code> to get the new accumulator value, and that we're passing in a <code>seed</code>. We can simplify this a bit because we already have the seed argument to <code>foldLeft</code> that we can use as the accumulator (so we don't need to declare an inner <code>accumulate</code> function):</p>
+
+<pre><code class="haskell">foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+foldLeft f acc (head:tail) = foldLeft f (f acc head) tail
+foldLeft _ seed [] = seed
+</code></pre>
+
+<p>If we trace through an example we'll see it works exactly the same as our previous, loop-like recursion:</p>
+
+<pre><code>foldLeft (+) 0 [1,3,5]
+    = foldLeft (+) (0 + 1) [3,5]
+    = foldLeft (+) ((0 + 1) + 3) [5]
+    = foldLeft (+) (((0 + 1) + 3) + 5) []
+    = (((0 + 1) + 3) + 5)
+    = ...
+    = 9
+</code></pre>
+
+<p>Now we are able to rewrite our other functions without having to use explicit recursion:</p>
+
+<pre><code class="haskell">lenLeft :: [a] -&gt; Int
+lenLeft list = foldLeft (\acc head -&gt; acc+1) 0 list
+
+mapFnLeft :: (a -&gt; b) -&gt; [a] -&gt; [b]
+mapFnLeft f list = foldLeft (\acc head -&gt; acc ++ [f head]) [] list
+
+{-
+*Main&gt; lenLeft [1..10]
+10
+*Main&gt; mapFnLeft (*2) [1..10]
+[2,4,6,8,10,12,14,16,18,20]
+-}
+</code></pre>
+
+<h2>Left or right?</h2>
+
+<p>We now have two versions of folding: <code>foldLeft</code> that works like a loop and accumulates values on the left hand side, and <code>foldRight</code> that accumulates values on the right.</p>
+
+<pre><code class="haskell">foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+foldLeft f acc (head:tail) = foldLeft f (f acc head) tail
+foldLeft _ seed [] = seed
+
+foldRight :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+foldRight f seed (head:tail) = f head (foldRight f seed tail)
+foldRight _ seed [] = seed
+</code></pre>
+
+<p>These functions are provided in the standard Haskell Prelude library as <code>foldl</code> and <code>foldr</code>. Both are used to abstract away explicit recursion, and other than our observation about the order it evaluates expression, they both give the same results.</p>
+
+<p>It turns out that this order of evaluation can make a world of difference, especially in a lazily-evaluted language like Haskell. In the <a href="/2012/03/folds-pt3-left-fold-right.html">next post</a> in this series, we'll look at some of these differences.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Folds Pt 1: From recursion to folds]]></title>
+    <link href="http://davesquared.net/2012/02/folds-pt1-from-recursion-to-folds.html"/>
+    <updated>2012-02-05T00:08:00+11:00</updated>
+    <id>http://davesquared.net/2012/02/folds-pt1-from-recursion-to-folds</id>
+    <content type="html"><![CDATA[<p>I've recently been trying to <a href="http://learnyouahaskell.com/">learn some functional programming</a>, and one of the first things to trip me up was the idea of <em>folds</em>. Folds crop up all over the place in both functional and imperative languages, so they're worth understanding. At their simplest, folds seem to be a short-hand for defining recursions over lists, but I find I start getting lost somewhere between fold types and optimising for languages with lazy evaluation.</p>
+
+<p>This <a href="/categories/-folds">series on folds</a> is my attempt to pull together the little bits and pieces I've managed to pick up into a form I can understand. If you're not familiar with folds, hopefully it will help get you started. If you already know about folds then you probably won't get much out of this, but if you do read through it I'd love to get corrections via the comments or via email so I can update the post.</p>
+
+<p>In this first post of the series we will try to work out what folds are. We'll start by looking at some problems we can solve using recursion over lists. We'll then try and work out what these solutions have in common, and factor that out. Finally we'll see how this relates to folds, and how we can use folds to solve these problems more succinctly.</p>
+
+<!--more-->
+
+
+
+
+<div class="note"><b>Note:</b> I'll use Haskell for this post but won't assume you've had a chance to try it out, so I'll try and explain all the relevant bits as we go. This also means that I'll avoid some nice features of Haskell that could make the examples more concise and idiomatic, so we can focus less on the language, and more on the topic of folding. If you find yourself completely lost by the syntax, have a look at my attempt at a <a href="http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quick start guide</a>.
+</div>
+
+
+<h2>Recursing over lists</h2>
+
+<p>Let's look at a Haskell function that uses recursion to return the length of a list.</p>
+
+<pre><code class="haskell">len :: [a] -&gt; Int
+len (head:tail) = 1 + len tail
+len [] = 0
+</code></pre>
+
+<p>The first line declares the type of our <code>len</code> function; it takes a list of any type <code>a</code> (expressed as <code>[a]</code>), and returns an <code>Int</code>.</p>
+
+<p>The second line is where we define the length function in terms of recursion. Given the list argument, we're going to use <a href="http://learnyouahaskell.com/syntax-in-functions#pattern-matching">pattern matching</a> to break that argument into its <code>head</code> (the first element of the list), and its <code>tail</code> (the rest of the list). For example: the head of the list <code>[1,2,3]</code> is <code>1</code> and its tail is <code>[2,3]</code>. When <code>len</code> is called with a list that has a head and tail, we're going to return 1 plus the result of recursively calling <code>len</code> on the tail. We'll see an example of this in a minute to make this a bit clearer if you're lost in the syntax.</p>
+
+<p>What happens when we've recursively called <code>len</code> and get to the end of the list? This is what the last line is for; it is the <em>stopping condition</em> for our recursion. If <code>len</code> is called for a list without a head and tail (i.e. the empty list), the pattern on the second line will not be matched and Haskell will look for the next <code>len</code> definition to see if that can provide a return value. Our third line can; it returns the length of the empty list <code>[]</code> as 0.</p>
+
+<p>Let's manually trace through what happens when we call this function:</p>
+
+<pre><code>len [1,2,3]
+    = 1 + len [2,3]
+    = 1 + 1 + len [3]
+    = 1 + 1 + 1 + len []
+    = 1 + 1 + 1 + 0
+    = 3
+</code></pre>
+
+<p>Looks reasonable to me. We've defined the length of a list as 1 for its first element (its head) plus the length of the rest (its tail). And when we have a list with no elements (the empty list), its length is 0.</p>
+
+<h2>A pattern emerges</h2>
+
+<p>What other list functions can we define using recursion? How about adding together all the numbers in a list?</p>
+
+<pre><code class="haskell">add :: Num a =&gt; [a] -&gt; a  --Take a list of numbers, return a number (all the elements added together)
+add (head:tail) = head + add tail
+add [] = 0
+{- Results:
+add [2,4,6]
+    = 2 + add [4,6]
+    = 2 + 4 + add [6]
+    = 2 + 4 + 6 + add []
+    = 2 + 4 + 6 + 0
+    = 12
+-}
+</code></pre>
+
+<p>This works very similarly to our <code>len</code> function, but instead of adding 1 to get the length, we're adding the head value to get the sum of all the elements. Adding the elements of an empty list gives us 0. How about mapping a function over every element of the list?</p>
+
+<pre><code class="haskell">mapFn :: (a-&gt;b) -&gt; [a] -&gt; [b] -- 1st arg is function that takes an "a" and returns a "b",
+                              -- 2nd arg is a list of "a",
+                              -- and we return a list of "b".
+mapFn fn (head:tail) = (fn head) : mapFn fn tail
+mapFn fn [] = []
+{- Results:
+mapFn (+1) [1,2]
+    = (1+1) : mapFn (+1) [2]
+    = (1+1) : (2+1) : mapFn (+1) []
+    = (1+1) : (2+1) : []    --mapFn of [] is []
+    = (1+1) : [3]
+    = [2,3]
+-}
+</code></pre>
+
+<p>In this example we've defined <code>mapFn</code> as a function <code>fn</code> applied to the head of the list (by calling <code>fn head</code>), then joined the result (using <code>:</code>) to the result of mapping <code>fn</code> over the rest of the list. We've also stated that mapping a function over an empty list returns an empty list.</p>
+
+<p>All the functions we've seen follow a similar pattern. They operate over a list by splitting the list into head and tail, and return the result of doing <em>something</em> to the head and the result of recursively calling itself on tail. For <code>len</code>, the <em>something</em> was <code>1+</code>. For <code>add</code> it was <code>head +</code> and for <code>mapFn</code> it was applying <code>fn</code> to the head and joining to the rest of the result. And all of the functions have a value for the empty list to act as a stopping condition (returning 0 or <code>[]</code> in these cases).</p>
+
+<h2>Eliminating the duplication</h2>
+
+<p>As programmers we eschew duplication, so let's introduce a function <code>f</code> that will remove the common bits of these functions, and instead let us focus on the important differences between them. What arguments will <code>f</code> need to take? This might end up sounding a bit confusing while we nut it out, but let's push through it and see if it makes sense once we try and wire it all up at the end.</p>
+
+<p>Our function will need to take a list of some type; all our previous functions have. As I don't know exactly what type of elements will be in the list, let's just call them type <code>a</code> as a place holder. We'll also need to return a result, but what type should the return value be? For <code>len</code>, we used <code>Int</code>; it always returns an <code>Int</code>, even if it is working with a list of characters. So the result does not have to be the same type as the elements in the list; let's just say it will return some type <code>b</code>.</p>
+
+<p>We'll also need some value to return for our stopping condition in the case of the empty list (for <code>len</code> this was 0). Now as we'll be returning this value for the empty list, it will need to be the same type as our return value, which we called type <code>b</code>.</p>
+
+<p>That's most of the commonalities out of the way. What's left is the <em>something</em> we do to the head of the list and the result of recursively calling on the tail. That sounds like a function definition to me; it takes the head of our list of <code>a</code>s, and the result of calling on the tail (we called the result type <code>b</code>), and returns the final result (also type <code>b</code>).</p>
+
+<p>In Haskell-speak, we now have our function declaration as <code>f :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b</code>. The first argument is the function that does <em>something</em> with the head and the result of the recursive call with the tail. The second argument is the value we want to use when our list is empty. The third argument is the list of <code>a</code>s we're recursing over. And finally, we're returning some value of type <code>b</code>.</p>
+
+<p>If you're feeling a bit lost then that makes two of us. Let's try and implement it based on what we know and hope for the best. :)</p>
+
+<pre><code class="haskell">f :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+f func valueWhenEmpty (head:tail) = func head (f func valueWhenEmpty tail)
+f func valueWhenEmpty [] = valueWhenEmpty
+</code></pre>
+
+<h2>Wat?</h2>
+
+<p>If you're like me then you're probably thinking our <code>f</code> looks like <a href="http://en.wikipedia.org/wiki/Gobbledygook">gobbledegook</a>. Let's start by looking at the familiar pieces. The last line has our stopping condition for the empty list <code>[]</code>; it just returns the required value when the list is empty. Line 2 has our trusty <code>(head:tail)</code> pattern on the left-hand side. What's the right-hand side doing?</p>
+
+<p>Remember, the first argument (<code>func</code>) is a function that is going to do <em>something</em> with the head of the list and the result of recursively calling on the tail. The <code>f func valueWhenEmpty tail</code> is our recursive call with the tail. If it helps, we could pull out that part of the statement and rewrite the second line like this:</p>
+
+<pre><code class="haskell">f func valueWhenEmpty (head:tail) = func head recursiveCallWithTail 
+    where recursiveCallWithTail = f func valueWhenEmpty tail
+</code></pre>
+
+<p>Let's try and apply this to something we already know -- our trusty old <code>len</code> function. If we've extracted out the common bits of the recursion we should be able to express <code>len</code> in terms of <code>f</code>.</p>
+
+<pre><code class="haskell">-- original
+len :: [a] -&gt; Int
+len (head:tail) = 1 + len tail
+len [] = 0
+
+-- new
+len2 :: [a] -&gt; Int
+len2 list = f func 0 list
+    where func head lenOfTail = 1 + lenOfTail
+</code></pre>
+
+<p>I think I'm starting to see how this hangs together now. Our <code>func</code> takes as arguments the head of the list, and the result of recursively calling with tail (which in this case gives the length of the tail). This returns <code>1 + lenOfTail</code>, which is the same as <code>1 + len tail</code> from the original <code>len</code> function. We're also passing in <code>0</code> for our empty list value, which gives us the same as the <code>len [] = 0</code> from the original example.</p>
+
+<p>Let's step through the evaluation of each function:</p>
+
+<pre><code>len [1,2,3]
+    = 1 + len [2,3]
+    = 1 + (1 + len [3])
+    = 1 + (1 + (1 + len []))
+    = 1 + (1 + (1 + 0))
+    = 3
+
+len2 [1,2,3]
+    = f func 0 [1,2,3]
+    = 1 + (f func 0 [2,3])
+    = 1 + (1 + (f func 0 [3]))
+    = 1 + (1 + (1+ (f func 0 [])))
+    = 1 + (1 + (1+0))
+    = 3
+</code></pre>
+
+<p>Here we can see that both <code>len</code> and <code>len2</code> work exactly the same way, it's just that <code>len2</code> is now going via a function that handles the recursion plumbing for us.</p>
+
+<h2>Folding</h2>
+
+<p>As you may have guessed, our <code>f</code> function is a <em>fold</em> (more specifically, a right fold, which we'll get to in a later post). We're <em>folding</em> the <code>func</code> argument over a list and providing a particular value for the stopping condition.</p>
+
+<p>What I've been clumsily referring to as "the result of recursively calling the function on the tail" tends to be known as the <em>accumulator</em>, because it represents the accumulation of the results for each element in the tail. The empty list value is known as the <em>seed</em>, as that ends up being the first value of the accumulator once we get to the bottom of the recursion and start working out way back up. Fold itself can also be known as <a href="http://railspikes.com/2008/8/11/understanding-map-and-reduce">inject or reduce</a>, or <a href="http://msdn.microsoft.com/en-us/library/bb549218.aspx">Aggregate in .NET</a>.</p>
+
+<p>Let's quickly express our other examples using our fold function (renamed from <code>f</code>):</p>
+
+<pre><code class="haskell">add2 :: Num a =&gt; [a] -&gt; a
+add2 list = fold (+) 0 list
+
+mapFn2 :: (a-&gt;b) -&gt; [a] -&gt; [b]
+mapFn2 fn list = fold (\element acc -&gt; (fn element) : acc) [] list
+  -- Here (\a b -&gt; retVal) is a lambda expression that takes 2 arguments.
+  -- Think Func&lt;A, B, B&gt; in C#.
+</code></pre>
+
+<h2>But why?!?!</h2>
+
+<p>Because it gives us a way of expressing functions that work over lists without the noise of the recursion mechanics getting in the way.</p>
+
+<p>At first the fold versions may seem confusing compared to explicit recursion, but after gaining some familiarity with the steps, folds start to let us immediately focus on the intent of the code. Our function becomes a statement of the absolute essence of the problem we're solving. The <code>add2</code> example shows us folding <code>+</code> over a list, starting with a seed of 0. The essence of the function is adding, and there's the <code>(+)</code> function sitting first and foremost in the call to <code>fold</code>.</p>
+
+<p>Once we start using some Haskell niceties like partial application and function composition we can start getting some very concise, elegant function definitions, expressed in terms of other functions.</p>
+
+<h2>Still to come...</h2>
+
+<p>In the <a href="/2012/02/folds-pt2-from-loops-to-folds.html">next post</a> we'll look at the different types of folds. After that we'll move on to look at some of the runtime characteristics of folds (and what we can do about them :)).</p>
+]]></content>
+  </entry>
+  
+</feed>

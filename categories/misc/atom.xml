@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: misc | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/misc/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[For sale: Several tonnes of yak hair, going cheap]]></title>
+    <link href="http://davesquared.net/2018/10/yaks-galore.html"/>
+    <updated>2018-10-20T10:20:00+11:00</updated>
+    <id>http://davesquared.net/2018/10/yaks-galore</id>
+    <content type="html"><![CDATA[<p>A sordid tale of builds, Gradle, Grunt, node, yarn, Linux, TeamCity, Docker, ssh, and <a href="https://seths.blog/2005/03/dont_shave_that/">shaven yaks</a>.</p>
+
+<p><img src="/images/2018/shaving-yak.png" title="Cartoon yak shaving his beard, from the Ren and Stimpy show" alt="Happy yak shaving! [(src)](https://medium.com/@firehoseproject/a-guide-to-yak-shaving-your-code-d30f98dc759)" /></p>
+
+<!-- more -->
+
+
+<p>Once upon a time there was a project that produced a JAR based on some generated code. I needed to make a repeatable, versioned build for the JAR and plug it into TeamCity so I could reference that build artifact from my current project. Simple!</p>
+
+<p><img src="/images/2018/possibli-rong.jpg" title="Helicopter pilot from the Simpsons saying nothing can possib-lie go wrong, shortly before everything goes wrong" alt="What could possibli go rong? [(src)](https://twitter.com/simpsons_tweets/status/381502181733457920)" /></p>
+
+<p>Here is a rough timeline of how this went.</p>
+
+<p><strong>WARNING!</strong> In case it is not painfully obvious, this is all me learning stuff so any specifics mentioned are probably sub-optimal at best to destructive at worst. This is more about the journey than the destination.</p>
+
+<h2>Local build</h2>
+
+<ul>
+<li>Do some initial analysis and find I need to invert the current relationship between the JAR project and the generation code (so building the JAR can call out to a specific version of the generator and get freshly generated files).</li>
+<li>Learn some Node and <a href="https://gruntjs.com/">Grunt</a> so I can update the generator to accept a parameter to change the output directory, then update the JAR project to have the generator as a git submodule so we can control the version used.</li>
+<li>Learn enough Gradle to trigger the generation code on build, then build the JAR and run tests.</li>
+<li>Learn a bit more Gradle to call <code>git describe</code> with <a href="http://www.davidchudzicki.com/posts/first-parent/"><code>--first-parent</code></a> and use this information to shove some version info into the manifest.</li>
+<li>Test build with clean checkout and various tags, document and push changes.</li>
+</ul>
+
+
+<p>So far so good! Now to wire this up to TeamCity.</p>
+
+<h2>Add build to TeamCity</h2>
+
+<ul>
+<li>Create TeamCity build</li>
+<li>Build immediately fails: <code>--first-parent</code> is not supported by <code>git describe</code></li>
+<li>Log in to build agent, find it has git 1.8.3, but <code>--first-parent</code> was added to <code>git describe</code> in 1.8.4.</li>
+<li>Try to update git on build agents, which needs to be done from source as an updated package is not readily available.</li>
+<li>Building from source requires some new packages installed, which fails due to some certificate misconfiguration for one repository.</li>
+<li>Type stuff into Google until I find a magic flag to skip that repo and get the packages installed.</li>
+<li>Install updated git.</li>
+<li>Build gets a step further, but fails at the generation code step. The generator requires specific versions of node and yarn. The agents have different versions.</li>
+<li>Start installing updated node and yarn from packages, working around repository problems.</li>
+<li>Find out that another project has started sharing these agents and requires a different version of node and yarn. They can't change their version either.</li>
+<li>Roll back node and yarn changes.</li>
+</ul>
+
+
+<h2>Docker</h2>
+
+<p>At this point someone suggests trying Docker to isolate the build dependencies. The generator team has an image for the generator I can use as a base. I can then create an image that adds the JDK and the version of Git I need and I should be good to go.</p>
+
+<ul>
+<li>Start learning Docker.</li>
+<li>Try to work out whether to install Docker locally via brew or via the installer, reading conflicting information on both (I ended up with the installer).</li>
+<li>Work through the Docker tutorial.</li>
+<li>Learn a bit about images, containers, tags and how to manage the disk space used for these (<code>docker system df -v</code>, different prune options).</li>
+<li>Get access to the registry used for storing the base image.</li>
+<li>Work out how to create a new Docker image with the required JDK version on top of the base image.</li>
+<li>Learn how to run a bash shell in a container based on this image: <code>docker run -it image_name bash</code></li>
+<li>The base image already has a modern version of git installed. Hooray!</li>
+<li>Learn how to clean up transient containers used for bash shells: <code>docker run -it --rm image_name bash</code></li>
+<li>Work out how to map volumes to get host's SSH working within container. Something like: <code>docker run -it --rm -v ${HOME}/.ssh:/root/.ssh -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent image_name bash</code></li>
+<li>Work out how to use host's Gradle properties within container: <code>docker run -it --rm -v ${HOME}/.gradle:/root/.gradle ...</code></li>
+<li>Get build working in container! Hooray!</li>
+<li>Come up with a versioning and tagging scheme for the <code>Dockerfile</code> and corresponding image so that we always have enough information to build each commit of the project with a compatible Docker image.</li>
+<li>Publish new image to registry and test build.</li>
+<li>Document all this in the project readme.</li>
+</ul>
+
+
+<h2>Add Docker build to TeamCity</h2>
+
+<p>Great, home stretch now. TeamCity has some Docker integration so this should be easy.</p>
+
+<ul>
+<li>Attempt to install Docker on build agents. Unfortunately due to more package problems this does not work. Have to <code>wget</code> some other packages and manually install them before installing the Docker package.</li>
+<li>Read up on TeamCity's Docker integration.</li>
+<li>Work out how to generate a key for TeamCity to talk to the image registry.</li>
+<li>Update the TeamCity build to use the required image.</li>
+<li>Run the build... JVM crash on the agent!</li>
+<li>Log in to agent, find that Docker stores images and containers at a location mounted with no free space.</li>
+<li>Work with server team to get more space at that mount point.</li>
+<li>Run again, but generation fails. It needs access to checkout its own dependencies via SSH to a separately hosted repo.</li>
+<li>Read up on SSH with TeamCity and Docker, and the git hosting being used for the other repo.</li>
+<li>Talk to generation team about accessing these dependencies. Get access to generate token with SSH key that can be used for this.</li>
+<li>Work out how to assign the token to the required dependency on the git host.</li>
+<li>Add key to TeamCity and assign it to the build. Same error.</li>
+<li>Find out about TeamCity SSH Agent build feature that needs to be added with the selected key. Same error.</li>
+<li>Update TeamCity build's Docker parameters to pass through SSH info from host. Same error.</li>
+<li>Various combinations of the above. Same error.</li>
+<li>Work out it is a problem with <code>~/.ssh/known_hosts</code>. Update this on the agents (<code>ssh-keyscan -t rsa the_repo &gt;&gt; ~/.ssh/known_hosts</code>), then make sure <code>.ssh</code> from host gets mapped to container via Docker parameters.</li>
+<li>Different error! Well, same error, but for a different dependency.</li>
+<li>Assign token to new dependency.</li>
+<li>Assign token to the other 4 dependencies as each new error occurs.</li>
+<li>Finally get through the main build!</li>
+</ul>
+
+
+<p>Then it failed on deployment due to a different credential issue to another internal system. But after temporarily disabling deployment, the build works! Once I sort out the deployment problem I can start on my actual task of adding this library to my project. But that should be simple to fix, right?</p>
+
+<p>Now if you'll excuse me I'm going to go and have a bit of a lie down on several mountains of yak hair-stuffed cushions.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Digitising hand drawn sketches]]></title>
+    <link href="http://davesquared.net/2014/05/sketches-to-png.html"/>
+    <updated>2014-05-21T22:30:00+10:00</updated>
+    <id>http://davesquared.net/2014/05/sketches-to-png</id>
+    <content type="html"><![CDATA[<p>Every so often I want to quickly sketch out what should be a simple diagram. Irrespective of what drawing program I use, I always seem to take much more time than I intend for a result that does not even remotely resemble what I want.</p>
+
+<p>So I decided to give up and find a way to use hand-drawn sketches instead. Here's the method I ended up with, based almost entirely on Marc Liberatore's <a href="http://people.cs.umass.edu/~liberato/blog/2013/01/21/whiteboard-diagrams-as-pdfs/">"Whiteboard Diagrams as PDFs"</a> post and the wonderful <a href="http://www.imagemagick.org/">ImageMagick</a> and <a href="http://potrace.sourceforge.net/">Potrace</a> utilities.</p>
+
+<p>My drawings still look fairly terrible, but at least they convey what I want them to and are quick to produce! :)</p>
+
+<!-- more -->
+
+
+<h2>Ingredients</h2>
+
+<ul>
+<li>Paper / whiteboard</li>
+<li>Marker</li>
+<li>Phone with camera</li>
+<li><a href="http://www.imagemagick.org/">ImageMagick</a>: <code>brew install imagemagick</code></li>
+<li><a href="http://potrace.sourceforge.net/">Potrace</a>. I used the binary distribution, although it's also on Homebrew.</li>
+</ul>
+
+
+<h2>Method</h2>
+
+<h3>Commit sin against art</h3>
+
+<p>Here's a sample result of me unleashing my inner <a href="http://en.wikipedia.org/wiki/Leonardo_da_Vinci#Drawings">da Vinci</a> on a poor, defenceless bit of paper.</p>
+
+<p><img src="/images/2014/sketch_photo.jpg" alt="I don't know much about art, but I repeat myself" /></p>
+
+<p>I've found a <a href="http://en.wikipedia.org/wiki/Marker_pen">thick texta/marker</a> works well, but standard ball-point pens can come out alright too.</p>
+
+<h3>Photo cameras: not just for tweeting lunch</h3>
+
+<p>Next, take a photo with ye olde phone camera. I avoid using the flash - even light (no shadows) is best. (Try holding the paper up vertically so your phone does not cast a shadow over the paper.)</p>
+
+<p>My phone auto-uploads photos to an online thingoe from which I can quickly crop the image and download to my Mac.</p>
+
+<h3>Post-processing</h3>
+
+<p>Next up I want to convert the photo to a grayscale bitmap and turn up the brightness and contrast to wash out the background and bring out the marker lines. I'm using ImageMagick's <code>convert</code> to quickly do this from the console.</p>
+
+<p>We'll then run the bitmap through <code>potrace</code> as described in <a href="http://people.cs.umass.edu/~liberato/blog/2013/01/21/whiteboard-diagrams-as-pdfs/">Marc's post</a> to create a nice SVG. We can stop there, or use ImageMagick again to get a PNG out.</p>
+
+<p>Here's the original photo, which I've cropped and saved as <code>sketch.jpg</code>:</p>
+
+<p><img src="/images/2014/sketch_cropped_photo.jpg" alt="Taken with no flash. Cropped and downloaded with no processing." /></p>
+
+<p>Then the adjustments:</p>
+
+<pre><code># Convert to grayscale BMP. Dial up brightness (20) and contrast (10)
+% convert sketch.jpg -colorspace Gray -brightness-contrast 20x10 sketch.bmp
+
+# Convert to SVG (-s), set a reasonable height, smooth speckles (-t 10)
+% potrace -s -H 400pt -t 10 sketch.bmp
+
+# Convert SVG to PNG (using 256 colours)
+% convert sketch.svg PNG8:sketch.png
+</code></pre>
+
+<p>And here's the output:</p>
+
+<p><img src="/images/2014/sketch_processed.png" alt="The end result" /></p>
+
+<p>You may need to tweak settings like brightness, contrast, dimensions, PNG quality/size^[Might be worth also running <a href="http://pmt.sourceforge.net/pngcrush/">Pngcrush</a> or <a href="http://www.hanselman.com/blog/BloggersKnowWhenToUseAJPGAndWhenToUseAPNGAndAlwaysSquishThemBoth.aspx">similar optimiser</a> over the resulting PNG: <code>brew install pngcrush; png crush sketch.png sketch2.png</code>. A GUI option for Mac is <a href="https://imageoptim.com/">ImageOptim</a>.] and so on.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Aristotle and parametricity]]></title>
+    <link href="http://davesquared.net/2014/02/aristotle-and-parametricity.html"/>
+    <updated>2014-02-18T23:30:00+11:00</updated>
+    <id>http://davesquared.net/2014/02/aristotle-and-parametricity</id>
+    <content type="html"><![CDATA[<!-- more -->
+
+
+<p>In <a href="http://stephenwestshow.net/philosophize-this/2013/7/25/episode-006-aristotle">episode 6 of the Philosophize This! podcast</a> Stephen talks about  <a href="http://en.wikipedia.org/wiki/Aristotle">Aristotle's</a> development of the first formal system of logic, one part of which is the <a href="http://en.wikipedia.org/wiki/Syllogism">syllogism</a>. A common example of a syllogism is "Socrates is a man, all men are mortal, therefore Socrates is mortal".</p>
+
+<p>Stephen points out that Aristotle would not have put it like that^[This is discussed from 32:05 - 33:05 in <a href="http://stephenwestshow.net/philosophize-this/2013/7/25/episode-006-aristotle">Episode #0006 - Aristotle Pt. 2</a> of "Philosophize This!"]. Aristotle preferred to use variables to abstract away the details, rather than concrete examples whose details can obscure the meaning.</p>
+
+<p>Without abstraction I guess we could try and argue details (Socrates' ideas have been immortalised; does that affect the conclusion?), but abstraction makes the logical inference clear: "<code>A</code> is a <code>B</code>, all <code>B</code>s are <code>C</code>s, therefore <code>A</code> is a <code>C</code>". The conclusion follows from the premises for all values of <code>A</code>, <code>B</code>, and <code>C</code>, irrespective of other concrete details.</p>
+
+<p>To me this echoes the idea we explored last post, where we <a href="http://davesquared.net/2014/02/splitting-responsibilities.html">introduced type variables in place of concrete types</a> to help us infer information about a function.</p>
+
+<p>Which makes me think that if we were to go back two and a bit millennia and chat to Aristotle he'd be quite comfortable with the idea of parametricity^[Well, some more recent advances in the development of logic aside. :)]. :)</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Goals for software developers]]></title>
+    <link href="http://davesquared.net/2012/02/goals-for-devs.html"/>
+    <updated>2012-02-19T23:07:00+11:00</updated>
+    <id>http://davesquared.net/2012/02/goals-for-devs</id>
+    <content type="html"><![CDATA[<p>Most software developers I know are really keen to improve their skills. But how do we know we're improving? How can we tell if our efforts are effective? Without feedback on our progress, it is easy to feel swamped and demoralised by the rate at which stuff we want to learn piles up, compared with the rate at which we feel we're improving. Setting and working towards goals can help address this.</p>
+
+<p>Yet when I've asked other devs, most have great personal, work and non-tech goals, but have something to the effect of "become a better developer" thrown in as well. I've been thinking about this a bit recently, so thought I'd jot down a couple of thoughts about goals specifically related to software development.</p>
+
+<!-- more -->
+
+
+<h2>Goals are important</h2>
+
+<p>Goals have the potential to motivate us, help us focus, get into a <a href="http://en.wikipedia.org/wiki/Flow_(psychology">flow</a>, avoid wasting energy, make the most of opportunities we have and, when we reach them, give us a feeling of achievement and growth, along with the happiness that brings.</p>
+
+<p>Many (if not all) of the people I know that I consider really successful are very goal-oriented. They know what they want to achieve and have the skill, self-confidence, and drive to make it happen. For them it seems to come naturally, but I think it is an approach that can be learned and adopted by anyone, irrespective of personality. It's simply a matter of choosing the right goals; ones that inspire and provide both feedback on progress and a feeling of achievement on meeting them.</p>
+
+<h2>Goals with external dependencies</h2>
+
+<p>One thing I've found really useful in helping to pick goals is to consider which ones depend solely on me, and which ones depend on other people.</p>
+
+<p>Goals like getting a certain number of blog readers, presentations at user groups and conferences, or community recognition all rely on other people. Sure, you have some ability to influence these measures, but the final result is out of your hands. You are not the one in control of whether you meet your goal.</p>
+
+<p>Now I've seen these kind of goals work great for people as a way to become better developers (higher profile leads to more opportunities and exchanges of ideas with other top devs), but there are a few reasons they don't work for me. For one these goals just don't inspire me, perhaps because I'm a bit of an introvert. Also I don't have much success in these areas, so you could attribute this to sour grapes ;). But most importantly, I find making progress towards goals plays a crucial part in my motivation and happiness, and I'm not willing to chance either of those things by making them dependent on other people who aren't even aware of the burden I've placed on them.</p>
+
+<p>So for me I need goals that are largely dependent on my own actions.</p>
+
+<h2>Non-specific goals</h2>
+
+<p>I love learning. I love the process of piecing together little bits of information, until finally something clicks, accompanied by the joy of discovering something I didn't know before. I guess it's no surprise then that a number of my goals have been things like "learn (TDD|WPF|Haskell)".</p>
+
+<p>These make horrible (albeit well-intentioned) goals. The problem is determining when I have achieved them. When have I "learned functional programming"? One of the main things I learn on any topic is becoming aware of more stuff I don't know -- the unknown unknowns. This makes it very tough to get the motivating feeling of progress or the joy of reaching a goal.</p>
+
+<p>These make great, general directions for us to follow, but as goals they just don't cut it.</p>
+
+<h2>Concrete goals for software developers</h2>
+
+<p>We've ruled out a few types of goals for me so far: goals with external dependencies, and goals based solely on my areas of interest (like learning tech X). Where does that leave me if I want to improve as a software developer? It pretty much just leaves building stuff.</p>
+
+<p>Rather than trying to learn technology X, build a project with technology X. The area of interest sets our direction, and we set an achievable, unambiguous goal out in that direction. This gives us something concrete to focus on, a measure of progress against the project requirements, and the ability to complete our goal and say we're done. And we've got the added benefit that we don't need 10 people to click our subscribe links, or 3 conferences to accept our talk proposals. It's completely up to us to work towards our goal, with no external pressures to stifle our creativity, taking us in a direction we're keen to go, inspired by frequent feedback on our progress, and with the joys of both learning and creating something new.</p>
+
+<p>In keeping with <a href="http://en.wikipedia.org/wiki/SMART_criteria">standard guidance for goals</a>, good projects to choose are probably simple, small projects that don't have to (but can) culminate in polished, shippable products, but are enough to learn and apply the skills being sought. The important things are to make sure it is something that you can build that unambiguously qualifies as achieving the stated goal, and that you're enthusiastic about it.</p>
+
+<p>A related approach that I've found useful is "building" a blog post on the topic I'm interested in. While it's a bit more ambiguous as to the success I've had in meeting my goal, it does provide a way to develop my understanding and relate it to concrete output.</p>
+
+<h2>Generating ideas for projects</h2>
+
+<p>I thought it was worthwhile to quickly mention this. It can be tough to come up with usable project ideas, so whenever I do come up with one I note it somewhere safe (in a "trusted system" as <a href="http://www.davidco.com/about-gtd">David Allen</a> would call it). Paper, notebook, task list app, email it to yourself, whatever. Just make sure it is captured and accessible. I've found the more I do this, the more ideas I seem to get (although admittedly I still struggle to get lots of inspiring ideas. I do feel capturing everything is slowly helping me improve though). If you're really stuck try looking up code katas or exercises like <a href="http://projecteuler.net/">Project Euler</a>. But the best projects will be ones that serve a need you have, or fit in with a hobby or subject that really interests you.</p>
+
+<h2>Conclusion</h2>
+
+<p>Many developers I've spoken with have the aim of becoming better developers, but haven't taken the step of defining what that means. I've found it helpful to start translating this into specific goals, and the ones that seem to work best for me are building small projects that relate to an area of interest. I'm also careful to avoid goals that don't work for me, such as those that depend on external factors and non-specific goals.</p>
+
+<p>If you've found other software dev-specific goals and related approaches that work for you, I'd love to hear about them!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Goodbye Blogger]]></title>
+    <link href="http://davesquared.net/2012/01/goodbye-blogger.html"/>
+    <updated>2012-01-29T21:28:00+11:00</updated>
+    <id>http://davesquared.net/2012/01/goodbye-blogger</id>
+    <content type="html"><![CDATA[<p>After blogging for five years on <a href="http://www.blogger.com">Blogger</a>, I've finally decided to take the plunge and run my own blog. I've actually really enjoyed hosting with Blogger; I think it's a pretty under-rated platform. It's easy to get started, possible to do all sorts of crazy customisations, and they've recently started adding some cool stuff like mobile templates and <a href="http://buzz.blogger.com/2011/03/fresh-new-perspectives-for-your-blog.html">different dynamic views</a>. So why on earth am I leaving again?</p>
+
+<!--more-->
+
+
+<p>Well, a couple of reasons. First, I like to write posts in <a href="http://en.wikipedia.org/wiki/Markdown">Markdown</a> using Vim. For the last year or so I've been converting posts to HTML, piping the output to clipboard, and pasting it into Blogger's web UI. Switching to a platform that supports Markdown makes that a little simpler. I've also never really like the Blogger/Picasa Web image integration thing, so running my own blog means I can dump images wherever I want to and embed away. I also wanted to experiment a bit more with different layouts, but rather than relying on Blogger's templating system, I wanted to work with straight HTML and CSS (well, via <a href="http://en.wikipedia.org/wiki/Sass_(stylesheet_language">SASS</a>). This would also buy me separation between layout, content, and platform.</p>
+
+<p>If all this sounds a bit tenuous to you then you are probably right. I think all this is justification for me just wanting a change after half a decade on the same platform.</p>
+
+<p>And so you are now reading a static site generated by <a href="http://octopress.org/">Octopress</a>, hosted on <a href="http://www.heroku.com/">Heroku</a>. I've imported everything over from Blogger and for the most part have kept the same links to avoid breaking stuff. If you find anything amiss or have any problems reading on your browser / feed / device please let me know and I'll do my best to fix it up (yes, I know the font is large :)).</p>
+
+<p>Thanks to <a href="https://twitter.com/aeoth">Paul</a> for good naturedly goading me into finally flicking over to Octopress and for helping me out with some questions; <a href="http://twitter.com/troyhunt">Troy</a>, <a href="http://twitter.com/thecolonial">OJ</a> and <a href="https://twitter.com/tarnacious">Tarn</a> for their advice; and <a href="https://twitter.com/thomasjo">Thomas</a> for putting up with all sorts of inane questions I bombarded him with over email and IM.</p>
+
+<p>And finally, thanks to Blogger for an enjoyable 5 years! So long, and thanks for all the posts and fish and stuff. :)</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Sending an email to a group with a SharePoint workflow - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Update 2008-05-21: Mark Deraeve left a comment about a much better solution&#8230; changing the group permissions to let SPD send the email natively &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Sending an email to a group with a SharePoint workflow</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-07-10T21:07:00+10:00" pubdate data-updated="true">10 Jul 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><i><b>Update 2008-05-21:</b> <a href="http://www.dailycode.net/blog/">Mark Deraeve</a> left a <a href="http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html?showComment=1211289540000#c331656639334109228">comment</a> about a <a href="http://www.dailycode.net/blog/post/Send-email-to-user-group-in-Sharepoint-Workflow.aspx">much better solution</a>&#8230; changing the group permissions to let SPD send the email natively. Thanks Mark! I&#8217;ve kept the rest of the post intact as it does give a walkthrough of creating custom designer actions.</i></p>
+<p>As you might be able to tell from my some of my recent posts, I have been mucking around with a SharePoint Designer (SPD) workflow. This post serves as a&nbsp;complete example, building on some of the information previously posted:</p> <ul> <li><a href="http://davesquared.net/2007/07/emailing-form-links-using-sharepoint.html">Emailing form links using SharePoint Designer</a>  <li><a href="http://davesquared.net/2007/07/custom-sharepoint-designer-actions.html">Custom SharePoint Designer Actions using VS 2005</a>, which links to two examples of creating an action to send emails to multiple recipients  <li><a href="http://davesquared.net/2007/07/sharepoint-aware-workflow-activities.html">SharePoint aware workflow activities</a> by passing WorkflowContext to a custom activity  <li>Referencing the <a href="http://davesquared.net/2007/07/sharepoint-dlls-wss-30-moss-2007.html">SharePoint DLLs (WSS 3.0 / MOSS 2007)</a>  <li>Using an <a href="http://davesquared.net/2007/07/xsd-for-actions-file-intellisense.html">XSD for .ACTIONS file Intellisense</a>, as well as another custom activity example, this time writing a parameter to the event log.  <li>In addition to that research, a fair amount of the &#8220;bludgeoning myself into a semi-comatose state using my laptop&#8221; technique was employed to dull the pain :-)</li></ul> <p><strong>Background</strong></p> <p>We had managed to create a complete document approval workflow using only MOSS 2007 and SPD (part of project manager&#8217;s aim for the project was to see how much could be done without coding). The workflow assigned tasks to a single user or a site group by looking up a custom list that mapped a field from the document list to the required approver/approvers. The aim was then to create a very simple notification workflow to email the user or group that was assigned the task to let them know they had work to do. The <a href="http://davesquared.net/2007/07/emailing-form-links-using-sharepoint.html">Send Email task</a> worked great for single users, but failed horribly when the task&#8217;s AssignedTo property was a group.</p> <p>After a bit of research, talking to partners, and laptop bludgeoning, it was finally decided to implement this tiny bit of functionality using a custom task.&nbsp;</p> <p><strong>False start</strong></p> <p>The first attempt was to create a <a href="http://davesquared.net/2007/07/custom-sharepoint-designer-actions.html">custom email task that would send to multiple recipients</a>. This took a lot of mucking around. It sort of worked. It would send the appropriate email, but&nbsp;as <a href="http://www.sharepointblogs.com/tbaginski/archive/2007/03/08/how-to-create-a-custom-windows-workflow-activity-and-make-it-available-in-sharepoint-designer.aspx">Todd Baginski noted</a> it would not replace the lookup fields in the email body with the correct values. So I decided to try making a custom activity to lookup the user or group matching the AssignedTo property, and return the relevant email addresses to a workflow variable using an output parameter.</p> <p><strong>The GetEmailAddressActivity</strong></p>The first step in coding our activity is to expose the required properties, which is what the <code>GetEmailAddressActivity</code> class does. It delegates the real work to the <code>NameToEmailResolver</code> class (covered below).<pre>using System;<br>using System.Workflow.Activities;<br>using System.Workflow.ComponentModel;<br>using System.Workflow.ComponentModel.Compiler;<br>using Microsoft.SharePoint.WorkflowActions;<br><br>namespace MyCustomActivityLibrary {<br>  public partial class GetEmailAddressActivity : SequenceActivity {<br>    public GetEmailAddressActivity() {<br>      InitializeComponent();<br>    }<br><br>    public static DependencyProperty NameToLookupProperty =<br>      DependencyProperty.Register("NameToLookup", typeof(String), typeof(GetEmailAddressActivity));<br>    public static DependencyProperty TargetProperty =<br>      DependencyProperty.Register("Target", typeof(String), typeof(GetEmailAddressActivity));<br>    public static DependencyProperty __ContextProperty =<br>      DependencyProperty.Register("__Context", typeof(WorkflowContext), typeof(GetEmailAddressActivity));<br><br>    [ValidationOption(ValidationOption.Required)]<br>    public string NameToLookup {<br>      get { return (string) base.GetValue(NameToLookupProperty); }<br>      set { base.SetValue(NameToLookupProperty, value); }<br>    }<br><br>    [ValidationOption(ValidationOption.Required)]<br>    public string Target {<br>      get { return (string) base.GetValue(TargetProperty); }<br>      set { base.SetValue(TargetProperty, value); }<br>    }<br><br>    [ValidationOption(ValidationOption.Required)]<br>    public WorkflowContext __Context {<br>      get {<br>        return (WorkflowContext) base.GetValue(__ContextProperty);<br>      }<br>      set { base.SetValue(__ContextProperty, value); }<br>    }<br><br>    protected override ActivityExecutionStatus Execute(ActivityExecutionContext executionContext) {     <br>      NameToEmailResolver resolver = new NameToEmailResolver(__Context);<br>      Target = resolver.GetEmailAddressesFromName(NameToLookup);<br>      return ActivityExecutionStatus.Closed;<br>    }<br>  }<br>}</pre><p><strong>NameToEmailResolver</strong></p><p>Here is where the real work is done. It takes the a name, which could be a user&#8217;s login name or a site group name, and puts it into a semi-colon delimited string of email addresses. If you wanted to provide a wrapper around the WorkflowContext this would be a great place to insert some unit tests.</p><pre>using System;<br>using System.Collections.Generic;<br>using System.Text;<br>using Microsoft.SharePoint;<br>using Microsoft.SharePoint.WorkflowActions;<br><br>namespace MyCustomActivityLibrary {<br>  public class NameToEmailResolver {<br>    private WorkflowContext context;<br>    public NameToEmailResolver(WorkflowContext context) {<br>      this.context = context;<br>    }<br><br>    public String GetEmailAddressesFromName(String name) {<br>      StringBuilder resolvedAddresses = new StringBuilder();<br>      IEnumerable<string> addresses = getEmailAddressesFromName(name);<br>      foreach (string address in addresses) {<br>        if (!String.IsNullOrEmpty(address)) {<br>          resolvedAddresses.AppendFormat("{0};", address);<br>        }<br>      }<br>      return resolvedAddresses.ToString();<br>    }<br><br>    private IEnumerable&lt;string&gt; getEmailAddressesFromName(string name) {<br>      SPGroup group = getGroup(name);<br>      if (group != null) {        <br>        return getEmailAddressesFromGroup(group);<br>      }<br>      SPUser user = getUser(name);<br>      if (user != null) {       <br>        return new string[] {user.Email};<br>      }<br>      return new string[0];<br>    }<br><br>    private IEnumerable&lt;string&gt; getEmailAddressesFromGroup(SPGroup group) {<br>      List&lt;string&gt; addresses = new List<string>();<br>      foreach (SPUser user in group.Users) {<br>        addresses.Add(user.Email);<br>      }<br>      return addresses;<br>    }<br><br>    private SPGroup getGroup(string name) {<br>      foreach (SPGroup group in context.Web.SiteGroups) {<br>        if (String.Equals(group.Name, name, StringComparison.InvariantCultureIgnoreCase)) {<br>          return group;<br>        }<br>      }<br>      return null;<br>    }<br><br>    private SPUser getUser(string name) {<br>      foreach (SPUser user in context.Web.SiteUsers) {<br>        if (String.Equals(user.LoginName, name, StringComparison.InvariantCultureIgnoreCase)) {<br>          return user;<br>        }<br>      }<br>      return null;      <br>    }<br>  }<br>}</pre>
+<p><strong>Create .ACTIONS file</strong></p><p>To get SPD to recognise your activity you need an .ACTIONS file.</p><pre>&lt;?xml version="1.0"?&gt;<br>&lt;workflowinfo language="en-us"&gt;<br>  &lt;!-- <br>  .ACTIONS files live here:<br>      C:\Program Files\Common Files\Microsoft Shared\web server extensions\12\TEMPLATE\1033\Workflow <br>  Recognised after iisreset.<br> --&gt;<br>  &lt;actions&gt;<br>    &lt;action name="Store Email Address" classname="MyCustomActivityLibrary.GetEmailAddressActivity" assembly="MyCustomActivityLibrary, Version=1.0.0.0, Culture=neutral, PublicKeyToken=&lt;strong&gt;(your token here)&lt;/strong&gt;" appliesto="all" category="My Custom Activities"&gt;<br>      &lt;ruledesigner sentence="Store email address for %1 in %2."&gt;<br>        &lt;fieldbind id="1" field="NameToLookup" text="this user or group" designertype="TextArea" operatortypefrom="FieldName"&gt;<br>        &lt;fieldbind id="2" field="Target" text="variable" designertype="ParameterNames" operatortypefrom="Variable"&gt;<br>      &lt;/ruledesigner&gt;<br>      &lt;parameters&gt;<br>        &lt;parameter name="NameToLookup" type="System.String, mscorlib" direction="In"&gt;<br>        &lt;parameter name="Target" type="System.String, mscorlib" direction="Out"&gt;<br>        &lt;parameter name="__Context" type="Microsoft.SharePoint.WorkflowActions.WorkflowContext, Microsoft.SharePoint.WorkflowActions" direction="In"&gt;<br>      &lt;/parameters&gt;<br>    &lt;/action&gt;<br>  &lt;/actions&gt;<br>&lt;/workflowinfo&gt;</pre>The tricky parts (well, for me) was the DesignerType and OperatorTypeFrom values. The current values give you the lookup for the NameToLookup value, and the workflow variables UI selector for the Target parameter. The final parameter is the WorkflowContext. </p>
+
+<p><strong>Deployment</strong></p>
+<p>You need to install the DLL containing your activity into the GAC on your WSS/MOSS server, which means your assembly needs to be signed/strongly named. <a href="http://rapidapplicationdevelopment.blogspot.com/2007/04/multi-value-columns-solution-2-custom.html">Step 7 of Lee&#8217;s post</a> has a good run down of how to do this if you are unfamiliar with it (in fact he covers the whole deplyoment thing really well). You can then drag your DLL into the GAC (C:\WINNT\ASSEMBLY). You also need to copy your .ACTIONS file to the &#8230;12\TEMPLATE\1033\Workflow directory. Finally you need to tell SPD to trust the DLL in the application&#8217;s web.config file. Here is the XML fragment:<pre>&lt;?xml version="1.0"?&gt;<br>&lt;!-- Add authorised type to relevant web.config:<br>      C:\Inetpub\wwwroot\wss\VirtualDirectories\(dir for app)\web.config <br> --&gt;<br>&lt;configuration&gt;<br>  &lt;System.Workflow.ComponentModel.WorkflowCompiler&gt;<br>    &lt;authorizedTypes&gt;<br>      &lt;authorizedType Assembly="MyCustomActivityLibrary, Version=1.0.0.0, Culture=neutral, PublicKeyToken=(your public key)"<br>                      Namespace="MyCustomActivityLibrary" TypeName="*" Authorized="True" /&gt;<br>    &lt;/authorizedTypes&gt;<br>  &lt;/System.Workflow.ComponentModel.WorkflowCompiler&gt;<br>&lt;/configuration&gt;<br></pre><p>After an iisreset your activity is ready to go. </p><p><strong>Setting up the workflow in SPD</strong> </p><p>The final step is the SPD workflow itself. Create a new workflow and attach it to your task list, to be started whenever a new task is created.</p><p>The first task is to <a href="http://davesquared.net/2007/07/emailing-form-links-using-sharepoint.html">initialise the relevant variables</a>. In the screen shot below you can see the custom task highlighted / hovered over. Our custom task will map the name in Tasks:AssignedTo to a single email (when assigned to a single user), or a semi-colon delimited list of emails (when assigned to a group), and will then store this value in a variable.</p><p><img border="0" src="/images/fromblogger/s800-NotifyWorkflowStep1.png" /></p>
+
+<p>The final step in the workflow is to use the standard email task, but set the To: field to our workflow variable initialised in the previous step.</p>
+
+<p><img border="0" src="/images/fromblogger/s800-NotifyWorkflowStep2.png" /></p>
+
+<p><strong>Finished!</strong></p><p>The final result? You can assign a task to a single user or a site group in a different workflow, then ensure all users get notified when a task is assigned to them or a group they are in. A few disclaimers: there is no error handling in the code; the code will almost definitely break when a multi-valued field is used for the name (although this should be straight forward to support with a few modifications); the code is not particularly pretty and probably violates several laws of nature; the example is meant to be illustrative only and not fit for any specific purpose (i.e. you&#8217;re crazy if you use it); and my head has a laptop-shaped bruise in it.</p><p>Hope this helps someone!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-21T08:39:40+10:00" class="updated">Updated 21 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/sharepoint/'>sharepoint</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html" data-via="" data-counturl="http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/07/xsd-for-actions-file-intellisense.html" title="Previous Post: XSD for .ACTIONS file Intellisense">&laquo; XSD for .ACTIONS file Intellisense</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/07/anders-nors-on-dsls-with-c.html" title="next Post: Anders Norås on DSLs with C#">Anders Norås on DSLs with C# &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html';
+        var disqus_url = 'http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,381 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Setting up diff and merge tools for Git on Windows - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="UPDATE!!! I&#8217;m now using an easier way of configuring diff and merge tools. If you don&#8217;t mind using KDiff3 then you might want to check &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2009/02/setting-up-diff-and-merge-tools-for-git.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Setting up diff and merge tools for Git on Windows</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-02-03T23:23:00+11:00" pubdate data-updated="true">03 Feb 2009</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class="note"><b>UPDATE!!! </b> I&#8217;m now using an <a href="http://davesquared.net/2010/03/easier-way-to-set-up-diff-and-merge.html">easier way of configuring diff and merge tools</a>. If you don&#8217;t mind using KDiff3 then you might want to check that out first. If you want flexibility in which tools you use and how they&#8217;re used, then read on. <i>&#8211; DT, 26 Mar 2010</i></div>
+
+<p>I finally got tired of reading diff outputs from git on the command line, and decided to hook up a visual diff and merge tool. After piecing together hints from various posts around ye olde intraweb I&#8217;ve now got somethings that works. I am using <a href="http://code.google.com/p/msysgit/">Git on MSys</a> to get Git working on Windows via a PowerShell command line, but a similar setup might work via Cygwin or via the <code>cmd.exe</code> command line.</p>
+
+<h2>Setting up a diff tool</h2>
+
+<div class="note"><b>Update 2009-05-20:</b> This approach stopped working for me when I upgraded to Windows 7 and Git 1.6.3. I had to <a href="http://davesquared.net/2009/05/setting-up-git-difftool-on-windows.html">switch to using <code>git difftool</code> instead</a>.</div>
+
+<p>The easiest way I found to do this was to create a shell script wrapper for your diff tool of choice. To make things easy on me I put the script, <code>git-diff-wrapper.sh</code> in <code>C:\Program Files\Git\cmd</code>, which is in my <code>Path</code> environment variable. The file contents looks like this:</p>
+
+<pre>
+#!/bin/sh
+
+# diff is called by git with 7 parameters:
+#  path old-file old-hex old-mode new-file new-hex new-mode
+<b>&quot;C:/Program Files/SourceGear/DiffMerge/DiffMerge.exe&quot; &quot;$2&quot; &quot;$5&quot; | cat</b>
+
+#&quot;C:/Program Files/WinMerge/WinMergeU.exe&quot; &quot;$2&quot; &quot;$5&quot; | cat
+#&quot;C:/Program Files/KDiff3/kdiff3.exe&quot; &quot;$2&quot; &quot;$5&quot; | cat
+</pre>
+
+<p>The basic format of this is stolen directly from <a href="http://code.google.com/p/msysgit/issues/detail?id=106">this post</a> on the Msysgit site. Provided your diff tool can be called from the command line, you&#8217;ll be able to set it up to work with Git using this template. In this case I&#8217;ve used it to setup a call to <a href="http://www.sourcegear.com/diffmerge/">Sourcefear&#8217;s DiffMerge</a>, a nice free (as in beer) diff and merge tool. </p>
+
+<p>You&#8217;ll also see I&#8217;ve commented out calls to <a href="http://winmerge.org/">WinMerge</a> and <a href="http://kdiff3.sourceforge.net/">KDiff3</a>, which are both free as in beer and speech. I ended up settling on DiffMerge because it is purdy (unlike KDiff3 &#8211; sorry), and also does 3-way merges (unlike WinMerge, which was my previous diff tool of choice).</p>
+
+<p>The next step is telling Git about your wrapper. In your home directory (<code>C:\Users\(username)</code> or the corresponding Documents and Settings equivalent) Git will normally have created a <code>.gitconfig</code> file. If not then go ahead and create one. You&#8217;ll need to have the following section in there:</p>
+
+<pre>
+[diff]
+ external = C:/Program Files/git/cmd/git-diff-wrapper.sh
+</pre>
+
+<p>We can now use <code>git diff</code> and it will fire up our diff tool of choice.</p>
+
+<h2>Setting up a merge tool</h2>
+<p>I had more trouble getting a merge tool working, largely because putting references to paths like <code>C:/Program Files/...</code> in <code>.gitconfig</code> seems to bork when used here. Again I ended up using the wrapper approach, creating <code>git-merge-diffmerge-wrapper.sh</code> at <code>C:\Program Files\Git\cmd</code> to call DiffMerge. This file ended up looking like this:</p>
+
+<pre>
+#!/bin/sh
+
+# Passing the following parameters to mergetool:
+#  local base remote merge_result
+
+"C:/Program Files/SourceGear/DiffMerge/DiffMerge.exe" "$1" "$2" "$3" --result="$4" --title1="Mine" --title2="Merging to: $4" --title3="Theirs"
+</pre>
+
+<p>I unashamedly stole this from <a href="http://www.therightstuff.de/2009/01/28/Setting-Up-SourceGear-DiffMerge-With-Git.aspx">Alexander Groß&#8217;s post on getting DiffMerge running on Cygwin-based Git</a> (with slight modifications, any faults are mine :)). We can then wire this up in <code>.gitconfig</code> again:</p>
+
+<pre>
+[merge]
+    tool = diffmerge
+
+[mergetool &quot;diffmerge&quot;]
+ cmd = git-merge-diffmerge-wrapper.sh &quot;$PWD/$LOCAL&quot; &quot;$PWD/$BASE&quot; &quot;$PWD/$REMOTE&quot; &quot;$PWD/$MERGED&quot; 
+    trustExitCode = false
+ keepBackup = false
+ 
+[mergetool &quot;kdiff3&quot;]
+    path = C:/Program Files/KDiff3/kdiff3.exe
+    keepBackup = false
+    trustExitCode = false
+</pre>
+
+<p>Now remember that <code>C:\Program Files\Git\cmd</code> is on my <code>PATH</code>, so I can set the command to call <code>git-merge-diffmerge-wrapper.sh</code> without fully qualifying the path. The details on the arguments are available from the <a href="http://www.kernel.org/pub/software/scm/git/docs/git-mergetool.html">git-mergetool(1) man page</a>. I&#8217;ve also left in a KDiff3 version that seems to work too (Git has some built in support for KDiff3 I think, which is why you can get away with only specifying the path).</p>
+
+<h2>Time for a test drive</h2>
+<p>Let&#8217;s make sure everything&#8217;s in working order. I&#8217;ll open up a PowerShell window and let&#8217;s see how we go (you&#8217;ll have to excuse me for using old DOS commands instead of fancy PowerShell ones, I&#8217;ve only just switched to PS after running into various issues with the <code>cmd.exe</code> command line).</p>
+
+<pre>
+PS&gt; mkdir HelloWorld
+PS&gt; cd HelloWorld
+PS&gt; git init
+  Initialized empty Git repository in C:/Development/Git/HelloWorld/.git/
+PS&gt; echo Hello World! &gt; hello.txt
+PS&gt; git add hello.txt
+PS&gt; git commit -m &quot;Initial commit&quot;
+  [master (root-commit)]: created 2a2cf34: &quot;Initial commit&quot;
+   1 files changed, 0 insertions(+), 0 deletions(-)
+   create mode 100644 hello.txt
+PS&gt; git checkout -b helloGit
+  Switched to a new branch &quot;helloGit&quot;
+PS&gt; echo Hello Git! &gt; hello.txt
+PS&gt; git add hello.txt
+PS&gt; git commit -m &quot;Update from helloGit branch&quot;
+  [helloGit]: created e71437b: &quot;Update from helloGit branch&quot;
+   1 files changed, 0 insertions(+), 0 deletions(-)
+PS&gt; git checkout master
+  Switched to branch &quot;master&quot;
+PS&gt; echo Hello World! Hello indeed! &gt; hello.txt
+PS&gt; git add hello.txt
+PS&gt; git commit -m &quot;Update from master&quot;
+  [master]: created 5dee19d: &quot;Update from master&quot;
+   1 files changed, 0 insertions(+), 0 deletions(-)
+PS&gt; git merge helloGit
+  warning: Cannot merge binary files: HEAD:hello.txt vs. helloGit:hello.txt
+
+  Auto-merging hello.txt
+  CONFLICT (content): Merge conflict in hello.txt
+  Automatic merge failed; fix conflicts and then commit the result.
+</pre>
+
+<div class="note">Because I&#8217;ve used <code>echo</code> to stream data into <code>hello.txt</code> the files have ended up in binary mode. Let&#8217;s ignore that as it is just to get an easy demo going. The important thing is we now have a merge conflict to resolve.</div>
+
+<p>If we now type in <code>git mergetool</code> Git ask&#8217;s us if we&#8217;d like to run our merge tool. We can hit enter and up pops DiffMerge. If you wanted KDiff3, we could have called <code>git mergetool -t kdiff3</code>, or any other merge tool in our <code>.gitconfig</code> (by default the tool specified in the <code>merge.tool</code> config option is used).</p>
+
+<pre>
+PS&gt; git mergetool
+Merging the files: hello.txt
+
+Normal merge conflict for 'hello.txt':
+  {local}: modified
+  {remote}: modified
+Hit return to start merge resolution tool (diffmerge):
+
+</pre>
+
+<div class="separator" style="clear: both; text-align: center;">
+<img src="/images/fromblogger/s800-diffMerge-3way.png" /></div>
+
+<p>Resolve the merge conflict however you like and then try this:</p>
+
+<pre>
+PS&gt; echo Wow, it worked! &gt; hello.txt
+PS&gt; git diff
+</pre>
+
+<div class="separator" style="clear: both; text-align: center;">
+<img src="/images/fromblogger/s800-diffMerge-diff.png" />
+</div>
+
+<p>Hooray, we have our diff tool working! We can also run commands like <code>git diff HEAD~ HEAD</code> and <code>git diff helloGit master</code> and get the output via our diff tool.</p>
+
+<h2>Conclusion</h2>
+<p>This setup earns the coveted <a href="http://www.codinghorror.com/blog/archives/000818.html">Works on My Machine</a> certification, but even if that&#8217;s the only place it works then hopefully it still gives you enough information to configure your Windows diff and merge tools for use with Git.</p>
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://www.codinghorror.com/blog/archives/000818.html" style="margin-left: 1em; margin-right: 1em;"><img src="/images/fromblogger/s800-works-on-my-machine-starburst.png" /></a></div>
+
+<p>If you hunt down the relevant command line options you should be able to get pretty much any tool working: <a href="http://cbilson.blogspot.com/2008/10/using-beyond-compare-as-git-mergetool.html">Beyond Compare</a>, <a href="http://blog.logicalrand.com/2008/9/9/use-p4merge-or-diffmerge-with-git-mergetool-on-os-x">p4merge</a>, <a href="http://palaso.org/archives/52">TortoiseMerge</a> etc.</p>
+
+<p>Hope this helps.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-03-26T10:38:18+11:00" class="updated">Updated 26 Mar 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/git/'>git</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2009/02/setting-up-diff-and-merge-tools-for-git.html" data-via="" data-counturl="http://davesquared.net/2009/02/setting-up-diff-and-merge-tools-for-git.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/01/introduction-to-solid-principles-of-oo.html" title="Previous Post: An introduction to the SOLID principles of OO design">&laquo; An introduction to the SOLID principles of OO design</a>
+      
+      
+        <a class="basic-alignment right" href="/2009/02/git-aware-powershell-prompt.html" title="next Post: Git-aware PowerShell prompt">Git-aware PowerShell prompt &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2009/02/setting-up-diff-and-merge-tools-for-git.html';
+        var disqus_url = 'http://davesquared.net/2009/02/setting-up-diff-and-merge-tools-for-git.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

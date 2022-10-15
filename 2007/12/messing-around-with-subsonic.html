@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Messing around with SubSonic - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="This post is part of a small series on .NET ORM tools. You can find the rest of them here.
+I recently heard a complaint about SubSonic queries, &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/12/messing-around-with-subsonic.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Messing around with SubSonic</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-12-20T16:25:00+11:00" pubdate data-updated="true">20 Dec 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>This post is part of a small series on .NET ORM tools. You can find the rest of them </em><a href="http://davesquared.net/2007/12/messing-around-with-various-orms.html"><em>here</em></a><em>.</em></p>
+<p>I recently heard a complaint about SubSonic queries, especially with regards to joining between tables. After looking at the forums, which basically recommended replacing complex queries or joins with SPs, I decided to have a quick play around myself. Note that all of this is really quick and hacky, as it is just to get a little familiarity with the tool rather than to uncover any &#8220;best practices&#8221; or similar. If you know better ways of doing the stuff below then you are more than welcome to leave a comment. :-)</p> <p><em><b>Update 11 Jan 2008</b>: Rob has announced that <a href="http://blog.wekeroad.com/2008/01/10/subsonic-version-21-pakala-preview-the-new-query-tool/">development of SubSonic version 2.1 is underway</a>. 2.1 will have an updated query tool, so chances are the queries attempted in this post will be easier in the new version. This post relates to version 2.0.</em></p> <h2>Setting the scene</h2> <p>I have decided to use a &lt;sarcasm&gt;very realistic and common scenario&lt;/sarcasm&gt; for my tests. I have a table of <strong>suppliers</strong>, and a table of <strong>states</strong> (or provinces, territories, prefectures etc.). Both suppliers and states have names, which are stored as strings/varchars, and IDs, which are stored as Guids/uniqueidentifiers. Each <strong>supplier</strong> can service many <strong>states</strong>. So we have a simple many-to-many relationship between the two main entities. It looks a bit like this:</p> <p><a href="/images/fromblogger/s1600-h-SampleSupplierSchema.png"><img id="BLOGGER_PHOTO_ID_5145922358406504498" style="cursor: pointer;" alt="" src="/images/fromblogger/s400-SampleSupplierSchema.png" border="0" /></a></p> <p>I am using Aussie states for my tests, so I have populated the State table with the following names: NSW, VIC, QLD, TAS, SA, WA, ACT, NT (yes, my state table holds territories). This is all sitting in a little SQL Express database that I called SubSonicWorkshop.</p> <h2>Setting up SubSonic</h2> <p>After creating a new C# class library project and adding a reference to <a href="http://subsonicproject.com/">SubSonic</a>, I add an app.config file that looks like this*:</p><pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;configuration&gt;
+&lt;configSections&gt;
+&lt;section name="SubSonicService" type="SubSonic.SubSonicSection, SubSonic" requirePermission="false"/&gt;
+&lt;/configSections&gt;
+&lt;connectionStrings&gt;
+&lt;clear/&gt;
+&lt;add name="SubSonicWorkshop" connectionString="Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=SubSonicWorkshop;Integrated Security=True" /&gt;
+&lt;/connectionStrings&gt;
+&lt;SubSonicService defaultProvider="SubSonicWorkshop"&gt;
+&lt;providers&gt;
+  &lt;clear/&gt;
+  &lt;add name="SubSonicWorkshop" type="SubSonic.SqlDataProvider, SubSonic"
+    connectionStringName="SubSonicWorkshop"  generatedNamespace="SubSonicWorkshop.DataAccess" /&gt;
+&lt;/providers&gt;
+&lt;/SubSonicService&gt;
+&lt;/configuration&gt;
+</pre>
+<p>I then created a Generated folder within the solution and ran SubCommander to populate it:</p><pre>C:\Program Files\SubSonic\SubSonic 2.0.3\SubCommander\sonic.exe generate /out Generated</pre>
+<p>After getting VS to show all files in the solution, then including all the generated class files, we are ready to go.</p>
+<h2>Populating the database</h2>
+<p>I tend to like working in test fixtures, so I created a test fixture class and use my test runner to run the following snippets of code. Firstly, let&#8217;s write a method to encapsulate the process of creating a supplier and mapping the states it services:</p><pre>private static void createSupplier(String name, String[] statesServiced) {
+ Supplier supplier = new Supplier();
+ supplier.SupplierId = Guid.NewGuid();
+ supplier.Name = name;
+ supplier.Save();
+
+ if (statesServiced.Length == 0) return;
+
+ Query stateQuery = State.CreateQuery().IN("Name", statesServiced);
+ StateCollection states = new StateCollection();
+ states.LoadAndCloseReader(stateQuery.ExecuteReader());
+
+ //Not sure why this doesn't work (raises exception):
+ //Supplier.SaveStateMap(supplier.SupplierId, states);
+ //Using this instead:
+ foreach (State state in states) {
+   SupplierStatesServiced.Insert(supplier.SupplierId, state.StateId);
+ }
+}</pre>
+<p>This code creates and saves a supplier with the given name. It then retrieves a collection of states that match the state names passed in via the array, and maps these to the newly saved supplied. For some reason I couldn&#8217;t get the <code>Supplier.SaveStateMap(...)</code> call to work, so I did the mapping using a loop. Seeing as I don&#8217;t have SVN access through the firewall here I haven&#8217;t delved into the SubSonic source to see where things are going wrong. I then made the following calls to add some test data:</p><pre>createSupplier("Dave^2 Quality Tea", new string[] { "NSW", "VIC" });
+createSupplier("ORMs'R'Us", new string[] { "NSW" });
+createSupplier("Lousy Example", new string[] { "TAS", "VIC" });
+createSupplier("Bridge Sellers", new string[] { "QLD" });
+</pre>
+<h2>Querying the data</h2>
+<p>First up I wanted to see if I could load all my suppliers:</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers() {
+ SupplierCollection suppliers = new SupplierCollection().Load();
+ Assert.That(suppliers.Count, Is.EqualTo(4));
+}</pre>
+<p>Yep, no problems there. How about getting all the suppliers that have an &#8220;s&#8221; in their name?</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers_with_s_in_their_name() {
+ SupplierCollection suppliers = new SupplierCollection();
+ suppliers.Where(Supplier.Columns.Name, Comparison.Like, "%s%");
+ suppliers.Load();
+ Assert.That(suppliers.Count, Is.EqualTo(3));
+}</pre>
+<p>No problems there either. Now let&#8217;s get a bit uglier. I want to navigate over the supplier-state relationship and get all suppliers that service NSW. I think this may be one of the situations mentioned on the SubSonic forums where you would probably want to use an SP to cut down the amount of chatting with the DB:</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers_that_service_NSW() {
+ State nsw = new State(State.Columns.Name, "NSW");
+
+ SupplierStatesServicedCollection statesServicedMap = new SupplierStatesServicedCollection();
+ statesServicedMap.Where(State.Columns.StateId, nsw.StateId);
+ statesServicedMap.Load();
+
+ SupplierCollection nswSuppliers = new SupplierCollection();
+ foreach (SupplierStatesServiced supplierService in statesServicedMap) {
+   nswSuppliers.Add(supplierService.Supplier);
+ }
+ Assert.That(nswSuppliers.Count, Is.EqualTo(2));
+}
+</pre>
+<p>The code above first gets the state we are interested in (NSW), and then gets all the mappings that feature this state. It then loops through all the mappings and adds the supplier the the SupplierCollection. This worked, but I&#8217;d hate to use that with more than a handful of records.</p>
+<p>I think in the last situation you&#8217;d probably want to use an SP (or direct SQL). Because SubSonic generates partial classes, you could also add a method to State, StateCollection or StateController like <code>FetchByServicedState(String stateName)</code> to do this in a reusable manner.</p>
+<p>That&#8217;s it for now. I&#8217;m going to have a quick play with doing this in <a href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">NHibernate</a> and <a href="http://davesquared.net/2007/12/messing-around-with-linqtosql.html">LinqToSql</a>.</p>
+<p style="font-size: xx-small;">* I know I <a href="http://davesquared.net/2007/12/syntax-highlighting-for-blogged-code.html">prevoiusly committed to giving colourful code samples</a>, but I ran in to a few hurdles with the tool and am sticking to plain, boring code samples for now.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-01T09:04:07+10:00" class="updated">Updated 01 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/orm/'>orm</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/12/messing-around-with-subsonic.html" data-via="" data-counturl="http://davesquared.net/2007/12/messing-around-with-subsonic.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/12/qt-launchy-20.html" title="Previous Post: Launchy 2.0 -- now with QT!">&laquo; Launchy 2.0 -- now with QT!</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/12/messing-around-with-nhibernate.html" title="next Post: Messing around with NHibernate">Messing around with NHibernate &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/12/messing-around-with-subsonic.html';
+        var disqus_url = 'http://davesquared.net/2007/12/messing-around-with-subsonic.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

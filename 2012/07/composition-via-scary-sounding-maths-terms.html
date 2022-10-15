@@ -1,0 +1,389 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Composition via scary-sounding maths terms - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Last post we looked at composing lists of functions using folds. This let use write functions of type [a -&gt; a] -&gt; a -&gt; a to compose lists of &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/07/composition-via-scary-sounding-maths-terms.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Composition via scary-sounding maths terms</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-07-23T15:15:00+10:00" pubdate data-updated="true">23 Jul 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Last post we looked at <a href="/2012/07/composing-multiple-functions.html">composing lists of functions</a> using folds. This let use write functions of type <code>[a -&gt; a] -&gt; a -&gt; a</code> to compose lists of functions (take a list of functions <code>a -&gt; a</code>, and return a single function <code>a -&gt; a</code>).</p>
+<p>Another way to do this relies on treating functions of type <code>a -&gt; a</code>, also known as endomorphisms, as a <a href="/2012/04/associativity.html#monoids">monoid</a>.</p>
+<h2 id="prologue-or-why-bother">Prologue (or “Why bother?”)</h2>
+<p>Me-from-a-year-ago would have tuned out when someone dropped a monoid-bomb or similar term, assuming it was too complicated. Since then I’ve found lots of maths / category theory terms co-opted by computer science that represent surprisingly straight-forward and useful concepts. No <a href="http://en.wikipedia.org/wiki/Babel_fish_(The_Hitchhiker%27s_Guide_to_the_Galaxy)#Babel_fish">Babel fish</a> required, just a little bit of patience. :)</p>
+<p>Even more surprisingly, I’ve found looking at this stuff both interesting and fun!</p>
+<!-- more -->
+<blockquote>
+“[O]ne of the joys of functional programming is the way in which apparently-exotic theory can have a direct and practical application … .”
+<footer>
+<strong>Simon Peyton Jones</strong> <cite><a href="http://research.microsoft.com/en-us/um/people/simonpj/papers/marktoberdorf/">Tackling the awkward squad</a></cite>
+</footer>
+</blockquote>
+<p>Too right! So let’s dive right in. Please ask me to clarify anything I’ve done a bad job of explaining (if it’s confusing it means I’m explaining it poorly. It’s not you, it’s me). Or if you know all this stuff already please point out the mistakes I’ve made.</p>
+<h2 id="monoids-in-haskell">Monoids in Haskell</h2>
+<p>A monoid is a type that has an <a href="/2012/04/associativity.html">associative</a> binary function, and an identity value such that when we pass it as one of the arguments to that function, we always get the other argument back.</p>
+<p>This is much simpler to understand by looking at examples. The <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Data-Monoid.html#t:Sum">Sum</a> monoid for numbers is the function <code>(+)</code> and the value <code>0</code>. This is associative (<code>1 + (2 + 3) = (1 + 2) + 3</code>), and has the required identity property (<code>x + 0 = x</code>). Another example is multiplication, which has function <code>(*)</code> and value <code>1</code>. Division is not a monoid because <code>10 / (5 / 2) != (10 / 5) / 2</code>, so it is not associative<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p>
+<p>In Haskell monoids are represented with the <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Data-Monoid.html">Monoid</a> type class. The binary function is called <code>mappend</code> (it combines, or appends, two values), and the identity value is called <code>mempty</code>. (We need to provide implementations of these two functions when we make a type an instance of the monoid typeclass.)</p>
+<p>Using these two properties we can define a function that combines arbitrarily many monoid values. This function is called <code>mconcat</code> in Haskell, and its default implementation looks a bit like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">mconcat</span> <span class="ow">::</span> <span class="kt">Monoid</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">mconcat</span> <span class="ow">=</span> <span class="n">foldr</span> <span class="n">mappend</span> <span class="n">mempty</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This means that for any monoid we can combine multiple values. Handy!</p>
+<h2 id="a-monoid-for-endomorphisms">A monoid for endomorphisms</h2>
+<p>Roughly speaking, “endomorphism” means a mapping from a type into itself (“endo” for “inside”, “morphism” for “transformation”). A function <code>a -&gt; a</code> is a mapping into itself; it takes an <code>a</code> and maps it to another <code>a</code>.</p>
+<p>Haskell has a monoid defined for endomorphisms called <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Data-Monoid.html#t:Endo"><code>Endo</code></a>. This is how <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/src/Data-Monoid.html#Endo"><code>Endo</code> is implemented in Haskell</a>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="c1">-- | The monoid of endomorphisms under composition.</span>
+<span class="kr">newtype</span> <span class="kt">Endo</span> <span class="n">a</span> <span class="ow">=</span> <span class="kt">Endo</span> <span class="p">{</span> <span class="n">appEndo</span> <span class="ow">::</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="p">}</span>
+
+<span class="kr">instance</span> <span class="kt">Monoid</span> <span class="p">(</span><span class="kt">Endo</span> <span class="n">a</span><span class="p">)</span> <span class="kr">where</span>
+        <span class="n">mempty</span> <span class="ow">=</span> <span class="kt">Endo</span> <span class="n">id</span>
+        <span class="kt">Endo</span> <span class="n">f</span> <span class="p">`</span><span class="n">mappend</span><span class="p">`</span> <span class="kt">Endo</span> <span class="n">g</span> <span class="ow">=</span> <span class="kt">Endo</span> <span class="p">(</span><span class="n">f</span> <span class="o">.</span> <span class="n">g</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The function to combine two endomorphisms, <code>mappend</code>, is defined as composition <code>f . g</code>. The <code>id</code> function is used for <code>mempty</code>, as <code>f . id = f</code>.</p>
+<h2 id="putting-it-all-together">Putting it all together</h2>
+<p>This means that if we wrap our <code>a -&gt; a</code> functions in the <code>Endo</code> type (using <code>map Endo</code> on the list of functions), we can use <code>mconcat</code> to compose them all together.</p>
+<pre><code>ghci&gt; import Data.Monoid
+ghci&gt; let transforms = [(++ &quot;!&quot;), (++ &quot; world&quot;), reverse]
+ghci&gt; mconcat (map Endo transforms) `appEndo` &quot;olleh&quot;
+&quot;hello world!&quot;</code></pre>
+<p>The <code>appEndo</code> function applies the resulting, composed endomorphism to the argument <code>"olleh"</code>. We had to wrap our function in the <code>Endo</code> type to treat it as a monoid, so we have to unwrap it using <code>appEndo</code> before we can use it (this wrinkle is specific to Haskell, rather than part of the underlying theory).</p>
+<p>We can now rewrite <code>&lt;&lt;&lt;|</code>, our right-to-left composition operator from <a href="/2012/07/composing-multiple-functions.html">last post</a>, like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="p">(</span><span class="o">&lt;&lt;&lt;|</span><span class="p">)</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="p">(</span><span class="o">&lt;&lt;&lt;|</span><span class="p">)</span> <span class="ow">=</span> <span class="n">appEndo</span> <span class="o">.</span> <span class="n">mconcat</span> <span class="o">.</span> <span class="n">map</span> <span class="kt">Endo</span>
+
+<span class="cm">{-  ghci&gt; transforms &lt;&lt;&lt;| &quot;olleh&quot;</span>
+<span class="cm">    &quot;hello world!&quot;</span>
+<span class="cm">-}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can simplify the <code>mconcat . map Endo</code> expression using <code>foldMap</code> from the <code>Data.Foldable</code> module (this also means we can compose functions in any foldable structure, not just lists):</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="p">(</span><span class="o">&lt;&lt;&lt;|</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">Foldable</span> <span class="n">t</span> <span class="ow">=&gt;</span> <span class="n">t</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="p">(</span><span class="o">&lt;&lt;&lt;|</span><span class="p">)</span> <span class="ow">=</span> <span class="n">appEndo</span> <span class="o">.</span> <span class="n">foldMap</span> <span class="kt">Endo</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The main difference between this and the <a href="/2012/07/composing-multiple-functions.html">original function</a>, <code>fs &lt;&lt;&lt;| input = foldr ($) input fs</code>, is that the former explicitly declares we are working with endomorphisms, which compose when concatenated as monoids. The latter expresses more of the mechanics of the operation; it is less declarative.</p>
+<p>Which is easier to understand will depend on the reader’s knowledge of concepts like monoids, but I like the idea that mathematical concepts can provide a deeper understanding of a program’s intention.</p>
+<h2 id="for-extra-credit-left-to-right-composition-using-dual">For extra credit: Left-to-right composition using <code>Dual</code></h2>
+<p>The implementation above <a href="/2012/07/left-to-right-composition.html">composes right-to-left</a>, as if we had written <code>(++ "!") . (++ " world") . reverse</code>. If we want to instead compose left-to-right, we can use the <a href="http://en.wikipedia.org/wiki/Dual_(category_theory)">dual</a> of the endomorphism monoid.</p>
+<p>We can do this in Haskell with the <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Data-Monoid.html#t:Dual"><code>Dual</code> monoid</a>, which combines monoid values in the opposite order by flipping the arguments given to <code>mappend</code>. When combined with the <code>Endo</code> monoid, this reverses the order our functions are composed. From the <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/src/Data-Monoid.html#Dual">Haskell source</a>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">newtype</span> <span class="kt">Dual</span> <span class="n">a</span> <span class="ow">=</span> <span class="kt">Dual</span> <span class="p">{</span> <span class="n">getDual</span> <span class="ow">::</span> <span class="n">a</span> <span class="p">}</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Eq</span><span class="p">,</span> <span class="kt">Ord</span><span class="p">,</span> <span class="kt">Read</span><span class="p">,</span> <span class="kt">Show</span><span class="p">,</span> <span class="kt">Bounded</span><span class="p">)</span>
+<span class="kr">instance</span> <span class="kt">Monoid</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="kt">Monoid</span> <span class="p">(</span><span class="kt">Dual</span> <span class="n">a</span><span class="p">)</span> <span class="kr">where</span>
+        <span class="n">mempty</span> <span class="ow">=</span> <span class="kt">Dual</span> <span class="n">mempty</span>
+        <span class="kt">Dual</span> <span class="n">x</span> <span class="p">`</span><span class="n">mappend</span><span class="p">`</span> <span class="kt">Dual</span> <span class="n">y</span> <span class="ow">=</span> <span class="kt">Dual</span> <span class="p">(</span><span class="n">y</span> <span class="p">`</span><span class="n">mappend</span><span class="p">`</span> <span class="n">x</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Which means we can compose any number of functions left-to-right like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="p">(</span><span class="o">|&gt;&gt;&gt;</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">Foldable</span> <span class="n">t</span> <span class="ow">=&gt;</span> <span class="n">t</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="p">(</span><span class="o">|&gt;&gt;&gt;</span><span class="p">)</span> <span class="ow">=</span> <span class="n">appEndo</span> <span class="o">.</span> <span class="n">getDual</span> <span class="o">.</span> <span class="n">foldMap</span> <span class="p">(</span><span class="kt">Dual</span> <span class="o">.</span> <span class="kt">Endo</span><span class="p">)</span>
+
+<span class="cm">{-</span>
+<span class="cm">    ghci&gt; [reverse, (++ &quot; world&quot;), (++ &quot;!&quot;)] |&gt;&gt;&gt; &quot;olleh&quot;</span>
+<span class="cm">    &quot;hello world!&quot;</span>
+<span class="cm">-}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Our <a href="/2012/07/composing-multiple-functions.html">previous example used <code>foldl'</code></a> to get functions composing in this order:</p>
+<pre><code>fs |&gt;&gt;&gt; input = foldl&#39; (flip ($)) input fs</code></pre>
+<p>Again, this seems to focus more on the mechanics of the operation, rather than relying on the properties of the things we are composing. Unwrapping our function using <code>appEndo . getDual</code> is an unfortunate bit of mess, but <code>foldMap (Dual . Endo)</code> shows that we are folding (reducing) our functions as the dual of endomorphism composition (I am sure I am butchering the terminology here, but from my layman’s perspective we’re composing endomorphisms in the opposite order, so I’m calling that the dual. Please correct me).</p>
+<p>In this particular case we may be better off reversing the composition like this:</p>
+<pre><code>(|&gt;&gt;&gt;) = (&lt;&lt;&lt;|) . reverse</code></pre>
+<p>Still, I find it very interesting how we can use mathematical properties to combine functions in different ways. The <code>Dual</code> monoid folds other monoids in the reverse order, and <code>Endo</code> folds functions <code>a -&gt; a</code> using standard right-to-left composition, so <code>Dual . Endo</code> gives us left-to-right composition. I’ve got no idea what to do with this information, but for some reason I find it fascinating. :)</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Thanks to Dan for <a href="/2012/07/composition-via-scary-sounding-maths-terms.html#comment-1122233859">correcting my original example</a><a href="#fnref1" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2013-11-14T13:13:00+11:00" class="updated">Updated 14 Nov 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/07/composition-via-scary-sounding-maths-terms.html" data-via="" data-counturl="http://davesquared.net/2012/07/composition-via-scary-sounding-maths-terms.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/07/composing-multiple-functions.html" title="Previous Post: Composing multiple functions">&laquo; Composing multiple functions</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/08/reader-monad.html" title="next Post: Reader monad">Reader monad &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/07/composition-via-scary-sounding-maths-terms.html';
+        var disqus_url = 'http://davesquared.net/2012/07/composition-via-scary-sounding-maths-terms.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

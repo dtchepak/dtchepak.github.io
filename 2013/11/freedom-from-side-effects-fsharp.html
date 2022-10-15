@@ -1,0 +1,568 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>More freedom from side-effects (F#) - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Previously we looked at using IO without side-effects in C# by deferring the execution of side-effects. Rather than immediately performing IO, we &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2013/11/freedom-from-side-effects-fsharp.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">More freedom from side-effects (F#)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2013-11-11T20:05:00+11:00" pubdate data-updated="true">11 Nov 2013</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Previously we looked at <a href="/2013/04/side-effect-free-csharp.html">using IO without side-effects</a> in C# by deferring the execution of side-effects. Rather than immediately performing IO, we wrapped up side-effecting operations in an <code>IO</code> type and used combinators like <code>Select</code>, <code>Then</code> and <code>SelectMany</code> to work within that type, so we could use <code>IO</code> values without having to give up the <a href="http://davesquared.net/2013/03/reasoning-and-mutability.html">benefits of pure functions</a> by executing the side-effect.</p>
+<p>This is a useful technique, but it has the drawback that the <code>IO</code> instances assembled with these combinators are opaque – there is no way for us to inspect them and work out what the represent. We know an <code>IO&lt;String&gt;</code> is some IO operation that will result in a string, but is it <code>readLine</code>, or <code>launchMissilesAndShowStatus</code>?</p>
+<p>In this post we’ll look at another way of representing side-effecting (and other) operations that addresses this drawback.</p>
+<!-- more -->
+<h2 id="motivation">Motivation</h2>
+<p>The approach used here will work for any type of side-effecting program, but let’s stick with terminal IO as an example. We’ll also use F#, although we could probably do this in any language. It’s a bit <a href="/2013/11/terminal-io-example-in-haskell">easier in Haskell</a>, and a bit <a href="https://github.com/NICTA/xsharpx/commit/a2bc21eb56fea0dde306685944ab672aad0ae9e1">more difficult in C#</a>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">helloWorld</span><span class="bp">()</span> <span class="o">=</span>
+    <span class="nn">Console</span><span class="p">.</span><span class="n">WriteLine</span> <span class="s">&quot;Hi, what&#39;s your name?&quot;</span>
+    <span class="k">let</span> <span class="nv">name</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="n">ReadLine</span><span class="bp">()</span>
+    <span class="nn">Console</span><span class="p">.</span><span class="n">WriteLine</span> <span class="o">(</span><span class="s">&quot;Hello &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This representation combines definition and execution. We can isolate the rest of our program from the effects of this execution by <a href="/2013/04/side-effect-free-csharp.html">wrapping it in an <code>IO</code> type</a>, but then we end up with an opaque box of <code>IO&lt;Unit&gt;</code>. If a function returns an <code>IO&lt;Unit&gt;</code>, there is no way we can inspect it to find out what it is doing. We can’t distinguish <code>helloWorld</code> from <code>launchMissiles</code>, except by running them and hoping for the best.</p>
+<p>What we’re going to try instead is separating the definition of this program from its execution. By representing programs that do terminal IO with a data type we can use it in different ways; inspecting it to see what it does, running it with a pure interpreter, or executing it and performing the effect it defines.</p>
+<h2 id="representing-operations-with-data">Representing operations with data</h2>
+<p>There are two main operations used by our <code>helloWorld</code> program, <code>WriteLine</code> and <code>ReadLine</code>. These operations are chained together in a specific order – we write a prompt, we read some input, we write a greeting based on that input, and then we end the program. Let’s represent these operations and the idea of chaining them together with a <code>Terminal</code> data type:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">type</span> <span class="nc">Terminal</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="n">WriteLine</span> <span class="k">of</span> <span class="kt">string</span> <span class="o">*</span> <span class="n">Terminal</span>
+    <span class="o">|</span> <span class="n">ReadLine</span> <span class="k">of</span> <span class="o">(</span><span class="kt">string</span> <span class="o">-&gt;</span> <span class="n">Terminal</span><span class="o">)</span>
+    <span class="o">|</span> <span class="n">EndProgram</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<ul>
+<li><code>WriteLine</code> – takes a <code>string</code> to write, and the next <code>Terminal</code> to run.</li>
+<li><code>ReadLine</code> – takes a function which, given a <code>string</code> read in via an input source, will return the next <code>Terminal</code> to run. This means the next operation to run after reading a line can depend on the value read.</li>
+<li><code>EndProgram</code> – takes no arguments, so does not specify a next <code>Terminal</code>. Once we get here our terminal program can have no more operations. It’s done.</li>
+</ul>
+<p>We know that any <code>Terminal</code> program can only do these operations. No confusing <code>helloWorld</code> and <code>launchMissiles</code> anymore. As we’ll see later, we can also differentiate two <code>Terminal</code> programs by inspecting their structures.</p>
+<p>We can represent our original <code>helloWorld</code> using the <code>Terminal</code> data structure:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">helloWorld2</span> <span class="o">:</span> <span class="n">Terminal</span> <span class="o">=</span>
+    <span class="n">WriteLine</span> <span class="o">(</span><span class="s">&quot;Hi, what&#39;s your name?&quot;</span><span class="o">,</span>
+        <span class="n">ReadLine</span> <span class="o">(</span><span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+            <span class="n">WriteLine</span> <span class="o">(</span><span class="s">&quot;Hello &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="o">,</span> <span class="n">EndProgram</span><span class="o">)))</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This is clumsy, but we’ll improve things as we go along. For now let’s fill in the gap between this and our original <code>helloWorld</code>: executing the program.</p>
+<h2 id="interpreting-operations">Interpreting operations</h2>
+<p>We’ve separated the definition of <code>helloWorld</code> from its execution. Now we can define an interpreter that will execute not just <code>helloWorld2</code>, but any <code>Terminal</code> program.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">rec</span> <span class="n">interpretIO</span> <span class="o">(</span><span class="n">term</span><span class="o">:</span><span class="n">Terminal</span><span class="o">)</span> <span class="o">:</span> <span class="kt">unit</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">term</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">WriteLine</span> <span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="n">next</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="nn">Console</span><span class="p">.</span><span class="n">WriteLine</span> <span class="n">s</span><span class="o">;</span> <span class="n">interpretIO</span> <span class="n">next</span>
+        <span class="o">|</span> <span class="n">ReadLine</span> <span class="n">f</span>          <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="nv">read</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="n">ReadLine</span><span class="bp">()</span>
+            <span class="n">interpretIO</span> <span class="o">(</span><span class="n">f</span> <span class="n">read</span><span class="o">)</span>
+        <span class="o">|</span> <span class="n">EndProgram</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This interpreter traverses the given <code>Terminal</code>, translating each operation to an effect (reading or writing lines), and then recursively calling itself to interpret the next operation in the chain. The recursion stops at <code>EndProgram</code>.</p>
+<pre><code>&gt; helloWorld();;
+Hi, what&#39;s your name?
+World
+Hello World
+val it : unit = ()
+&gt; interpretIO helloWorld2;;
+Hi, what&#39;s your name?
+World
+Hello World
+val it : unit = ()</code></pre>
+<p>We now have parity with our original program. We’ve split the program’s definition from its execution, giving us a pure, side-effect-free representation of a side-effecting program. But is it worth the increased complexity, the author asked rhetorically?</p>
+<h2 id="pure-interpreters">Pure interpreters</h2>
+<p>This split of definition and execution opens up some interesting possibilities. For example, we can interpret this program using a purely functional interpreter which reads from a stack of inputs and produces a list of outputs. We can use this for testing, including as a means to differentiate <code>Terminal</code> programs.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">interpretPure</span> <span class="o">(</span><span class="n">input</span><span class="o">:</span><span class="kt">string</span> <span class="n">Stack</span><span class="o">)</span> <span class="o">(</span><span class="n">term</span><span class="o">:</span><span class="n">Terminal</span><span class="o">)</span> <span class="o">:</span> <span class="kt">string</span> <span class="kt">list</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="nv">rec</span> <span class="n">step</span> <span class="n">i</span> <span class="n">o</span> <span class="n">t</span> <span class="o">=</span>
+        <span class="k">match</span> <span class="n">t</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="n">WriteLine</span> <span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="n">next</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">step</span> <span class="n">i</span> <span class="o">(</span><span class="n">s</span> <span class="o">::</span> <span class="n">o</span><span class="o">)</span> <span class="n">next</span>
+            <span class="o">|</span> <span class="n">ReadLine</span> <span class="n">f</span>          <span class="o">-&gt;</span>
+                <span class="k">let</span> <span class="o">(</span><span class="n">line</span><span class="o">,</span> <span class="n">i&#39;</span><span class="o">)</span> <span class="o">=</span> <span class="n">pop</span> <span class="n">i</span>
+                <span class="k">let</span> <span class="nv">next</span> <span class="o">=</span> <span class="n">f</span> <span class="o">(</span><span class="n">line</span> <span class="o">|??</span> <span class="s">&quot;&quot;</span><span class="o">)</span>
+                <span class="n">step</span> <span class="n">i&#39;</span> <span class="n">o</span> <span class="n">next</span>
+            <span class="o">|</span> <span class="n">EndProgram</span> <span class="o">-&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">o</span>
+    <span class="n">step</span> <span class="n">input</span> <span class="bp">[]</span> <span class="n">term</span>
+<span class="c">(* fsi:</span>
+<span class="c">    &gt; interpretPure (Stack [</span><span class="s">&quot;World&quot;</span><span class="c">]) helloWorld2;;</span>
+<span class="c">    val it : string list = [</span><span class="s">&quot;Hi, what&#39;s your name?&quot;</span><span class="c">; </span><span class="s">&quot;Hello World&quot;</span><span class="c">]</span>
+<span class="c">*)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can also write other interpreters, say one that pretty prints a program so we can see exactly what an instance of <code>Terminal</code> is doing for certain inputs.</p>
+<p>The benefits of this separation don’t stop at terminal IO. We could model database operations like this, and have different interpreters to perform those operations against SQL Server, RavenDB, an in-memory datastore and the filesystem. The program is the definition, how we interpret it is up to us. <a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
+<h2 id="composing-terminal-programs">Composing <code>Terminal</code> programs</h2>
+<p>Our current implementation suffers from one big problem; we can’t combine <code>Terminal</code> programs. We have to define a full <code>Terminal</code> program upfront, as each operation also defines what the next operation is going to be. Speaking of which, assembling programs that are more complex than <code>helloWorld2</code> is going to get very messy.</p>
+<p>For this separation of definition and execution to be really useful we need to be able to compose <code>Terminal</code> programs so that it’s easy to assemble them.</p>
+<h3 id="separating-the-recursion-from-the-definition-of-operations">Separating the recursion from the definition of operations</h3>
+<p>There first step towards composing these operations is removing the need for each operation to specify the next operation. We still need to be able to chain together operations, but we’ll separate this job out into another type. This will give us two data types: one defining the available operations, and another to handle the recursive part of the old <code>Terminal</code> data type:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">type</span> <span class="nc">Terminal</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="n">WriteLine</span> <span class="k">of</span> <span class="kt">string</span>  <span class="o">*</span> <span class="k">&#39;</span><span class="n">a</span>
+    <span class="o">|</span> <span class="n">ReadLine</span> <span class="k">of</span> <span class="o">(</span><span class="kt">string</span> <span class="o">-&gt;</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span>
+<span class="k">type</span> <span class="nc">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="n">Pure</span> <span class="k">of</span> <span class="k">&#39;</span><span class="n">a</span>
+    <span class="o">|</span> <span class="n">FreeTerm</span> <span class="k">of</span> <span class="n">Terminal</span><span class="o">&lt;</span><span class="n">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;&gt;</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We now have a funny looking <code>Terminal</code> definition. <code>WriteLine</code>, for example, takes the <code>string</code> to write, but also a value of some generic type <code>'a</code> instead of the next <code>Terminal</code> operation to execute. This generic parameter lets us define the <code>FreeTerm</code> type which we can use to chain <code>Terminal</code> operations together using the <code>FreeTerm of Terminal&lt;FreeTerm&lt;'a&gt;&gt;</code> constructor, or to end the recursive definition using the <code>Pure of 'a</code> constructor.</p>
+<p>Using these two types, our program becomes:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">helloWorld3</span> <span class="o">=</span>
+    <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">WriteLine</span> <span class="o">(</span><span class="s">&quot;Hi, what&#39;s your name?&quot;</span><span class="o">,</span>
+                <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">ReadLine</span> <span class="o">(</span><span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+                    <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">WriteLine</span> <span class="o">((</span><span class="s">&quot;Hello &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="o">),</span> <span class="n">Pure</span> <span class="bp">()</span><span class="o">))))))</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We’ll also need to update both our interpreters to match <code>FreeTerm</code> instead of <code>Terminal</code>. For example, the side-effecting interpreter becomes:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">rec</span> <span class="n">interpretIO</span> <span class="o">(</span><span class="n">term</span><span class="o">:</span><span class="n">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;)</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">term</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">WriteLine</span> <span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="n">next</span><span class="o">))</span> <span class="o">-&gt;</span> <span class="nn">Console</span><span class="p">.</span><span class="n">WriteLine</span> <span class="n">s</span><span class="o">;</span> <span class="n">interpretIO</span> <span class="n">next</span>
+        <span class="o">|</span> <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">ReadLine</span> <span class="n">f</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="nv">read</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="n">ReadLine</span><span class="bp">()</span>
+            <span class="n">interpretIO</span> <span class="o">(</span><span class="n">f</span> <span class="n">read</span><span class="o">)</span>
+        <span class="o">|</span> <span class="n">Pure</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="n">a</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h3 id="combining-programs">Combining programs</h3>
+<p>Now we can define some general functions to help us update and combine these types, and from there build some helper functions to give us a much nicer way of defining our <code>Terminal</code> IO programs.</p>
+<p>The first function we need is <code>mapTerm</code>, which will let us transform a <code>Terminal&lt;'a&gt;</code> into a <code>Terminal&lt;'b&gt;</code> if we have a way to convert <code>'a</code> to <code>'b</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">mapTerm</span> <span class="o">(</span><span class="n">f</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="k">&#39;</span><span class="n">b</span><span class="o">)</span> <span class="o">(</span><span class="n">term</span> <span class="o">:</span> <span class="n">Terminal</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;)</span> <span class="o">:</span> <span class="n">Terminal</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">term</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">WriteLine</span> <span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="n">value</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">WriteLine</span> <span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="n">f</span> <span class="n">value</span><span class="o">)</span>
+        <span class="o">|</span> <span class="n">ReadLine</span> <span class="n">fn</span>          <span class="o">-&gt;</span> <span class="n">ReadLine</span> <span class="o">(</span><span class="n">f</span> <span class="o">&lt;&lt;</span> <span class="n">fn</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This <code>mapTerm</code> function lets us define <code>bind</code> to chain together <code>FreeTerm</code> values, and <code>liftF</code> to take a <code>Terminal&lt;'a&gt;</code> operation and wrap it in the <code>FreeTerm&lt;'a&gt;</code> type:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="nv">rec</span> <span class="n">bind</span> <span class="o">(</span><span class="n">f</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">term</span> <span class="o">:</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;)</span> <span class="o">:</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">term</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">Pure</span> <span class="n">value</span> <span class="o">-&gt;</span> <span class="n">f</span> <span class="n">value</span>
+        <span class="o">|</span> <span class="n">FreeTerm</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">mapTerm</span> <span class="o">(</span><span class="n">bind</span> <span class="n">f</span><span class="o">)</span> <span class="n">t</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="nv">liftF</span> <span class="o">(</span><span class="n">term</span><span class="o">:</span><span class="n">Terminal</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;)</span> <span class="o">:</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="n">FreeTerm</span> <span class="o">(</span><span class="n">mapTerm</span> <span class="n">Pure</span> <span class="n">term</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can use these as the basis for some combinators to help us express our terminal IO programs:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">let</span> <span class="o">(&gt;&gt;=)</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">term</span> <span class="n">f</span> <span class="o">-&gt;</span> <span class="n">bind</span> <span class="n">f</span> <span class="n">term</span>
+<span class="k">let</span> <span class="o">(&gt;&gt;.)</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">t1</span> <span class="n">t2</span> <span class="o">-&gt;</span> <span class="n">t1</span> <span class="o">&gt;&gt;=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">t2</span>
+<span class="k">let</span> <span class="nv">writeLine</span> <span class="n">s</span> <span class="o">:</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">liftF</span> <span class="o">(</span><span class="n">WriteLine</span> <span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="bp">()</span><span class="o">))</span>
+<span class="k">let</span> <span class="nv">readLine</span> <span class="o">:</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">liftF</span> <span class="o">(</span><span class="n">ReadLine</span> <span class="n">id</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="nv">helloWorld4</span> <span class="o">:</span> <span class="n">FreeTerm</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="n">writeLine</span> <span class="s">&quot;Hi, what&#39;s your name?&quot;</span> <span class="o">&gt;&gt;.</span>
+    <span class="n">readLine</span> <span class="o">&gt;&gt;=</span> <span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+    <span class="n">writeLine</span> <span class="o">(</span><span class="s">&quot;Hello &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This gives us quite a nice mini DSL for defining pure terminal IO programs.</p>
+<h3 id="computation-expression-syntax">Computation expression syntax</h3>
+<p>I’m quite happy with <code>helloWorld4</code>, but we can also use <a href="http://fsharpforfunandprofit.com/series/computation-expressions.html">computation expressions</a> to get what is possibly a more familiar-looking syntax:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">type</span> <span class="nc">TermBuilder</span><span class="bp">()</span> <span class="o">=</span>
+    <span class="k">member</span> <span class="n">x</span><span class="p">.</span><span class="nf">Bind</span><span class="o">(</span><span class="n">term</span><span class="o">,</span> <span class="n">f</span><span class="o">)</span> <span class="o">=</span> <span class="n">bind</span> <span class="n">f</span> <span class="n">term</span>
+    <span class="k">member</span> <span class="n">x</span><span class="p">.</span><span class="nf">Return</span><span class="o">(</span><span class="n">value</span><span class="o">)</span> <span class="o">=</span> <span class="n">Pure</span> <span class="n">value</span>
+    <span class="k">member</span> <span class="n">x</span><span class="p">.</span><span class="nf">Combine</span><span class="o">(</span><span class="n">term1</span><span class="o">,</span> <span class="n">term2</span><span class="o">)</span> <span class="o">=</span> <span class="n">term1</span> <span class="o">&gt;&gt;.</span> <span class="n">term2</span>
+    <span class="k">member</span> <span class="n">x</span><span class="p">.</span><span class="nf">Zero</span><span class="bp">()</span> <span class="o">=</span> <span class="n">Pure</span> <span class="bp">()</span>
+    <span class="k">member</span> <span class="n">x</span><span class="p">.</span><span class="nf">Delay</span><span class="o">(</span><span class="n">f</span><span class="o">)</span> <span class="o">=</span> <span class="n">f</span><span class="bp">()</span>
+<span class="k">let</span> <span class="nv">termIO</span> <span class="o">=</span> <span class="k">new</span> <span class="n">TermBuilder</span><span class="bp">()</span>
+
+<span class="k">let</span> <span class="nv">helloWorld5</span> <span class="o">=</span> <span class="n">termIO</span> <span class="o">{</span>
+    <span class="k">do</span><span class="o">!</span> <span class="n">writeLine</span> <span class="s">&quot;Hi, what&#39;s your name?&quot;</span>
+    <span class="k">let!</span> <span class="nv">name</span> <span class="o">=</span> <span class="n">readLine</span>
+    <span class="k">do</span><span class="o">!</span> <span class="n">writeLine</span> <span class="o">(</span><span class="s">&quot;Hello &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="o">)</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="generalising">Generalising</h2>
+<p>Much of the work we did to define <code>FreeTerm</code> and the relevant combinators can be eliminated by using a more general type called <a href="http://hackage.haskell.org/package/free-2.0.3/docs/Control-Monad-Free.html#t:Free"><code>Free</code></a>. Rather than being tied to a specific type like <code>Terminal</code>, it can be generalised to <a href="http://davesquared.net/2012/05/fp-newbie-learns-functors.html">any type that supports a <code>map</code> function</a>.</p>
+<p>We can see this for ourselves by replacing “Term” in our <code>FreeTerm</code> definition with “X”; the code works fine with any type <code>X</code> provided there is a <code>mapX</code> defined for it. The rest of the code can remain unchanged.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">type</span> <span class="nc">FreeX</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Pure</span> <span class="k">of</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">|</span> <span class="n">Free</span> <span class="k">of</span> <span class="n">X</span><span class="o">&lt;</span><span class="n">FreeX</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;&gt;</span>
+
+<span class="k">let</span> <span class="nv">rec</span> <span class="n">bind</span> <span class="o">(</span><span class="n">f</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="n">FreeX</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">term</span> <span class="o">:</span> <span class="n">FreeX</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;)</span> <span class="o">:</span> <span class="n">FreeX</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">term</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="n">Pure</span> <span class="n">value</span> <span class="o">-&gt;</span> <span class="n">f</span> <span class="n">value</span>
+        <span class="o">|</span> <span class="n">Free</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="n">Free</span> <span class="o">(</span><span class="n">mapX</span> <span class="o">(</span><span class="n">bind</span> <span class="n">f</span><span class="o">)</span> <span class="n">t</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="nv">liftF</span> <span class="o">(</span><span class="n">term</span> <span class="o">:</span> <span class="n">X</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;)</span> <span class="o">:</span> <span class="n">FreeX</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">Free</span> <span class="o">(</span><span class="n">mapX</span> <span class="n">Pure</span> <span class="n">term</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>I’m not sure how to express the more general form in F#, but the fact it exists means defining a specific <code>FreeX</code> type for each <code>X</code> is quite a fast and mechanical process.</p>
+<div class="note">
+<strong>Obligatory Haskell plug:</strong> In a language with higher-order polymorphism like Haskell we can get <code>Free</code> for all types we can map over for, well, free. The full <code>helloWorld</code> example written in Haskell is <a href="/2013/11/terminal-io-example-in-haskell.html">available here</a>.
+</div>
+<h2 id="conclusion">Conclusion</h2>
+<p>We can get a pure representation of any side-effecty program (not just terminal IO) by defining a type for the primitive operations required for the program and using the <code>Free</code> type and related functions to combine these operations into programs, all without side-effects. We then separately define the execution of these programs in one or more interpreters.</p>
+<p>In addition to the <a href="http://davesquared.net/2013/03/reasoning-and-mutability.html">normal benefits of purity</a>, this separation of a program’s definition from its execution gives us some big advantages over the <a href="/2013/04/side-effect-free-csharp.html">deferred execution approach to IO</a>:</p>
+<ul>
+<li>We can limit the expressible programs of a specific type to a set of known operations, so we can immediately tell their potential and limitations just from the types (compared with general IO which could attempt anything).</li>
+<li>We can distinguish between two programs of the same type.</li>
+<li>We can run a single program in different ways, so we can run it with side-effects (or translate it to <code>IO</code>), in a pure way for testing or differentiation, or in any other way we need.</li>
+</ul>
+<h2 id="further-reading">Further reading</h2>
+<ul>
+<li><a href="http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html">Why free monads matter</a>, Gabriel Gonzalez</li>
+<li><a href="http://www.haskellforall.com/2012/07/purify-code-using-free-monads.html">Purify code using free monads</a>, Gabriel Gonzalez</li>
+<li><a href="http://blog.higher-order.com/assets/scalaio.pdf">Purely Functional I/O in Scala</a> [PDF slides], Rúnar Óli Bjarnason</li>
+<li><a href="http://mth.io/talks/free/">Free: Intepreters and Little Languages</a> [HTML slides], Mark Hibberd</li>
+</ul>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>I’m not sure just how far the potential for multiple interpreters for a single type can be pushed. Could we have an interpreter to translate <code>Terminal</code> programs to other platforms? Or have interpreters that optimise programs, batching certain operations to produce a new, more efficient program?<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Because <code>Free</code> defines <code>bind</code> in terms of <code>map</code>, and provides a <code>Pure</code> or unit constructor, it gives us a monad for any functor (type that supports <code>map</code>). Philip J-F explains the general form wonderfully in his answer to <a href="http://stackoverflow.com/a/13357359/906">“What are free monads?”</a> on StackOverflow.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2013-11-12T07:20:00+11:00" class="updated">Updated 12 Nov 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/f-/'>f#</a>, <a class='category' href='/categories/functional-programming/'>functional programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2013/11/freedom-from-side-effects-fsharp.html" data-via="" data-counturl="http://davesquared.net/2013/11/freedom-from-side-effects-fsharp.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2013/07/string-calc-parsec.html" title="Previous Post: String calculator with Parsec">&laquo; String calculator with Parsec</a>
+      
+      
+        <a class="basic-alignment right" href="/2013/11/terminal-io-example-in-haskell.html" title="next Post: Terminal IO example in Haskell">Terminal IO example in Haskell &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2013/11/freedom-from-side-effects-fsharp.html';
+        var disqus_url = 'http://davesquared.net/2013/11/freedom-from-side-effects-fsharp.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

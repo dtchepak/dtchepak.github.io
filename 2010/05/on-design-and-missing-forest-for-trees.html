@@ -1,0 +1,245 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>On design and missing the forest for the trees - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Looking at discreet units of code is an awesome way of limiting complexity to the immediate problem at hand, and of optimising your design for &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/05/on-design-and-missing-forest-for-trees.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">On design and missing the forest for the trees</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2010-05-07T21:53:00+10:00" pubdate data-updated="true">07 May 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Looking at discreet units of code is an awesome way of limiting complexity to the immediate problem at hand, and of optimising your design for solving that problem at that level of abstraction. That&#8217;s one of the reasons TDD with unit tests is so useful. However focusing purely on the details of the design can mean missing the bigger picture.</p>
+
+<p>One thing I noticed while watching <a href="http://devlicio.us/blogs/rob_eisenberg">Rob Eisenberg&#8217;s</a> excellent MIX 2010 presentation, <a href="http://live.visitmix.com/MIX10/Sessions/EX15">&#8220;Build your own MVVM framework&#8221;</a>, was that Rob removed some fairly fundamental areas of duplication I hadn&#8217;t even considered. Things like using conventions for automatically data-binding view controls to properties and commands on their view models, rather than repeatedly wiring-up property changed events and duplicating view model property names in XAML bindings. </p>
+
+<p>My team have just finished our first WPF application, and we focussed on test driving out all our view models and making sure the micro-level design was ok and fairly duplication free. This near-sightedness meant we never really considered the duplication occurring at a macro level, and so we missed a great opportunity to drastically simplify our code. (To be clear, I started out the project and established the initial conventions before the remainder of the team got to work on it, so missing this was my fault, not the team&#8217;s.)</p>
+
+<p>In addition to helping us stay <a href="http://en.wikipedia.org/wiki/Don't_repeat_yourself">DRY</a>, I&#8217;m also fairly certain having more focus on the macro-level translates into the more effective application of design patterns at a micro-level. It&#8217;s a case of <a href="http://en.wikipedia.org/wiki/Think_Globally,_Act_Locally">thinking globally, acting locally</a>. Design patterns are all about context, so the more context you give yourself the better chance you have of choosing a good shape for the unit in which you are working. </p>
+
+<p>That&#8217;s not to say that micro-level design isn&#8217;t extremely important. After all, abstracting a complex system into small, manageable pieces is the whole reason OO exists.  It&#8217;s just a reminder that the larger context in which you&#8217;re working is also important.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2010-05-07T21:53:00+10:00" pubdate data-updated="true">07 May 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/dev-practices/'>dev practices</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/05/on-design-and-missing-forest-for-trees.html" data-via="" data-counturl="http://davesquared.net/2010/05/on-design-and-missing-forest-for-trees.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/05/test-driving-while-refactoring.html" title="Previous Post: Friends don't let friends test-drive while refactoring">&laquo; Friends don't let friends test-drive while refactoring</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/05/wpf-newbie-and-contentpresenter-solve.html" title="next Post: WPF newbie and ContentPresenter solve the case of the disappearing content">WPF newbie and ContentPresenter solve the case of the disappearing content &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/05/on-design-and-missing-forest-for-trees.html';
+        var disqus_url = 'http://davesquared.net/2010/05/on-design-and-missing-forest-for-trees.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,479 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>D3 newbie updates a bar chart - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I’ve been trying to learn D3.js via Mike Bostock’s excellent “Let’s make a bar chart” tutorial series. This post is my attempt to extend that example &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2014/09/d3-update-a-bar-chart.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">D3 newbie updates a bar chart</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-09-01T00:01:00+10:00" pubdate data-updated="true">01 Sep 2014</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I’ve been trying to learn <a href="http://d3js.org/">D3.js</a> via Mike Bostock’s excellent <a href="http://bost.ocks.org/mike/bar/">“Let’s make a bar chart”</a> tutorial series. This post is my attempt to extend that example to handle data updates.</p>
+<!-- more -->
+<h2 id="starting-point">Starting point</h2>
+<p><a href="http://bost.ocks.org/mike/bar/3/">Part 3</a> of the tutorial ends with a bar chart that shows the relative frequency of letters used in the English language.</p>
+<p>The creation of each bar per datum is handled by this code:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="nx">chart</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s2">&quot;.bar&quot;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">enter</span><span class="p">().</span><span class="nx">append</span><span class="p">(</span><span class="s2">&quot;rect&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="s2">&quot;bar&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">x</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span> <span class="p">})</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">})</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">height</span> <span class="o">-</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">})</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;width&quot;</span><span class="p">,</span> <span class="nx">x</span><span class="p">.</span><span class="nx">rangeBand</span><span class="p">());</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This says we’re dealing with chart elements of the CSS class <code>.bar</code> for each datum. The <code>.enter()</code> call tells D3 we want to perform the operations that follow for any new data (<a href="http://bost.ocks.org/mike/join/">data that has entered source</a>). We can also use <code>.exit()</code> for data that is no longer in the source. If we want to handle updated data we can add properties directly (outside of <code>enter()</code> / <code>exit()</code>).</p>
+<h2 id="adjusting-the-bars-for-new-data">Adjusting the bars for new data</h2>
+<p>To specify updates I had to change the data join so D3 knows how to differentiate added, removed and updated data. In this case we will use the <code>name</code> property, which is a letter from <code>A</code> to <code>Z</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">var</span> <span class="nx">bar</span> <span class="o">=</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s2">&quot;.bar&quot;</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">;</span> <span class="p">});</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Next we’ll modify the code to specify how to handle updated and removed data, instead of just what to do on <code>enter()</code> for new data.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="c1">// new data:</span>
+<span class="nx">bar</span><span class="p">.</span><span class="nx">enter</span><span class="p">().</span><span class="nx">append</span><span class="p">(</span><span class="s2">&quot;rect&quot;</span><span class="p">)</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="s2">&quot;bar&quot;</span><span class="p">)</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">x</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span> <span class="p">})</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">})</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">height</span> <span class="o">-</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">})</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;width&quot;</span><span class="p">,</span> <span class="nx">x</span><span class="p">.</span><span class="nx">rangeBand</span><span class="p">());</span>
+<span class="c1">// removed data:</span>
+<span class="nx">bar</span><span class="p">.</span><span class="nx">exit</span><span class="p">().</span><span class="nx">remove</span><span class="p">();</span>
+<span class="c1">// updated data:</span>
+<span class="nx">bar</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">})</span>
+   <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">height</span> <span class="o">-</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">});</span>
+   <span class="c1">// &quot;x&quot; and &quot;width&quot; will already be set from when the data was</span>
+   <span class="c1">// first added from &quot;enter()&quot;.</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="updating-the-axes">Updating the axes</h2>
+<p>This was enough to update the chart, but the y-axis would draw the new axis over the top of the previous axis, so both values would show. This <a href="http://stackoverflow.com/a/13550144/906">answer on StackOverflow</a> suggested removing the axis and redrawing it each time, which worked well.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="c1">// Remove previous y-axis:</span>
+<span class="nx">chart</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s2">&quot;.y.axis&quot;</span><span class="p">).</span><span class="nx">remove</span><span class="p">();</span> <span class="c1">// &lt;&lt; this line added</span>
+<span class="c1">// Existing code to draw y-axis:</span>
+<span class="nx">chart</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s2">&quot;g&quot;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="s2">&quot;y axis&quot;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">yAxis</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;transform&quot;</span><span class="p">,</span> <span class="s2">&quot;rotate(-90)&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;dy&quot;</span><span class="p">,</span> <span class="s2">&quot;.71em&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">style</span><span class="p">(</span><span class="s2">&quot;text-anchor&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">text</span><span class="p">(</span><span class="s2">&quot;Frequency&quot;</span><span class="p">);</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="basic-transition">Basic transition</h2>
+<p>The next thing I wanted to try was animating changes to existing data. This turned out to be trivial thanks to D3’s <code>transition()</code> method, which I just dumped prior to the code we used to update each bar.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="nx">bar</span>
+  <span class="p">.</span><span class="nx">transition</span><span class="p">().</span><span class="nx">duration</span><span class="p">(</span><span class="mi">750</span><span class="p">)</span>  <span class="c1">// &lt;&lt;&lt; added this</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">})</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">height</span> <span class="o">-</span> <span class="nx">y</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">);</span> <span class="p">});</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>And that’s it!</p>
+<h2 id="end-result">End result</h2>
+<p>Here’s an example of the update in action. Use the radio buttons to alternate between the chart showing frequencies of letters in English and the frequencies of letters used in the source for this post.</p>
+<form>
+<input type="radio" name="inputsrc" id="defaultInput" value="default" checked/><label for="defaultInput">English</label> <input type="radio" name="inputsrc" id="thisPostInput" value="post"/><label for="thisPostInput">This post</label>
+</form>
+<svg id="d3newbie-chart">
+</svg>
+<style>
+.bar {
+  fill: steelblue;
+}
+.bar:hover {
+    fill: brown;
+}
+.axis text {
+  font: 10px sans-serif;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+</style>
+<script src="/javascripts/d3.min.js" charset="utf8=-8"></script>
+<script>
+var outerWidth = 600, outerHeight = 400;
+var margin = { top: 20, right: 30, bottom: 30, left: 40 },
+    width  = outerWidth - margin.left - margin.right,
+    height = outerHeight - margin.top - margin.bottom;
+
+var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+var x = d3.scale.ordinal()
+          .rangeRoundBands([0, width], .1)
+          .domain(chars);
+var y = d3.scale.linear()
+          .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+              .scale(x)
+              .orient("bottom");
+var yAxis = d3.svg.axis()
+              .scale(y)
+              .orient("left")
+              .ticks(10, "%");
+var chart = d3.select("#d3newbie-chart")
+              .attr("width", outerWidth)
+              .attr("height", outerHeight)
+            .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+// x-axis
+chart
+    .append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")") 
+      .call(xAxis);
+
+function type(d) {
+    d.value = +d.value;
+    return d;
+}
+function updateDefault() {
+    d3.tsv("/downloads/data-chars.tsv", type, update);
+}
+function updateThisPost() {
+    d3.text(".", function(err, data) { update(err, freqs(data)); });
+}
+function update(err, data) {
+    y.domain([0, d3.max(data, function(d) { return d.value; })]);
+    // y-axis
+    chart.select(".y.axis").remove();
+    chart.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Frequency");
+
+    var bar = chart.selectAll(".bar")
+            .data(data, function(d) { return d.name; });
+
+    // new data:
+    bar.enter().append("rect")
+       .attr("class", "bar")
+       .attr("x", function(d) { return x(d.name); })
+       .attr("y", function(d) { return y(d.value); })
+       .attr("height", function(d) { return height - y(d.value); })
+       .attr("width", x.rangeBand());
+    // removed data:
+    bar.exit().remove();
+    // updated data:
+    bar
+       .transition()
+       .duration(750)
+           .attr("y", function(d) { return y(d.value); })
+           .attr("height", function(d) { return height - y(d.value); });
+};
+
+document.getElementById("defaultInput")
+        .onclick = updateDefault;
+document.getElementById("thisPostInput")
+        .onclick = updateThisPost;
+updateDefault();
+
+function freqs(str) {
+    var s = str.toUpperCase()
+    var n = s.length
+    var x = {}
+    for (var i = 0; i<chars.length; i++) {
+        x[chars[i]] = 0;
+    }
+    for (var i=0; i<s.length; i++) {
+        if (/[A-Z]/.test(s[i])) {
+            x[s[i]]++;
+        }
+    }
+    var f = []
+    for (var c in x) {
+        f.push( { name: c, value: x[c]/=n });
+    }
+    return f;
+}
+</script>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-09-01T00:01:00+10:00" pubdate data-updated="true">01 Sep 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/javascript/'>javascript</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2014/09/d3-update-a-bar-chart.html" data-via="" data-counturl="http://davesquared.net/2014/09/d3-update-a-bar-chart.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2014/08/simple-nodebot-haskell.html" title="Previous Post: A simple circuit, an Arduino, and Haskell">&laquo; A simple circuit, an Arduino, and Haskell</a>
+      
+      
+        <a class="basic-alignment right" href="/2015/01/fsharp-pattern-match-on-field-literals.html" title="next Post: F#: Pattern matching on field literals">F#: Pattern matching on field literals &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2014/09/d3-update-a-bar-chart.html';
+        var disqus_url = 'http://davesquared.net/2014/09/d3-update-a-bar-chart.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

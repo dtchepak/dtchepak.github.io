@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Misusing fluent interfaces - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Fluent interfaces are a way of making your code more readable. The NUnit 2.4+ assertion syntax is a good example of this, as is this example from Jon &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/09/misusing-fluent-interfaces.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Misusing fluent interfaces</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-09-12T11:36:00+10:00" pubdate data-updated="true">12 Sep 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><a href="http://www.martinfowler.com/bliki/FluentInterface.html">Fluent interfaces</a> are a way of making your code more readable. The <a href="http://davesquared.net/2007/06/nunit-24-constraint-based-assertion.html">NUnit 2.4+ assertion syntax</a> is a good example of this, as is <a href="http://weblogs.asp.net/jgalloway/archive/2006/12/06/a-simple-example-of-a-fluent-interface.aspx">this example</a> from Jon Galloway. For a really&nbsp;comprehensive&nbsp;example see <a href="http://davesquared.net/2007/07/anders-nors-on-dsls-with-c.html">Anders&#8217; post</a>*.</p> <p>It is also very easy to get carried away with this (ok, maybe that&#8217;s just me) and misuse the technique by reducing it to simple method chaining and applying it everywhere. Ayende has a <a href="http://www.ayende.com/Blog/archive/2007/07/18/Fluent-Interfaces-amp-Method-Chaining.aspx">good post on the difference</a>. To borrow Ayende&#8217;s example (I&#8217;ll give it back), this:</p><pre>string user = new StringBuilder()
+	.Append("Name: ")
+	.Append(user.Name)
+	.AppendLine()
+	.Append("Email: ")
+	.Append(user.Email)
+	.AppendLine()
+	.ToString();</pre>is not a fluent interface, and is does not offer much over the standard approach: <pre>string user = new StringBuilder();
+user.Append("Name: ");
+user.Append(user.Name);
+user.AppendLine();
+user.Append("Email: ");
+user.Append(user.Email);
+user.AppendLine();
+user.ToString();</pre>
+<p>The second example is hardly significantly more difficult to read than the first (a bit more noise), and has the added advantage of making debugging easier by giving you a specific line number if an exception is thrown. The first example is not a fluent interface, it is just method chaining.</p>
+<p>The main feature of a fluent interface is not the use of method chaining (in fact this is completely optional), but mainly providing an easy to use, easy to understand interface to your class or library. A fluent interface over Ayende&#8217;s&nbsp;StringBuilder example might look&nbsp;more like this:</p><pre>String user = new UserDisplayer()
+  .AddName(user.Name)
+  .AddEmail(user.Email)
+  .ToString();</pre>
+<p>As a more detailed example, the <a href="http://weblogs.asp.net/jgalloway/archive/2006/12/06/a-simple-example-of-a-fluent-interface.aspx">changes Jon Galloway suggested</a>&nbsp;to the <a href="http://www.codeproject.com/useritems/yael_image_filters.asp">C# Image Enhancement Filters Library</a> transformed this (these code snippets taken straight from his <a href="http://weblogs.asp.net/jgalloway/archive/2006/12/06/a-simple-example-of-a-fluent-interface.aspx">post</a>):</p><pre>Image myImg = Bitmap.FromFile("cat.jpg");
+Image transformedImage;
+ZRLabs.Yael.BasicFilters.TextWatermarkFilter watermark = new TextWatermarkFilter();
+watermark.Caption = "Test";
+watermark.AutomaticTextSize = true;
+transformedImage = watermark.ExecuteFilter(myImg);
+transformedImage.Save("cat_watermark.png", System.Drawing.Imaging.ImageFormat.Png);</pre>
+<p>&#8230;to this&#8230;</p><pre>        ZRLabs.Yael.Pipeline pipeline = new ZRLabs.Yael.Pipeline("cat.jpg");
+        pipeline.Rotate(90)
+            .Watermark("Monkey")
+            .RoundCorners(100, Color.Bisque)
+            .Save("test.png");
+</pre>
+<p>He used method chaining here, but the code is still an improvement without it:</p><pre>        ZRLabs.Yael.Pipeline pipeline = new ZRLabs.Yael.Pipeline("cat.jpg");
+        pipeline.Rotate(90);
+        pipeline.Watermark("Monkey")
+        pipeline.RoundCorners(100, Color.Bisque)
+        pipeline.Save("test.png");
+</pre>
+<p>I recently wrote a fluent interface around sending commands to a database via a custom database controller class. To make it easier I added a number of methods for adding parameters to the command (yes, there are libraries to do this already, but this was to interface with existing code). I admittedly got a bit carried away with this and chained all the calls to have commands created in pseudo-natural language, at the cost of making debugging harder if an exception was thrown. The interface was pretty neat, but the method chaining&nbsp;was definitely overkill.</p>
+<p>So the morale of the story is that fluent interfaces can be great, but&nbsp;method chaining is probably best left alone unless it makes a drastic improvement to code readability.</p>
+<p style="font-size: x-small">Footnotes:<br>* I frequently link to my own posts that link to another post, rather than straight to the original source. The reason is Blogger gives me backlinks (which is Blogger&#8217;s substitute for <a href="http://en.wikipedia.org/wiki/Trackbacks">trackbacks</a>)&nbsp;that help me to navigate through my related posts.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-01T09:04:07+10:00" class="updated">Updated 01 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/dev-practices/'>dev practices</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/09/misusing-fluent-interfaces.html" data-via="" data-counturl="http://davesquared.net/2007/09/misusing-fluent-interfaces.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/09/refactoring-your-life.html" title="Previous Post: Refactoring your life?">&laquo; Refactoring your life?</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/09/committing-using-keyboard-in.html" title="next Post: Committing using the keyboard in TortoiseSVN">Committing using the keyboard in TortoiseSVN &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/09/misusing-fluent-interfaces.html';
+        var disqus_url = 'http://davesquared.net/2007/09/misusing-fluent-interfaces.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

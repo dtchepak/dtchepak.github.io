@@ -1,0 +1,379 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Yet another way of raising events from mocks - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Update 2008-06-26: This is now in the Rhino Mocks trunk, so it should be available as part of the 3.5 release. I&#8217;ve been playing around with &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2008/06/yet-another-way-of-raising-events-from.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Yet another way of raising events from mocks</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-06-21T23:16:00+10:00" pubdate data-updated="true">21 Jun 2008</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><i><b>Update 2008-06-26</b>: This is <a href="http://groups.google.com/group/RhinoMocks/browse_frm/thread/b7c865a8827594a0/6a70d267c4c33884?tvc=1#6a70d267c4c33884">now in the Rhino Mocks trunk</a>, so it should be available as part of the 3.5 release.</i></p>
+
+<p>I&#8217;ve been playing around with raising events from mocks for the last couple of nights, and think I&#8217;ve finally come up with an approach that works for me. Finding a nice way of raising these events is particularly tricky for mock object frameworks, as the C# compiler is really picky about how you can use event references. For example, let&#8217;s look at a very useful interface:</p>
+
+<pre>
+public interface IDoSomething {    
+    event EventHandler SomethingDone;
+}
+</pre>
+
+<p>Outside of a class that implements <code>IDoSomething</code>, the only time we can reference <code>SomethingDone</code> is when we are adding or removing listeners (<code>x.SomethingDone += someEventHandler;</code> or <code>x.SomethingDone -= someEventHandler;</code>). (<a href="http://codebetter.com/blogs/matthew.podwysocki/archive/2008/06/06/functional-c-revisited-into-the-great-void.aspx">C#&#8217;s lack of real support for System.Void</a> is partly to blame here, as both these operations are void.)</p>
+
+<p>To raise an event on a mock object, it would be lovely to be able to code something like this:</p>
+
+<pre>
+var mock = mocks.DynamicMock<IDoSomething>();
+mock.Raise(<b>mock.SomethingDone</b>, mock, EventArgs.Empty);
+</pre>
+
+<p>Unfortunately due to the aforementioned constraint, the emphasised part of the code will give a compiler error stating <i>&quot;The event &#8216;IDoSomething.SomethingDone&#8217; can only appear on the left hand side of += or -=&quot;</i>.</p>
+
+<p>There are a few workarounds for this. Let&#8217;s start with the <a href="http://www.ayende.com/Wiki/Rhino+Mocks+IEventRaiser.ashx">standard Rhino Mocks approach</a>. (I&#8217;m using <a href="http://www.ayende.com/Blog/archive/2008/05/16/Rhino-Mocks--Arrange-Act-Assert-Syntax.aspx">Rhino Mocks 3.5 beta</a> and <a href="http://www.codeplex.com/xunit">xUnit.net</a> here &#8211; feel free to translate from [Fact] to [Test] if you use NUnit, MBUnit et al.)</p>
+
+<pre>
+[Fact]
+public void Raise_event_old_style() {
+    var mock = mocks.DynamicMock&lt;IDoSomething&gt;();
+    <b>mock.SomethingDone += null;
+    IEventRaiser eventRaiser = LastCall.IgnoreArguments().GetEventRaiser();</b>
+    mocks.ReplayAll();
+
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+    <b>eventRaiser.Raise(mock, EventArgs.Empty);</b>
+
+    mocks.VerifyAll();  
+    Assert.True(wasCalled);
+}
+</pre>
+
+<p>Rhino Mocks records the expectation that an event handler is added, then uses <code>LastCall</code> to ignore the argument and gets an <code>IEventRaiser</code> for the last event referenced. That <code>IEventRaiser</code> can be used later on to raise our event. Phil Haack has <a href="http://haacked.com/archive/2006/06/23/UsingRhinoMocksToUnitTestEventsOnInterfaces.aspx">a helpful post which explains a bit more</a> about this approach.</p>
+
+<p>When I first saw this I must admit it seemed like a lot of noise that obscured what I was really trying to do. This got worse when I started playing around with the new <a href="http://www.ayende.com/Blog/archive/2008/05/16/Rhino-Mocks--Arrange-Act-Assert-Syntax.aspx">Arrange - Act - Assert</a> syntax and I didn&#8217;t want to go through the whole replay / verify cycle. So I started looking at the Rhino Mocks implementation of <code>IEventRaiser</code>, the <code>EventRaiser</code> class. This class lets us do this:</p>
+
+<pre>
+[Fact]
+public void Raise_event_using_string_for_event_name() {
+    var mock = mocks.DynamicMock&lt;IDoSomething&gt;();
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+
+    <b>var eventRaiser = EventRaiser.Create(mock, &quot;SomethingDone&quot;);
+    eventRaiser.Raise(mock, EventArgs.Empty);</b>
+    
+    Assert.True(wasCalled);
+}
+</pre>
+
+<p>Here we can specify the relevant event using a string. This works nicely and is easy to read, but causes problems when refactoring and means we don&#8217;t get intellisense or compiler assistance. <a href="http://www.ayende.com/Blog/archive/2007/06/08/Rhino-Mocks-Events-Purity-vs.-Practicality.aspx">Ayende has written about this approach</a>, comparing it with the <code>LastCall.GetEventRaiser()</code> approach we used last time.</p>
+
+<p>I wasn&#8217;t overjoyed about either of these, and while searching around for other options I found another of Ayende&#8217;s posts (I think his blog is about 30% of the web&#8230; great stuff :)), asking for feedback on a <a href="http://www.ayende.com/Blog/archive/2007/06/23/Natural-Event-Syntax-for-Rhino-Mocks.aspx">more natural syntax for raising events from mocks</a>. This looked a bit like this:</p>
+
+<pre>
+mock.MyEvent += EventRaiser.Raise(this, EventArgs.Empty);
+</pre>
+
+<p>I quite liked this, but there were a few complaints in the comments about subscribing to and raising the event at the same time. The post was from about 12 months prior to me writing this and, as I&#8217;m using a recent Rhino Mocks build and couldn&#8217;t find it, it looks like nothing came of this. Let&#8217;s look for a compromise that also fits in nicely with our Arrange - Act - Assert approach. First we&#8217;ll see what we can get working based on the first, <code>LastCall.GetEventRaiser()</code> approach used:</p>
+
+<pre>
+[Fact]
+public void Raise_event_with_new_arrange_act_assert_syntax() {
+    //Arrange
+    var mock = MockRepository.GenerateMock&lt;IDoSomething&gt;();
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+    
+    <b>var eventRaiser = 
+        mock
+        .Stub(x =&gt; x.SomethingDone += null)
+        .IgnoreArguments()
+        .GetEventRaiser();</b>
+    
+    //Act
+    <b>eventRaiser.Raise(mock, EventArgs.Empty);</b>
+
+    //Assert
+    Assert.True(wasCalled);
+}
+</pre>
+
+<p>Here we are specifying a fairly useless stub so we can get an <code>IEventRaiser</code>. We are still using ye olde  <code>x.SomethingDone += null</code> trick (albeit with a lambda to neaten it up), but we are pretty much stuck with that if we want strong typing on this as discussed at the beginning of this post.</p>
+
+<p>I think this looks a bit more cohesive now we are using the lambda. We have one statement that is fairly obviously getting an <code>IEventRaiser</code>, rather than a null event handler floating around on its own confusing poor people like me :). Beyond aesthetics, this cohesion can let us pull out this functionality and start getting closer to a neater syntax. For now we&#8217;ll just whack this in a .NET 3.5 extension method, but we could probably find a better home for it (it can go in a standalone class but the final syntax doesn&#8217;t read quite as well to me).</p>
+
+<pre>
+public static class EventRaiserExtensions {
+    private static IEventRaiser GetEventRaiserFromSubscription&lt;TEventSource&gt;(
+        this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription) {
+        <b>return mock
+            .Stub(eventSubscription)
+            .IgnoreArguments()
+            .GetEventRaiser();</b>
+    }
+    
+    public static void Raise&lt;TEventSource&gt;(this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription, object sender, EventArgs args) {
+        var eventRaiser = GetEventRaiserFromSubscription(mock, eventSubscription);
+        eventRaiser.Raise(sender, args);
+    }
+
+    public static void Raise&lt;TEventSource&gt;(this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription, params object[] args) {
+        var eventRaiser = GetEventRaiserFromSubscription(mock, eventSubscription);
+        eventRaiser.Raise(args);
+    }        
+
+    public static void Raise&lt;TEventSource&gt;(this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription) {
+        var eventRaiser = GetEventRaiserFromSubscription(mock, eventSubscription);
+        eventRaiser.Raise(mock, EventArgs.Empty);
+    }    
+}
+</pre>
+
+<p>The emphasised bit of code is the stub call we did last time, but this time pulled out into one method. The main bits are the <code>Raise&lt;TEventSource&gt;</code> extension methods, which combine all the steps and give us an easy syntax for calling an event on a mock based on an event subscription delegate. So our example now looks like this:</p>
+
+<pre>
+[Fact]
+public void Suggestion_for_raising_events() {
+    var mock = MockRepository.GenerateMock&lt;IDoSomething&gt;();
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+
+    <b>mock.Raise(x =&gt; x.SomethingDone += null, mock, EventArgs.Empty);</b>
+
+    Assert.True(wasCalled);
+}
+</pre>
+
+<p>The implementation itself might need work, but I reckon that syntax is pretty neat considering the limitations of C#. Of course, you&#8217;re welcome to think otherwise, so please leave a comment expressing your outrage and/or contempt :).</p>
+
+<p>Disclaimer: I am fairly new to Rhino Mocks (have tended to stick to manual test doubles) and especially to Arrange - Act - Assert (it&#8217;s only in beta at present), so this might fail pretty hard in other circumstances. Still, I thought I&#8217;d post the syntax in case it gave more knowledgable people some good ideas :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-07-29T13:33:46+10:00" class="updated">Updated 29 Jul 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/dev-practices/'>dev practices</a>, <a class='category' href='/categories/featured/'>featured</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2008/06/yet-another-way-of-raising-events-from.html" data-via="" data-counturl="http://davesquared.net/2008/06/yet-another-way-of-raising-events-from.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2008/06/subversion-150-released.html" title="Previous Post: Subversion 1.5.0 released">&laquo; Subversion 1.5.0 released</a>
+      
+      
+        <a class="basic-alignment right" href="/2008/06/prefix-for-c-names.html" title="next Post: @ prefix for C# names">@ prefix for C# names &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2008/06/yet-another-way-of-raising-events-from.html';
+        var disqus_url = 'http://davesquared.net/2008/06/yet-another-way-of-raising-events-from.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

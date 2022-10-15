@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Comment roundup: SharePoint as a development platform - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Looks like a couple of interesting posts on using SharePoint / WSS / MOSS as a development platform. I was originally going to send this as an email &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/09/comment-roundup-sharepoint-as.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Comment roundup: SharePoint as a development platform</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-09-21T10:02:00+10:00" pubdate data-updated="true">21 Sep 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Looks like a couple of interesting posts on using SharePoint / WSS / MOSS as a development platform. I was originally going to send this as an email to a former colleague (hi mate!) but thought I would post it instead because I find the debate quite interesting. Remember, the discussion is about SharePoint as a <strong>development platform</strong>, not as a CMS or whatever else.</p> <p>I first found <a title="Ayende's post" href="http://ayende.com/Blog/archive/2007/09/20/Development-Platforms-again.aspx">Ayende&#8217;s post</a> on the topic, which is a response to <a href="http://blah.winsmarts.com/2007-9-SharePoint_is_a_terrific_development_platform.aspx">Sahil Malik&#8217;s response</a> to <a href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/09/13/sharepoint-is-not-a-good-development-platform.aspx">Jeffrey Pallermo&#8217;s post on the SharePoint development platform</a> :)</p> <p><a href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/09/13/sharepoint-is-not-a-good-development-platform.aspx">Jeffrey&#8217;s post</a> raises the (IMHO) valid issue of the friction of using the SharePoint platform for development, particularly for deployment and builds. Unfortunately his point gets a bit diluted by focusing on the non-issue of being unable to install SharePoint on Vista/XP. </p> <p>I think one of the stars of the comment trail on <a href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/09/13/sharepoint-is-not-a-good-development-platform.aspx">Jeffrey&#8217;s post</a> is <a href="http://www.andrewconnell.com/blog">Andrew Connell</a> (MOSS MVP, and pretty decent bloke if his blog, comments and presentation at the APAC SharePoint 2007 conference in Sydney are anything to go by), who has added some very constructive comments pointing out the strengths of the platform lie in the out-of-the-box navigation, security, search, Web Part framework, WF hosting etc, as well as acknowledging several weaknesses. One of the things I found really interesting (although not too surprising) is this part of Andrew&#8217;s comment:</p> <blockquote> <p>&#8220;Over hyped? Really&#8230; so that&#8217;s why it&#8217;s the highest growth product ever in the history of the company and closing in on $1B in sales for the latest version in just a few months from now? That&#8217;s ALL marketing hype with the other portal solutions and other content management applications out there? Um&#8230; I think business decision makers are a bit more savy than that.&#8221;</p></blockquote> <p>For years now I have had the strong suspicion that people that look to things like <a href="http://www.openoffice.org/">OpenOffice.org</a> as potential Office-killers are missing the main point of Microsoft&#8217;s Office strategy. I&#8217;m sure they are not too fussed about losing a few home users &#8211; they are targeting the bigger end of town with volume licencing. The integration, no, <strong>dependency</strong> (they are part of the same platform after all) between Office 2007 on the client and MOSS 2007 on the server is where the action is. The complete platform is going to guarantee them a nice revenue stream from medium, big and giant businesses for as long as they can keep pumping up version numbers.</p> <p>As a further aside, Andrew also writes a&nbsp; &#8220;Not every application should be built on SharePoint&#8230; no one is advocating that (no reasonable person that is).&#8221; Marcus makes a similar observation: </p> <blockquote> <p>&#8220;I&#8217;m not sure you realize how many people right now are investing in SharePoint thinking that it is a &#8220;no-code&#8221; solution to replacing custom ASP.Net apps, or in some way making managability of those easier. &#8230; It doesn&#8217;t do that.&nbsp; Its a content management system (and a good one at that).&#8221;</p></blockquote> <p>(Sorry, gentle dig&#8230; bygones! ;) :P)</p> <p>The main complaints in the comments revolve around the poor tool support (agreed by pretty much everyone), the poor / barely existent documentation (ditto), and testability, deployment and configuration (over which there is much disagreement). The latter issue brings us back to one of Jeffrey&#8217;s original points: the friction of using the platform.</p> <p>I have personally found SharePoint development (as a MOSS newbie anyway) to be very high friction. The minute you want to go &#8220;out-of-the-box&#8221; at all you run into all sorts of issues. Even talking to the experts at the recent APAC SharePoint 2007 conference in Sydney exposed so many work-arounds and compromises just to comply with the platform. The session on packaging and deploying custom applications (run by a bloke who really knew his stuff) was filled with advice like &#8220;this bit doesn&#8217;t work properly, so you need to manually edit this XML, you can copy it from another file in the 12 folder, then adjust the package names and then&#8230;&#8221;. </p> <p>Andrew suggests that this is simply a cost of using any platform:</p> <blockquote> <p>&#8220;So I want to build add-ins for Visual Studio. Is it easy? Nope&#8230; because I need this and that and have all this work to do just to get my environment ready to build a plugin.  <p>To me the issue isn&#8217;t with SharePoint, it is jumping into working within and integrating with platform unlike pure ASP2 development where you building from the ground up.&#8221;</p></blockquote> <p>I am unconvinced. Yes, I agree there will be a cost associated with using and complying with any platform, but a platform really exists to make your life easier. SharePoint&#8217;s big failing in this department IMHO is that the compliance costs are very high, and the platform is too broad. By trying to do everything, it does some things well and some things badly, and in the latter cases it can be very difficult to go outside of the platform. In these cases you start wondering if the whole thing would have been better off in regular ASP.NET.  <p>There are a long list of great comments on Jeffrey&#8217;s post, and they make a very good read, if you are interested in such things.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-10-17T09:16:18+10:00" class="updated">Updated 17 Oct 2007</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/imho/'>imho</a>, <a class='category' href='/categories/roundup/'>roundup</a>, <a class='category' href='/categories/sharepoint/'>sharepoint</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/09/comment-roundup-sharepoint-as.html" data-via="" data-counturl="http://davesquared.net/2007/09/comment-roundup-sharepoint-as.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/09/rob-conery-on-text-mining-and-analysis.html" title="Previous Post: Rob Conery on text mining and analysis">&laquo; Rob Conery on text mining and analysis</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/09/xunitnet-announced.html" title="next Post: xUnit.net announced">xUnit.net announced &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/09/comment-roundup-sharepoint-as.html';
+        var disqus_url = 'http://davesquared.net/2007/09/comment-roundup-sharepoint-as.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

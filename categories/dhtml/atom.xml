@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: dhtml | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/dhtml/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Cheat's way to show an indicator while images are loading]]></title>
+    <link href="http://davesquared.net/2008/02/cheats-way-to-show-indicator-while.html"/>
+    <updated>2008-02-22T16:02:00+11:00</updated>
+    <id>http://davesquared.net/2008/02/cheats-way-to-show-indicator-while</id>
+    <content type="html"><![CDATA[<p>There are several cool, interesting ways to <a href="http://www.subnetsurfer.com/entries/really-easy-progress-bars/">use Javascript to show progress indicators</a> while images are downloading to your page. The method shown in this post is not one of them.</p>
+
+
+<p>I have a simple ASP.NET page that has two dynamically generated images. The images are charts streamed from another ASPX page (e.g. <code>&lt;img src=&quot;MakeChart.aspx?someParamsHere&quot; /&gt;</code>), and they can sometimes take a couple of seconds to render on the page. This delay means people temporarily see a very bare page that looks like it has finished loading, and might start clicking around or navigating away before they get to see the pretty pictures. What I wanted was to give people some indication that stuff was happening, and that they should stick around for a few seconds.</p>
+
+
+<p>Rather than whipping out ye olde JavaScript, I chose to keep things really simple. I created a CSS class to display the progress indicator as a background on the element holding the dynamic image. While the image is loading the background shows through. Once it is done, the background is covered by the final image.</p>
+
+
+<pre>&lt;style&gt;
+.ChartPlaceholder {
+  background-image: url(&quot;Images/loadingPlaceholder.png&quot;);
+  background-position: center;
+  background-repeat: no-repeat;
+  height: &lt;%= ChartHeight %&gt;px;
+  width: &lt;%= ChartWidth %&gt;px;
+}
+&lt;/style&gt;
+...
+&lt;div class=&quot;ChartPlaceholder&quot;&gt;
+  &lt;asp:Image runat=&quot;server&quot; ID=&quot;SomeDynamicChart&quot;  /&gt;
+&lt;/div&gt;
+</pre>
+
+
+<p>In this case I have embedded the DIV's height and width defined in the ASPX straight into the CSS declaration, as it seemed reasonable in the context in which I am currently using it, but you can obviously use other methods to make the DIV render sensibly prior to the image coming through.</p>
+
+
+<p>A bit hacky, but very simple and worked nicely in FireFox and IE7.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Covering drop down elements in IE]]></title>
+    <link href="http://davesquared.net/2007/01/covering-drop-down-elements-in-ie.html"/>
+    <updated>2007-01-04T15:16:00+11:00</updated>
+    <id>http://davesquared.net/2007/01/covering-drop-down-elements-in-ie</id>
+    <content type="html"><![CDATA[<p>Internet Explorer (as of version 6) renders select form elements (drop downs) and some other objects like iframes above all other layers. This is awful when you want to have an div element pop-up in an HTML screen, only to have half the pop-up obscured by a drop down box.</p>
+
+
+
+
+<p>One solution floating around (I used <a href="http://www.perlscriptsjavascripts.com/tutorials/javascript/misc.html#09294655">this article</a>) is to use this bug against itself. Divs can't cover selects, but iframes can. So you create an iframe to cover the elements, then put your div over the iframe. You could put the content itself in the iframe, but this can lead to headaches with script references.</p>
+
+
+
+
+<p>Here is the code I used:</p>
+
+
+
+
+<pre>
+&lt;div id="CalendarContainer" style="position: absolute; width: 200px; height: 190px; visibility:hidden;"&gt;
+&nbsp;&nbsp;&lt;iframe id="CalendarIframe" frameborder="0" style="width: 100%; height: 100%; position: absolute; z-index: 1;"&gt;
+&nbsp;&nbsp;&lt;/iframe&gt;
+&nbsp;&nbsp;&lt;div id="Calendar" style="width:100%; height:100%; position:absolute; z-index:2;"&gt;
+&nbsp;&nbsp;&lt;/div&gt;
+&lt;/div&gt;
+</pre>
+
+
+
+
+<p>You can then toggle the CalendarContainer and it will render in front of overlapping select elements. Firefox and other Gecko-based browsers don't suffer from this problem, and will render the div properly without these iframe gymnastics.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Quirksmode.org: Reference site for JS and CSS]]></title>
+    <link href="http://davesquared.net/2006/12/quirksmodeorg-reference-site-for-js-and.html"/>
+    <updated>2006-12-14T14:01:00+11:00</updated>
+    <id>http://davesquared.net/2006/12/quirksmodeorg-reference-site-for-js-and</id>
+    <content type="html"><![CDATA[<div xmlns='http://www.w3.org/1999/xhtml'><a href='http://www.quirksmode.org'>QuirksMode.org</a> has lots of great Javascript and CSS <a href='http://www.quirksmode.org/resources.html'>resources</a>.</div>
+
+]]></content>
+  </entry>
+  
+</feed>

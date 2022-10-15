@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: fsharp | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/fsharp/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Specifying FAKE targets]]></title>
+    <link href="http://davesquared.net/2017/02/fake-targets.html"/>
+    <updated>2017-02-05T08:45:00+11:00</updated>
+    <id>http://davesquared.net/2017/02/fake-targets</id>
+    <content type="html"><![CDATA[<!-- more -->
+
+
+<p><a href="http://fsharp.github.io/FAKE/">FAKE</a> is an F#-based build tool along similar lines to Make, Rake, etc. The <a href="http://fsharp.github.io/FAKE/gettingstarted.html">FAKE documentation</a> describes one way of setting up dependencies between targets using the <code>==&gt;</code> operator. For example:</p>
+
+<pre><code class="fsharp">"Clean" ==&gt; "Version" ==&gt; "Build" ==&gt; "Test" ==&gt; "Package" ==&gt; "Full"`
+</code></pre>
+
+<p>This declaration means that to run the <code>Test</code> target, <code>Build</code> must be run beforehand, which in turn requires <code>Version</code>, which in turn requires <code>Clean</code> to be run.</p>
+
+<p>This approach limits us to a linear build order. I'd prefer to specify these dependencies less prescriptively, and have FAKE calculate the ordering based on whatever target or targets I need.</p>
+
+<p>Continuing the above example, I'd like to quickly build and run the tests during development, but for that case I don't really need to version the assemblies. I'd also like to avoid running <code>Clean</code> in this case to take advantage of incremental compilation. But if I'm running the <code>Package</code> task to package everything for NuGet then it is essential to run <code>Version</code> before <code>Build</code> to make sure the packaged assemblies have the right version numbers. And I want to make sure I <code>Clean</code> before a full build to avoid any old artefacts making it into a package.</p>
+
+<p>I fairly recently found out that FAKE does support this flexibility, using <a href="http://fsharp.github.io/FAKE/soft-dependencies.html">soft dependencies</a> and the ability to specify multiple dependencies using the <a href="http://fsharp.github.io/FAKE/apidocs/fake-targethelper.html"><code>&lt;==</code></a> operator.</p>
+
+<pre><code class="fsharp">// ... target definitions elided ... 
+Target "Full" DoNothing
+
+// Dependencies
+"Clean"   ?=&gt; "Build"
+"Version" ?=&gt; "Build"
+"Test"    &lt;== [ "Build" ]
+"Package" &lt;== [ "Build"; "Version" ]
+"Full"    &lt;== [ "Clean"; "Version"; "Build"; "Test"; "Package" ]
+
+RunTargetOrDefault "Full"
+</code></pre>
+
+<p>The <code>"Clean" ?=&gt; "Build"</code> line tells FAKE "if <code>Clean</code> needs to run, it must run before <code>Build</code>". We also tell FAKE that if we are <code>Version</code>ing, that has to be done before build as well. Unlike the linear definition we are not saying we <em>have</em> to run <code>Clean</code> or <code>Version</code>, just that <em>if</em> they need to run, they must go before <code>Build</code>.</p>
+
+<p>The <code>&lt;==</code> operator lets us make a target depend on multiple other targets. So <code>"Package" &lt;== [ "Build"; "Version" ]</code> tells FAKE that to run <code>Package</code>, we have to run <code>Build</code> and <code>Version</code>. When we <a href="http://fsharp.github.io/FAKE/commandline.html">run</a> <code>fake Package</code> FAKE knows it has to run both tasks, and it also knows that if it runs <code>Version</code> it must do so before <code>Build</code>. So the final build order for that case is: <code>Version</code>, then <code>Build</code>, then <code>Package</code>.^[I'd normally specify the task in the expected final order where possible, so <code>"Package" &lt;== [ "Verison"; "Build" ]</code>, but I just wanted to illustrate that FAKE is working out the required order, it isn't a side-effect of the order dependencies are specified.]</p>
+
+<p>This gives me exactly the behaviour I was after. I can run the <code>Test</code> target which will force a build, but won't run a clean or version the assemblies. I can generate a NuGet package with versioned assemblies (I should probably make that depend on <code>Test</code> as well). Or I can run a <code>Full</code> build which will clean, version, build, test and create the package.</p>
+]]></content>
+  </entry>
+  
+</feed>

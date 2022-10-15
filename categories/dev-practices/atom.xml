@@ -1,0 +1,625 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: dev practices | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/dev-practices/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Pondering a prescription for pattern matching prevalance]]></title>
+    <link href="http://davesquared.net/2016/02/pattern-matching.html"/>
+    <updated>2016-02-16T20:45:00+11:00</updated>
+    <id>http://davesquared.net/2016/02/pattern-matching</id>
+    <content type="html"><![CDATA[<p>In which I ramble on about how my thoughts on pattern matching have changed over the years.</p>
+
+<!-- more -->
+
+
+<h2>Glorified conditional?</h2>
+
+<p>At its most basic, pattern matching can be use to represent standard conditionals and <code>switch</code> statements. For example (in F#):</p>
+
+<pre><code class="fsharp">// Pattern matching syntax:
+let menu s =
+    match s with
+    | "X" = exitCommand
+    | "U" = moveUpCommand
+    | "D" = moveDownCommand
+    |  _  = ...
+
+// Conditionals:
+let menu2 s =
+    if s = "X" then exitCommand
+    else if s = "U" then moveUpCommand
+    else if s = "D" then moveDownCommand
+    else ...
+</code></pre>
+
+<p>This did not initially seem very exciting to me. There has to be more to it than this, right? (Spoiler: yes :) )</p>
+
+<h2>Pattern match all teh things!</h2>
+
+<p>Things get more interesting when we are dealing with types whose values can have different shapes. For example, <code>Option&lt;T&gt;</code> (similar to <code>Nullable&lt;T&gt;</code> in C#). In F# <code>Option&lt;T&gt;</code> has an <code>IsSome</code> property (like <code>HasValue</code> for <code>Nullable&lt;T&gt;</code>). If this is <code>true</code> then it is safe to access that value's <code>Value</code> property. If <code>IsSome</code> is <code>false</code>, then accessing <code>Value</code> will throw a <code>NullReferenceException</code>. So we could (but please don't) use option types like this:</p>
+
+<pre><code class="fsharp">// Don't do this!
+let getKeyAndValue (key : string) (dict : Map&lt;string,string&gt;) =
+    let result = dict.TryFind(key)
+    if result.IsSome then
+        Some (key, result.Value)  // please don't do this
+    else
+        None
+</code></pre>
+
+<p>I don't like this. I'm not fond of null reference exceptions, and I don't like checking <code>IsSome</code> before accessing values because I do silly things like messing up the conditional, or forgetting to check and crashing with a <code>NullReferenceException</code> (or if not forgetting, there are always those cases that "will never be null" which end up being just that due to a misunderstanding or a change somewhere along a call stack). And what about more complicated types, where we may have to check several different preconditions before accessing a number of different values?</p>
+
+<p>Instead, we can use pattern matching to match all the possible shapes of our type:</p>
+
+<pre><code class="fsharp">// Better (but can still be improved)
+let getKeyAndValue (key : string) (dict : Map&lt;string,string&gt;) =
+    match dict.TryFind(key) with
+    | Some value -&gt; Some (key, value)
+    | None       -&gt; None
+</code></pre>
+
+<p>This is great because we don't need to access the null reference-throwing <code>.Value</code> property. Instead the value is assigned as part of the pattern: <code>Some value</code>. For the <code>None</code> case there is no value we can access within the pattern. If we tried to add one, the compiler will stop and tell use we have the wrong pattern. What is extra great is that if we don't cover all the possible allowable values of the type we are matching against the compiler will warn us.</p>
+
+<p>So we've ruled out a whole bunch of errors, and have very explicit, compiler-checked documentation about valid ways to use values of each type.</p>
+
+<p>This is awesome! Pattern match all teh things!</p>
+
+<h2>The "meh" of matching</h2>
+
+<p>Say we have a collection of key value pairs, where both keys and values are strings. Maybe we got this from a POST request, or a flattened JSON object or something. We want to get the value for a particular key, and convert it to an integer (or <code>0</code> if we can not do the conversion).</p>
+
+<p>So we have two cases that can be <code>None</code>, looking up a value for a key that may not be in the JSON, and trying to convert the value to a valid integer.</p>
+
+<p>Let's start out with the conditional version:</p>
+
+<pre><code class="fsharp">let getRows (dict : Map&lt;string, string&gt;) : int =
+    let rows = dict.TryFind("numberOfRows")
+    if rows.IsSome then
+        let result = tryParseInt(rows.Value)
+        if result.IsSome then result.Value
+        else 0
+    else 0
+</code></pre>
+
+<p>Yuck, look at all those potentially catastrophic <code>.Value</code> calls! Let's rewrite it with our new-found hammer:</p>
+
+<pre><code class="fsharp">let getRows2 (dict : Map&lt;string, string&gt;) : int =
+    match dict.TryFind("numberOfRows") with
+    | None -&gt; 0
+    | Some rows -&gt;
+        match tryParseInt rows with
+        | None -&gt; 0
+        | Some result -&gt; result
+</code></pre>
+
+<p>What isn't so great is that we are still writing very similar code, just with safer pattern-matching instead of free-form conditionals. But we're still going through the same code branches.</p>
+
+<p>What I also found alarming when first starting out with this is a side-effect of the compiler warning us about unmatched values -- we're now forced to be explicit everywhere about how to handle all the values. Isn't this going to get horribly verbose? We already have a good idea about when things are going to be null, so why trade concise code for a little safety?</p>
+
+<p>Well, the good thing is we can have our safety and eat... er... code... concisely too!</p>
+
+<h2>Combinator all teh things!</h2>
+
+<p>Rather than digging into the details of a type by pattern matching all the time, we can define operations for using and combining values of these types. I often see these referred to as "combinators"  (although <a href="https://wiki.haskell.org/Combinator">that term seems overloaded</a>). For example, we can rewrite our <code>getRows</code> function using <code>Option.bind</code> and <code>Option.getOrElse</code>^[<code>getOrElse</code> is not part of the <code>Option</code> module in F#3, but thankfully we can add members to modules.] without ever digging in to grab a value from an <code>Option&lt;T&gt;</code> type.</p>
+
+<pre><code class="fsharp">let getRows3 (dict : Map&lt;string, string&gt;) : int =
+    dict.TryFind("numberOfRows")
+    |&gt; Option.bind tryParseInt
+    |&gt; Option.getOrElse 0
+</code></pre>
+
+<p>Under the hood this code is still doing exactly the same thing, but we are now expressing the operation in terms of other distinct operations, instead of via the details of deconstructing values<a href="To">^combinators-and-classes</a>. This allows us to start thinking at a higher level of abstraction. Rather than thinking about things like "if this is <code>Some value</code> return that, or if it is <code>None</code> then return the second option", we start thinking in terms of the higher-level operations like <code>or</code> and <code>map</code>. These operations allow us to more easily and precisely express more complex ideas.</p>
+
+<p>This was a huge turning point for me. Previously I was worried about things like <code>Option&lt;T&gt;</code> values propagating all over the code, and having to pattern match at each call site. Now we still get propagation (which is completely valid! If we are dealing with a call that can return an empty value, chances are the caller will also need to return an empty value), but there is no cost for this. Combinators make using these values almost as convenient as using the wrapped type^[...and every bit as easy as using an object with methods hanging off it, which is one valid way of implementing these combinator functions], with the benefit that we are now safely handling empty values instead of relying on us to remember which calls sometimes return <code>null</code> instead of a <code>T</code>.</p>
+
+<h2>An aside for pattern matching-less languages</h2>
+
+<p>If we mainly use combinators for combining types of values, this makes pattern matching a less essential part of a language. It is still a very nice feature to have, as it is pretty natural to implement combinators using pattern matching, and pattern matching seems to go hand-in-hand with <a href="http://fsharpforfunandprofit.com/posts/discriminated-unions/">sum types</a> which I regard as an essential language feature. But for those who still do a lot of work in C# and similar languages this means that we can implement these combinators in others ways (sometimes messy ways, without as much compiler/type system help) and get a lot out of useful, oft-pattern-matched types like <code>Option</code> and <code>Either</code>.</p>
+
+<h2>Conclusion</h2>
+
+<p>My experience with pattern matching has gone from not understanding why it was useful, then to wanting to use it everywhere, now to favouring combinators and avoiding having to dig in to the details of a type as much as possible. Using these operations defined over types gives me a nice, high-level way of thinking about building up these values.</p>
+
+<p>Pattern-matching is still really useful, particularly for defining operations over a type, but in general I try to use those defined operations instead, only falling back to pattern matching in the cases where it is much simpler (for example: cases like <code>let (a,b) = foo</code> instead of <code>let a = fst foo; let b = snd foo</code>).</p>
+
+<p>If you currently use pattern matching all the time, maybe try to pull out the repeated operations the pattern matches represent and see if you prefer that style. Operations like <code>map</code>, <code>flatMap</code>, <code>apply</code>, <code>reduce</code>/<code>fold</code>, and other combining functions along the lines of <code>+</code>, <code>and</code>, and <code>or</code> are good places to start.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Splitting responsibilities by abstracting type details]]></title>
+    <link href="http://davesquared.net/2014/02/splitting-responsibilities.html"/>
+    <updated>2014-02-08T21:57:00+11:00</updated>
+    <id>http://davesquared.net/2014/02/splitting-responsibilities</id>
+    <content type="html"><![CDATA[<p>One thing I've battled with in my OO, TDD adventures is useless abstractions. I find it very easy to churn out class like the <code>PaddedSingleWidgetList</code> described below in an attempt to follow the Single Responsibility Principle and write testable code, but in doing so I end up with lots of classes that don't really make much sense in isolation, and that are not inherently reusable. (Just me?)</p>
+
+<p>Instead of my usual approach of splitting a problem in terms of somewhat arbitrarily chosen responsibilities, what if we divided it into the parts that need knowledge of specific types, and the parts that can have the specific types abstracted away?</p>
+
+<!-- more -->
+
+
+<h2>A confusing responsibility</h2>
+
+<p>I was looking at some code that produced a list of <code>Widget</code> based on a single <code>Widget</code>. This list had to have certain properties in order to be used by another class. There had been some trouble naming the class that housed this responsibility, and it had ended up as an uncomfortable <code>PaddedSingleWidgetList</code> with the following interface.</p>
+
+<pre><code class="csharp">public interface IPaddedSingleWidgetList {
+    IEnumerable&lt;Widget&gt; BuildFrom(Widget widget, int length);
+}
+</code></pre>
+
+<p>From the types and names used it would be reasonable to guess this code produces a list containing the given <code>widget</code> and pads that list out to <code>length</code> by appending <code>default(Widget)</code> values. Reasonable, but wrong:</p>
+
+<pre><code class="csharp">public class PaddedSingleWidgetList : IPaddedSingleWidgetList {
+    public IEnumerable&lt;Widget&gt; BuildFrom(Widget widget, int length) {
+        var padding = Enumerable.Repeat(Widget.EmptyWidget, length - 1);
+        return new[] { StandaloneWidget(widget) }.Concat(padding);
+    }
+
+    private Widget StandaloneWidget(Widget w) {
+        //return an altered widget loosely based on the one passed in
+        var standalone = new Widget();
+        standalone.Foo = w.Foo;
+        return standalone;
+    }
+}
+</code></pre>
+
+<p>This implementation creates a modified version of the single widget it uses as the first element, and pads the list with a specific <code>EmptyWidget</code> rather than a <code>default(Widget)</code>.</p>
+
+<p>Our guess was incorrect because the types we were using were too specific. <code>BuildFrom</code> knows it has a <code>Widget</code> and so can inspect its fields and use that to change behaviour, create new <code>Widget</code> instances, and use <code>Widget.EmptyWidget</code> as a default.</p>
+
+<h2>Improving our guessing</h2>
+
+<p>If instead the type signature was <code>IEnumerable&lt;T&gt; SomeMethod&lt;T&gt;(T value, int length)</code>, and we ban reflection and exceptions and the like, we could make a more reliable guess. In this case <code>SomeMethod</code> knows nothing specific about the type <code>T</code>, so it can't modify <code>value</code>, nor can it arbitrarily create instances of <code>T</code>. Our guess becomes that the output contains <code>length</code> copies of the given <code>value</code> (i.e. <code>Enumerable.Repeat&lt;T&gt;</code>).^[Other possibilities include it returning <code>null</code>, an empty <code>IEnumerable&lt;T&gt;</code>, or some arbitrary number of <code>value</code> elements (constant or some function of <code>length</code>). This still gives us quite a bit of room for incorrect guesses and buggy implementations, but less room than we had with a specific <code>Widget</code> type.]</p>
+
+<p>Our attempt to guess is aided by the type signature (and the restrictions we placed on reflection, exceptions etc.) letting us definitively rule out certain implementations. For example, we can tell that any values of <code>T</code> that appear in the output are the same <code>value</code> instance passed in. Our implementation can't create a new instance of <code>T</code> without reflection as we don't know which type <code>T</code> will be. Nor can it modify a property of <code>value</code> or call a method on it (again, no reflection, so we can't know what properties or methods <code>T</code> will have). C# won't even let us yield <code>null</code> without putting constraints on the generic parameter.</p>
+
+<p>Abstracting away the specifics of a type with a type parameter (a.k.a. parametric polymorphism) in this way is very useful. It limits the number of possible implementations (including the number of buggy ones), which makes it easier for us to guess what the code does just from the type.^[In some cases we can restrict the number of reasonable implementations to one, which means if it compiles it is almost guaranteed to work. One of my favourites is this: <code>Func&lt;A,C&gt; X&lt;A,B,C&gt;(Func&lt;B,C&gt; f, Func&lt;A,B&gt; g)</code>. If you get <code>X</code> compiling and don't deliberately break it by throwing an exception or going in to an infinite loop, then your <code>X</code> will be the correct implementation!] ^[For more on inferring properties of types with generic parameters, have a look at Tony Morris' slide deck on "<a href="http://dl.dropboxusercontent.com/u/7810909/media/doc/parametricity.pdf">Parametricity. Types are documentation</a>" [PDF].]</p>
+
+<h2>Abstracting responsibilities</h2>
+
+<p>Let's look at the process which led to our original <code>IPaddedSingleWidgetList</code> abstraction, and then see how abstracting type details can help us split responsibilities differently.</p>
+
+<p>The <code>Thingoe</code> class' responsibility is to configure a snarfblat with correct widgets based on a single widget. In the original design this has been split into two responsibilities: producing the list from a widget using an <code>IPaddedSingleWidgetList</code>, and the <code>IWidgetBasedSnarfblat</code> which uses these widgets.</p>
+
+<p>Here is the <code>Thingoe</code> class alongside the <code>PaddedSingleWidgetList</code> implementation.</p>
+
+<pre><code class="csharp">public class Thingoe {
+    IPaddedSingleWidgetList _listBuilder;
+    IWidgetBasedSnarfblat _widgetBasedSnarfblat;
+    /* ... snipped constructor ... */
+    public void ConfigureSnarfblat(Widget w) {
+        const int widgetSlots = 3;
+        var widgets = _listBuilder.BuildFrom(w, widgetSlots);
+        _widgetBasedSnarfblat.Use(widgets);
+    }
+}
+public class PaddedSingleWidgetList : IPaddedSingleWidgetList {
+    public IEnumerable&lt;Widget&gt; BuildFrom(Widget widget, int length) {
+        var padding = Enumerable.Repeat(Widget.EmptyWidget, length - 1);
+        return new[] { StandaloneWidget(widget) }.Concat(padding);
+    }
+    private Widget StandaloneWidget(Widget w) { /* ... snip ... */ }
+}
+</code></pre>
+
+<p>This seems a reasonable way of breaking the problem down into testable parts, but given the advantages of generalising we've seen, let's try breaking it into the code that needs to know specifics about a <code>Widget</code>, and the code that can be generalised for any type <code>T</code>.</p>
+
+<p>The <code>StandaloneWidget()</code> method needs to know how to transform a <code>Widget</code>, and something needs to know how to create the <code>Widget.EmptyWidget</code>, but the padding logic can be generalised to work for any type <code>T</code>. Following this division of responsibilities leads us to this implementation:</p>
+
+<pre><code class="csharp">public class Thingoe {
+    /* ... snip ... */
+    public void ConfigureSnarfblat(Widget w) {
+        const int widgetSlots = 3;
+        var widgets = StandaloneWidget(w).ToEnumerable()
+                        .Pad(Widget.EmptyWidget, widgetSlots);
+        _widgetBasedSnarfblat.Use(widgets);
+    }
+    private Widget StandaloneWidget(Widget w) { /* ... snip ... */ }
+}
+</code></pre>
+
+<p>We've moved the <code>Widget</code> specific logic from the <code>PaddedSingleWidgetList</code> into <code>Thingoe</code>, and extracted the more general code into <code>ToEnumerable</code> and <code>Pad</code> functions:</p>
+
+<pre><code class="csharp">public static IEnumerable&lt;T&gt; ToEnumerable&lt;T&gt;(this T value) { yield return value; }
+
+public static IEnumerable&lt;T&gt; Pad&lt;T&gt;(this IEnumerable&lt;T&gt; list, T pad, int length) {
+    var count = 0;
+    foreach (var item in list) {
+        count++;
+        yield return item;
+    }
+    while (count &lt; length) {
+        count++;
+        yield return pad;
+    }
+}
+</code></pre>
+
+<p>Rather than the <code>PaddedSingleWidgetList</code> type that we are unlikely to use again (it is quite specific to configuring snarfblats), we now have two potentially reusable functions that will work for any type <code>T</code>. We've also moved the specific details of configuring widgets right up to where they are used, so we don't need to follow trails of indirection to figure out what the code is doing. And everything is still nice and testable. Previously we may have mocked a <code>IPaddedSingleWidgetList</code> to return a specific list to protect against changes in that logic, but now we can test the logic directly. We can rely on <code>Pad</code> and <code>ToEnumerable</code> not changing, as we know there are only a couple of reasonable implementations based on that type signature.</p>
+
+<h2>Conclusion</h2>
+
+<p>Abstracting away specific types can restrict the number of possible implementations of a function. This helps make code easier to understand because we can make reasonable guesses about what it does from the type, and less compilable implementations means we have less ways to write buggy ones.</p>
+
+<p>It also gives us a useful way of dividing a class' responsibilities into the parts that need to know type specifics from those that don't. In doing so we can get genuinely reusable code, keep related logic together, and still have testable code.</p>
+
+<p>I'm not sure how broadly applicable this approach is, but it seems a useful piece of design guidance to explore.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Design via minimum code]]></title>
+    <link href="http://davesquared.net/2012/05/design-via-minimum-code.html"/>
+    <updated>2012-05-01T22:10:00+10:00</updated>
+    <id>http://davesquared.net/2012/05/design-via-minimum-code</id>
+    <content type="html"><![CDATA[<p>Being a bit of a <a href="http://en.wikipedia.org/wiki/Pessimism">realist</a> (;)), I find it much easier to find problems with my design ideas than I do finding designs I'm really happy with. I am always cognisant of this and make sure to balance the needs of doing a good job and getting the job done. One technique I find useful for this is thinking about the minimum amount of code required.</p>
+
+<p>Whenever I find myself evaluating different design patterns or counting responsibilities to work out where the feature should go or which areas I should refactor, I stop and work out the minimum amount of code I'd need to write to solve the problem, ignoring design considerations. Once I've starting thinking about the problem in that light, working out where to put that code becomes a bit easier. If the code violates my sense of design aesthetics, it could just be because it is a messy problem, and no matter how hard I try to abstract or design my way out, the fundamental messiness still remains.</p>
+
+<!-- more -->
+
+
+<p>As an example, say we're working with a library that misuses exceptions, throwing for genuine exceptional cases, and also as a way to notify callers of a change in mode. I might find myself getting grand ideas like anti-corruption layers, Command patterns with reused error handling, or trying various continuation ideas. If there's a lot of existing code I might start getting bogged down in working out all the classes I'm going to have to change to fit in with this new error handling infrastructure. These kind of premature generalisations are a sure sign I need to stop and simplify.</p>
+
+<p>If we think about the problem for the moment, at a minimum we're going to need a <code>try .. catch</code> somewhere, and chances are we're going to have to do something disgusting like swallow the irrelevant exceptions. We're now in a position to think about exactly where this responsibility should go based on our standard design rules. In this case, it may be best to deal with this immediately at the boundary between our code and the library, rather than creating a more formal abstraction for handling them (or not, the point is that we know the code and minimum mess required, so we are in a better position to work out where to put it).</p>
+
+<div class="note">**Note:** I'd like to be sure to quickly distinguish this from [YAGNI](http://en.wikipedia.org/wiki/YAGNI), which in my experience is a decent idea frequently misused for copping out. Once we've determined the minimum amount of code required, if doing a bit of work to get that into a nice shape is needed then calling faux-YAGNI is definitely inadvisable.</div>
+
+
+<p>TDD can be a useful way to do a similar thing; writing a test that uncovers the minimum increment of code required. Sometimes though it's not clear from what class or in which direction you should drive the code, in which case I've found thinking in terms of the minimum amount of code required then spiking some options around that a helpful alternative.</p>
+
+<p>So next time you're pondering whether to toggle a UI element's visibility using MVVM or an MVP-variant for UI separation, or whether to push the conditional in to a Strategy implementation, just remember that somewhere along the line an evil <code>if</code> statement or similar is going to have to execute and switch the element's visibility switched from "visible" to "hidden".</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Some mocking opinions]]></title>
+    <link href="http://davesquared.net/2011/11/some-mocking-opinions.html"/>
+    <updated>2011-11-22T22:25:00+11:00</updated>
+    <id>http://davesquared.net/2011/11/some-mocking-opinions</id>
+    <content type="html"><![CDATA[<p>I've been thinking through how I use test doubles (mocks, stubs, test spies, etc) recently, and thought I'd write down a snapshot of my current opinions on the subject.</p>
+
+
+
+
+<h2>Don't mock types you don't own</h2>
+
+
+
+
+<p>I've <a href="http://davesquared.net/2011/04/dont-mock-types-you-dont-own.html">written about this before</a>, and I still think it is good advice. Test down to your lowest level of abstraction, then integration / contract / acceptance test over the boundary. By mocking a type you don't own that dependency starts bleeding in to your code and pushing your own abstractions in potentially unhelpful ways. You're also not really testing much; unless you also have good contract tests then checking you've called a specific external method is not going to tell you much about whether your code does what it needs to.</p>
+
+
+
+
+<p>Contrived example: say I was faking out <code>Math.Round()</code> (let's pretend it's an instance method or you are using a framework that can mock statics via the profiler API):</p>
+
+
+
+
+<pre><code>[Test]
+public void Calculate_with_rounding() {
+    math.Round(2.5).Returns(3); //Fake math.Round
+    var subject = new Calculation(math);
+
+    Assert.AreEqual(subject.AddAndRound(1, 1.5), 3);
+}
+</code></pre>
+
+
+
+
+<p>Perfectly reasonable? Well, except for the fact .NET uses banker's rounding and rounds <a href="http://stackoverflow.com/questions/977796/in-c-math-round2-5-result-is-2-instead-of-3-are-you-kidding-me">2.5 to 2</a> (and 1.5 to 2 for that matter). If you were using Python (which rounds away from 0), you would have been spot on. If you care about the rounding method, you've now got a bug.</p>
+
+
+
+
+<p>If something as simple as rounding can trip us up, imagine what we could do if we start mocking ORM or ADO.NET calls.</p>
+
+
+
+
+<h2>Try to avoid mocks in acceptance tests</h2>
+
+
+
+
+<p>In my experience this tends to result in too much behaviour being pushed into the mocks. My first preference is to use real pieces, second is to hand-code fakes that have enough logic to work as required, and convenience methods to help tests configure them appropriately. As per &quot;don't mock types you don't own&quot;, it is also a good idea to test your fakes match the real behaviour.</p>
+
+
+
+
+<h2>Learn mocking before a mocking framework</h2>
+
+
+
+
+<p>I've often heard developers new to automated testing say things like &quot;I really need to learn (Rhino Mocks | Moq | Mocking Framework X)&quot;. I think this is the wrong emphasis; before learning a framework for creating test doubles it's important to understand how test doubles work and how to use them.</p>
+
+
+
+
+<p>For me, a great way to learn was to hand-roll all my fake objects for my tests to act as required. Manually stubbing out values and/or recording calls gave me a good understanding of the different types of test doubles (mocks, spies, stubs etc.) and how they work. Once this got old (very quickly) it was fairly simple to take the behaviour I knew how to hand-code and translate that into the syntax required by a mocking framework. It just became a matter of automating what I was already doing. (It also helped me understand common difficulties like trying to mock non-virtual members.)</p>
+
+
+
+
+<h2>Don't explictly test intermediate steps or inconsequential details</h2>
+
+
+
+
+<p>If we assert on details of an implementation we tend to get tight coupling and brittle tests. An example I have seen fairly frequently is:</p>
+
+
+
+
+<pre><code>[Test]
+public void Should_get_the_widget_from_the_factory() {
+    var factory = MockRepository.GenerateMock&lt;IWidgetFactory&gt;();
+    var subject = new Foo(factory);
+    subject.DoStuff();
+    factory.AssertWasCalled(x =&gt; x.GetWidget());
+}
+
+[Test]
+public void Should_turn_the_widget() {
+    var widget = MockRepository.GenerateMock&lt;IWidget&gt;();
+    var factory = MockRepository.GenerateStub&lt;IWidgetFactory&gt;();
+    factory.Stub(x =&gt; x.GetWidget()).Return(widget);
+    var subject = new Foo(factory);
+    subject.DoStuff();
+    widget.AssertWasCalled(x =&gt; x.Turn());
+}
+</code></pre>
+
+
+
+
+<p>Here the first test is a completely redundant. The second test covers that entire code path (how else could the widget from the factory get turned, if the subject did not call the factory?). Now you could argue that you prefer the extra, explicit specification the first test provides, to which I'd respond that I don't think it's worth the pain from the additional friction it causes when you want to change this implementation detail. </p>
+
+
+
+
+<p>Besides, what do we really care about for our subject? That it uses a factory? Or that it turns the widget? Focus on how you want the object to behave, not how it implements that behaviour.</p>
+
+
+
+
+<p>This approach can help lead us to better abstractions, as we start identifying roles and responsibilities separately from implementation details. And it will definitely make your code easier to change without the friction of over-specified tests.</p>
+
+
+
+
+<h2>Mock interaction with the contract, not the specific implementation</h2>
+
+
+
+
+<p>On a highly related point, the aim of abstraction is decoupling from the implementation. If we are configuring our test doubles with lots of behaviour that our unit tests are relying on then our object is coupled to that particular implementation, not to a contract of behaviour or a role. For an abstraction to be effective we should be able to drop in a completely new implementation that fulfils the required role. This is not the case if we need to set up a test double's method to call another dependency and return some rearrangement of the result. If we're relying on that in our test then our abstraction has failed.</p>
+
+
+
+
+<p>Sometimes you just get stuck with having to perform a callback from a stub, but in general if you are pushing behaviour into your mock, re-think the design or consider using a hand-coded fake before you go contorting your mocking framework.</p>
+
+
+
+
+<h2>Beware over-abstraction</h2>
+
+
+
+
+<p>It is quite easy to churn out layers of useless abstractions when using mock frameworks. Abstractions have a cost. Feedback from tests is great, but pay close attention to SOLID and the rules of simple design and call out to meaningful abstractions, rather than putting in a dependency just for testing. I wrote some <a href="http://davesquared.net/2011/06/abstraction-and-oo.html">guidelines on abstractions</a> a while back that I don't entirely disagree with yet.</p>
+
+
+
+
+<h2>Some unanswered questions</h2>
+
+
+
+
+<h3>Mocks vs. stubs, tell vs. ask.</h3>
+
+
+
+
+<p>I've tended to prefer stubs over mocks (stubbing out the results of calls rather than checking they were received), as per the widget factory example above. This flies in the face of the &quot;Tell, don't ask&quot; principle, which recommends we don't ask a collaborator for some state and act on the result, but instead give the collaborator the state it needs from us and tell it what to do with it. This seems to suggest I should be using mocks (checking received calls) a whole lot more than I stub them out.</p>
+
+
+
+
+<h3>Avoiding &quot;Yet Another Factory&quot;</h3>
+
+
+
+
+<p>If an object news up something, our unit test will typically have almost no ability to affect that object. If we want to check our subject news up a view model and calls <code>Activate()</code> on it, we have no way of asserting this was done without exposing <code>IsActivated</code> and relying on that implementation detail. Leaky abstraction. Bad.</p>
+
+
+
+
+<p>One solution is injecting a factory into our object. We can stub out what this returns, make it return another test double, and then check it received the <code>Activate()</code> call. Just introduce a factory. Yet another factory. Searching through files matching <code>*Factory</code> becomes an exercise akin to reading War and Peace. And they're generally not even <a href="http://en.wikipedia.org/wiki/Factory_pattern">real factories</a>! They don't choose a particular implementation, they are just a glorified wrapper over a single constructor.</p>
+
+
+
+
+<p>Sure, I sometimes try to ease my conscience by injecting a factory method as a <code>Func&lt;T&gt;</code> which my IoC container helps me with. But deep down I know it's still YAF, and a small part of me dies.</p>
+
+
+
+
+<p>I'm hoping choosing &quot;better&quot; abstractions will help me with this, but I've had limited success to date.</p>
+
+
+
+
+<h3>Interface explosion</h3>
+
+
+
+
+<p>C# seems to make it difficult to do testing without using interfaces. And so I end up pulling out yet another interface that will never see another implementation. I've heard <a href="https://twitter.com/shannoncornish">Shannon</a> refer to them as &quot;the new header files&quot;. Every class has its interface documented in its header/interface file. It's easy to say just choose better abstractions where the interface can be reused, but this is still something I struggle with.</p>
+
+
+
+
+<h3>Mocking in dynamic languages</h3>
+
+
+
+
+<p>This post has been written primarily from the perspective of static languages; I not sure how much (if any) applies to dynamic languages. From my limited experience testing and mocking seem to be done quite differently in languages like Ruby and Python. I'm keen to learn more about how mocking is done in these languages and see how much can help me improve how I test.</p>
+
+
+
+
+<h2>End of transmission</h2>
+
+
+
+
+<p>This has been a brain dump of my current opinions about mocking. If you agree, disagree, and/or can help me with some of my unanswered questions, please leave a comment.</p>
+
+
+
+
+<p>Now if you'll excuse me, I'm off to code up yet another factory...</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Technical debt]]></title>
+    <link href="http://davesquared.net/2011/08/technical-debt.html"/>
+    <updated>2011-08-12T23:20:00+10:00</updated>
+    <id>http://davesquared.net/2011/08/technical-debt</id>
+    <content type="html"><![CDATA[<div class="note"><b>tl;dr</b>: Every design decision creates technical debt. Trying to come up with the purest, best design can in some cases lead to more debt than seemingly less-ideal, lower impact changes. It can help to keep this in mind while making design decisions; today's optimal abstraction may cause much more pain long term than the quicker, less intrusive fix.
+</div>
+
+
+
+
+<p>I've started listening to the excellent <a href="http://rubyrogues.com/">Ruby Rogues</a> podcast recently, and the recent <a href="http://rubyrogues.com/technical-debt/">episode on technical debt</a> really got me thinking about the topic.</p>
+
+
+
+
+<h2>The technical debt metaphor</h2>
+
+
+
+
+<p>The <a href="http://www.martinfowler.com/bliki/TechnicalDebt.html">technical debt metaphor</a> has traditionally been used to explain the impact of using hacky approaches in software development. We can go into debt by trading some quality (be it design purity, code cleanliness, testing, documentation etc.) for a temporary boost in speed.</p>
+
+
+
+
+<p>The metaphor points out that, like financial debt, technical debt also accrues interest. By implementing something in a sub-optimal way we are not simply deferring a fixed time period it would have taken to do the work properly in the first place; that time will increase the longer we leave the hack in and become more dependent on it, or have to work around it in the rest of the code. This means if we accrue too much debt then our project becomes bankrupt -- the quality comes so low we can no longer work effectively with the codebase, and the project grinds to a stand still.</p>
+
+
+
+
+<p>The conclusion of the metaphor is that we can take on small amounts of technical debt as required to meet deadlines or other constraints, but we need to keep the debt at a manageable level by regularly paying it back with refactoring and rework to keep the project progressing well longer term.</p>
+
+
+
+
+<h2>Inadvertent debt</h2>
+
+
+
+
+<p>Martin Fowler points out that technical debt can be accrued both <a href="http://www.martinfowler.com/bliki/TechnicalDebtQuadrant.html">deliberately and inadvertently</a>. Most of the time we just don't know the right approach in advance, and so end up using sub-optimal solutions that accrue interest and slow us down.</p>
+
+
+
+
+<blockquote><p>"The moment you realize what the design should have been, you also realize that you have an inadvertent debt... My view is this kind of debt is inevitable and thus should be expected. Even the best teams will have debt to deal with as a project goes on - even more reason not to recklessly overload it with crummy code."<br/>
+<i>-- Martin Fowler, from his post on <a href="http://www.martinfowler.com/bliki/TechnicalDebtQuadrant.html">The Technical Debt Quadrant</a></i></p></blockquote>
+
+
+
+
+<p>After thinking about this some more I've come to the opinion that this doesn't quite go far enough. We may decide another design may have worked better, but until we've done it we don't really know for sure. The new design will have its own share of problems. It might even be considerably better, but there is more than likely another, even better solution that will become apparent once we learn from the mistakes of the second attempt.</p>
+
+
+
+
+<p>One may even make the outrageous assertion that there is no perfect design for any problem, there are only different sets of trade offs.</p>
+
+
+
+
+<h2>Would you like a silver bullet with your free lunch?</h2>
+
+
+
+
+<p>Wow, so <a href="http://en.wikipedia.org/wiki/No_Silver_Bullet">there is no silver bullet</a>, huh? Bet you've never heard that before. ;) While you're finishing up sniggering something about me and "<a href="http://en.wiktionary.org/wiki/Captain_Obvious">Captain Obvious</a>" into your RSS reader, let me try and explain why I find this is a very helpful realisation in the context of technical debt. :)</p>
+
+
+
+
+<p>If we acknowledge there is no perfect design, then every design decision we make is incurring technical debt that we'll need to pay off. This means that if we try and optimise all our decisions for what appears to be the ideal design, we are quite likely to end up taking longer to strive for perfect when the outcome will be sub-optimal anyway.</p>
+
+
+
+
+<p>That elegant object hierarchy, pattern, or great abstraction added to the application architecture that removes lots of duplication and provides a huge potential for future reuse may seem like the lowest debt solution, but it will not be completely debt free. It will accrue interest and end up costing us as the broad generalisation it encapsulates becomes less applicable as development continues. In my experience the larger the change and investment in that change, the greater the interest rate tends to be.</p>
+
+
+
+
+<p>Rather than looking for the ideal, we may be better off favouring decisions that are quick to implement and reversible/easy to change. Low impact, loosely-coupled changes (i.e. ones that require minimal amounts of changes to existing code) that at first seem less ideal maybe actually give us less debt overall. They may not perfectly abstract away the details of the current problem, but they will be easy to change or remove (along with the debt they contribute) as the needs of the project change or become better understood. Instead of picking the perfect fit for current requirements, we can focus on trying to pick the options that let us iterate and adapt to future requirements.</p>
+
+
+
+
+<p>This kind of thinking can lead us to picking options that at first seem counter-intuitive but end up proving remarkably useful, such as using loosely-grouped classes over strongly-layered architectures, Commands to model database calls via a micro-ORM over persisting large object graphs via full-fledged ORM, using a NoSQL data store rather than an RDBMS, or picking a Front Controller pattern or MVC for a web app over an abstraction like WebForms.</p>
+
+
+
+
+<h2>"Right" sometimes isn't</h2>
+
+
+
+
+<p>At least for the developers I talk to, there seems to be a lot of self-imposed pressure for us to pick the "right" design when faced with a design choice; the choice that seems to perfectly abstract the current requirement. The right choice seldom seems the quick, easy option, but is generally one that requires a large amount of work, much of it for the benefit that it looks pure and elegant from an OO and a architectural point of view. I hear (and have made) comments like "That's a bit ugly. We should extract a common interface, add a factory and <em>(insert lots more work here)</em>". It's as if taking the easy option makes us lazy, bad people; that we are somehow failing to live up to the ideals of <a href="http://manifesto.softwarecraftsmanship.org/">software craftsmanship</a>.</p>
+
+
+
+
+<p>I think our efforts to do the right thing in these cases can mean we inadvertently do a worse job overall; we are optimising for our current needs but going into debt by borrowing from our future needs. Our decision quickly racks up a huge amount of interest that we have to fight every time we need to make a change that does not quite match the previous requirements. The cost quickly outstrips the smaller, more modular change that would have been long gone, quickly refactored away the moment requirements started to push the code in a new direction. It seems like a good example of <a href="http://en.wikipedia.org/wiki/Perfect_is_the_enemy_of_good">perfect being the enemy of the good</a>.</p>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>This is not intended as an excuse for hacky code. I am talking about choosing between changes that are made with appropriate tests, taking SOLID principles and good programming practices into account, etc. My point is that the common way of thinking about technical debt can lead us to optimise for the wrong things. Rather than aiming for a beautiful OO abstraction that seems a zero-debt choice, we should acknowledge all our design decisions will incur debt and accrue interest, and so also look for low-impact, reversible changes that will add a smaller debt burden. It's not a question of whether to take on debt or not; it's how much to take and where from.</p>
+
+
+
+]]></content>
+  </entry>
+  
+</feed>

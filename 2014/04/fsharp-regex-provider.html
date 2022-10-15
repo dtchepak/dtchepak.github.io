@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Some regex help from the F# compiler - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="tl;dr: Make invalid regular expression strings and attempts to access non-existent capture groups a compile-time error, thanks to the Regex type &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2014/04/fsharp-regex-provider.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Some regex help from the F# compiler</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-04-19T21:45:00+10:00" pubdate data-updated="true">19 Apr 2014</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>tl;dr: Make invalid regular expression strings and attempts to access non-existent capture groups a compile-time error, thanks to the <a href="http://fsprojects.github.io/RegexProvider/">Regex type provider</a>.</em></p>
+<!-- more -->
+<h2 id="standard-.net-regex">Standard .NET regex</h2>
+<p>Say we want to parse out some information from basic <a href="https://github.com/Shopify/liquid">Liquid</a> tags, like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="na">[Test]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">GetInformationFromAllSampleTags</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">const</span> <span class="kt">string</span> <span class="n">input</span> <span class="p">=</span>
+        <span class="s">@&quot;This is a test. {% sample %}ABC{% endsample %}. Some {% other %} 123 {% endother %} tag.</span>
+<span class="s">          {% sample %} DEF {% endsample %}&quot;</span><span class="p">;</span>
+    <span class="n">GetSamples</span><span class="p">(</span><span class="n">input</span><span class="p">).</span><span class="n">ShouldBe</span><span class="p">(</span><span class="k">new</span> <span class="p">[]</span> <span class="p">{</span> <span class="s">&quot;ABC&quot;</span><span class="p">,</span> <span class="s">&quot;DEF&quot;</span> <span class="p">});</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can give ourselves <a href="http://regex.info/blog/2006-09-15/247">two problems</a> and implement this using <code>System.Text.RegularExpressions</code> (it looks almost identical in C#, see <a href="https://gist.github.com/dtchepak/11083161">this gist</a> or footnote<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>):</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="c1">// F#</span>
+<span class="k">let</span> <span class="nv">getSamples</span> <span class="n">s</span> <span class="o">:</span> <span class="kt">string</span> <span class="n">seq</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="nv">re</span> <span class="o">=</span> <span class="s">@&quot;\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}&quot;</span>
+    <span class="nn">Regex</span><span class="p">.</span><span class="n">Matches</span><span class="o">(</span><span class="n">s</span><span class="o">,</span> <span class="n">re</span><span class="o">)</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">cast</span><span class="o">&lt;</span><span class="n">Match</span><span class="o">&gt;</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">Groups</span><span class="o">.[</span><span class="s">&quot;tag&quot;</span><span class="o">].</span><span class="n">Value</span> <span class="o">=</span> <span class="s">&quot;sample&quot;</span><span class="o">)</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">Groups</span><span class="o">.[</span><span class="s">&quot;contents&quot;</span><span class="o">].</span><span class="n">Value</span><span class="o">.</span><span class="n">Trim</span><span class="bp">()</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="f-type-provider-version">F# type provider version</h2>
+<p>First up we need to add the <a href="http://fsprojects.github.io/RegexProvider/">RegexProvider</a> to our project via nuget: <code>PM&gt; Install-Package RegexProvider</code>.</p>
+<p>Now we can rewrite our previous implementation like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="k">open</span> <span class="nn">FSharp.RegexProvider</span>
+<span class="k">type</span> <span class="nc">LiquidTagRegex</span> <span class="o">=</span> <span class="n">Regex</span><span class="o">&lt;</span> <span class="s">@&quot;\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}&quot;</span> <span class="o">&gt;</span>
+
+<span class="k">let</span> <span class="nv">getSamples</span> <span class="n">s</span> <span class="o">:</span> <span class="kt">string</span> <span class="n">seq</span> <span class="o">=</span>
+    <span class="n">LiquidTagRegex</span><span class="bp">()</span><span class="o">.</span><span class="n">Matches</span><span class="o">(</span><span class="n">s</span><span class="o">)</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">tag</span><span class="o">.</span><span class="n">Value</span> <span class="o">=</span> <span class="s">&quot;sample&quot;</span><span class="o">)</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">Value</span><span class="o">.</span><span class="n">Trim</span><span class="bp">()</span><span class="o">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This will compile equivalently to our previous implementation<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>, but we’ve gained some nice static checks.</p>
+<p>We can access the <code>tag</code> and <code>contents</code> capture groups of our match as properties. This isn’t a <code>method_missing</code>-style dynamic lookup – if we rename the group in the regex to <code>(?&lt;notTag&gt;\w+)</code> then we get a compile-time error:</p>
+<pre><code>error FS0039: The field, constructor or member &#39;tag&#39; is not defined</code></pre>
+<p>Also neat, if we completely muck up our regex, the compiler will let us know:</p>
+<pre><code>error FS3033: The type provider ... reported an error: parsing &quot;[asd&quot; -
+Unterminated [] set.</code></pre>
+<p>Tests would catch both these errors, but feedback doesn’t get much faster than “as we’re typing the code”, plus we get precise line numbers for the errors as well. It also reduces code noise, dealing directly with the capture group names rather than having to specify particular collection lookups.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1">An equivalent implementation in C#:
+<div class="highlight">
+<div class="sourceCode" id="cb1"><pre class="sourceCode csharp"><code class="sourceCode cs"><a class="sourceLine" id="cb1-1" title="1"><span class="co">// C#</span></a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">public</span> IEnumerable&lt;<span class="dt">string</span>&gt; <span class="fu">GetSamples</span>(<span class="dt">string</span> s) {</a>
+<a class="sourceLine" id="cb1-3" title="3">    <span class="dt">var</span> re = @<span class="st">&quot;\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}&quot;</span>;</a>
+<a class="sourceLine" id="cb1-4" title="4">    <span class="kw">return</span> Regex.<span class="fu">Matches</span>(s, re)</a>
+<a class="sourceLine" id="cb1-5" title="5">                .<span class="fu">Cast</span>&lt;Match&gt;()</a>
+<a class="sourceLine" id="cb1-6" title="6">                .<span class="fu">Where</span>(m =&gt; m.<span class="fu">Groups</span>[<span class="st">&quot;tag&quot;</span>].<span class="fu">Value</span> == <span class="st">&quot;sample&quot;</span>)</a>
+<a class="sourceLine" id="cb1-7" title="7">                .<span class="fu">Select</span>(m =&gt; m.<span class="fu">Groups</span>[<span class="st">&quot;contents&quot;</span>].<span class="fu">Value</span>.<span class="fu">Trim</span>());</a>
+<a class="sourceLine" id="cb1-8" title="8">}</a></code></pre></div>
+</div>
+<a href="#fnref1" class="footnote-back">↩</a></li>
+<li id="fn2"><p>The type provider creates a type with the <code>tag</code> and <code>contents</code> properties, but this type gets erased in the final compiled output, replaced with the <code>Groups</code> accessor code from our original implementation.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-04-19T21:45:00+10:00" pubdate data-updated="true">19 Apr 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/f-/'>f#</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2014/04/fsharp-regex-provider.html" data-via="" data-counturl="http://davesquared.net/2014/04/fsharp-regex-provider.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2014/04/either.html" title="Previous Post: A hasty introduction to the Either type">&laquo; A hasty introduction to the Either type</a>
+      
+      
+        <a class="basic-alignment right" href="/2014/05/platformless-haskell.html" title="next Post: Haskell without the Haskell Platform">Haskell without the Haskell Platform &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2014/04/fsharp-regex-provider.html';
+        var disqus_url = 'http://davesquared.net/2014/04/fsharp-regex-provider.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

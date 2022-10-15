@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: f# | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/f-/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[The Apply pattern]]></title>
+    <link href="http://davesquared.net/2015/07/apply-pattern.html"/>
+    <updated>2015-07-27T21:45:00+10:00</updated>
+    <id>http://davesquared.net/2015/07/apply-pattern</id>
+    <content type="html"><![CDATA[<p>I really enjoy trying to understand how and why things like work, but for this post I'm going to try to skip all that wonderful stuff and instead give a practical outline of how to use a very useful pattern arising from <a href="http://www.davesquared.net/2012/05/fp-newbie-learns-applicatives.html">applicative functors</a>.</p>
+
+<p>I've found this pattern incredibly useful in F#, Swift and Haskell. The examples here are in F#, but as far as I can tell we can use it anywhere that has generic types and higher-order functions.</p>
+
+<!-- more -->
+
+
+<h2>Aim</h2>
+
+<p>Say we have some generic type, let's call it <code>Widget&lt;T&gt;</code> (we'll use the term "widget" as a placeholder for a generic type we are working with - feel free to substitute in <code>Option&lt;T&gt;</code>, <code>Either&lt;E,A&gt;</code>, <code>Future&lt;T&gt;</code>, <code>List&lt;T&gt;</code> etc.). There are lots of useful functions that work with non-widget types, and we would like them to work with <code>Widget</code> values without having to re-write them.</p>
+
+<pre><code class="fsharp">// Some useful, non-widget functions:
+(+) : Int -&gt; Int -&gt; Int
+(::) : 'a -&gt; ['a] -&gt; ['a]
+createThingoe :: Pop -&gt; Blah -&gt; Zap -&gt; Thingoe
+
+// Widget compatible versions:
+widgetPlus : Widget&lt;Int&gt; -&gt; Widget&lt;Int&gt; -&gt; Widget&lt;Int&gt;
+widgetCons : Widget&lt;'a&gt;  -&gt; Widget&lt;'a&gt;  -&gt; Widget&lt;'a&gt;
+widgetThingoe : Widget&lt;Pop&gt;  -&gt; Widget&lt;Blah&gt;  -&gt; Widget&lt;Zap&gt; -&gt; Widget&lt;Thingoe&gt;
+</code></pre>
+
+<h2>Prerequisites</h2>
+
+<p>We can achieve this aim if the generic type has a <code>map</code> (or <code>Select</code> in C# terminology) and an <code>apply</code> function. Continuing our <code>Widget</code> example:</p>
+
+<pre><code class="fsharp">module Widget =
+    let map   :    ('a-&gt;'b)    -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt; = ...
+    let apply : Widget&lt;'a-&gt;'b&gt; -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt; = ...
+</code></pre>
+
+<p>If the type does not have these functions provided we may still be able to write them. We'll look at this <a href="#when-a-generic-type-does-not-meet-the-prequisites">later</a>.</p>
+
+<h2>Apply pattern</h2>
+
+<p>We can use any non-widget function with widget values using <code>map</code> for the first argument, and <code>apply</code> for subsequent arguments.</p>
+
+<pre><code class="fsharp">let (&lt;^&gt;) = Widget.map
+let (&lt;*&gt;) = Widget.apply
+
+// Use non-widget function with non-widgets:
+let normalResult =
+  nonWidgetFn firstArg secondArg thirdArg ... finalArg
+
+// Use non-widget function with widgets. It's just like non-widget function
+// application, only with more punctuation. :)
+let widgetResult =
+  nonWidgetFn &lt;^&gt; firstWidget &lt;*&gt; secondWidget &lt;*&gt; thirdWidget &lt;*&gt; ... &lt;*&gt; finalWidget
+
+// Convert any 2 argument function, (a -&gt; b -&gt; c) -&gt; (Widget a -&gt; Widget b -&gt; Widget c)
+let lift2 f a b     = f &lt;^&gt; a &lt;*&gt; b
+
+// Convert any 3 argument function:
+let lift3 f a b c   = f &lt;^&gt; a &lt;*&gt; b &lt;*&gt; c
+
+// Convert any 4 argument function:
+let lift4 f a b c d = f &lt;^&gt; a &lt;*&gt; b &lt;*&gt; c &lt;*&gt; d
+
+// Widget-compatible plus and cons:
+widgetPlus a b = (+) &lt;^&gt; a &lt;*&gt; b
+widgetCons a b = 
+    let cons a b = a :: b
+    cons &lt;^&gt; a &lt;*&gt; b
+</code></pre>
+
+<h2>Example</h2>
+
+<p>Say we are using a library with a <code>Result&lt;'Error, 'T&gt;</code> type that represents operations that can fail with a value of type <code>'Error</code>, or succeed with a value of type <code>'T</code>. The library also supplies <code>map</code> and <code>apply</code> functions for this type. We want to use this type to try to parse a <code>Person</code> value from a UI form with <code>name</code>, <code>email</code> and <code>age</code> text fields:</p>
+
+<pre><code class="fsharp">let nonEmpty   (s : string) : Result&lt;AppError, string&gt; = ...
+let validEmail (s : string) : Result&lt;AppError, string&gt; = ...
+let parseInt   (s : string) : Result&lt;AppError, int&gt; = ...
+
+type Person = { name : string; email : string; age : int }
+    with
+    static member create a b c = { name=a; email=b; age=c }
+
+// We want to use Person.create which takes strings and ints, but we need to try to
+// parse values from text fields which will give us Result&lt;AppError, string&gt;
+// and Result&lt;AppError, int&gt; values.
+let (&lt;^&gt;) = Result.map
+let (&lt;*&gt;) = Result.apply
+
+Person.create &lt;^&gt; nonEmpty (name.text) &lt;*&gt; validEmail (email.text) &lt;*&gt; parseInt (age.text)
+    |&gt; printfn "%A"
+(*
+When all fields are valid:
+&gt; Success {name = "Abc"; email = "abc@example.com"; age = 42;}
+
+When firstName.text is empty:
+&gt; Failed UnexpectedEmptyString
+
+When age.text is invalid:
+&gt; Failed (CouldNotParseInt "12jf")
+*)
+</code></pre>
+
+<h2>When a generic type does not meet the prequisites</h2>
+
+<p>Sometimes a type will not have an <code>apply</code> function provided, but will have <code>map</code>, and also a <code>flatMap</code>/<code>bind</code> function provided with the following type:</p>
+
+<pre><code class="fsharp">// Also called "bind"
+let flatMap : ('a-&gt; Widget&lt;'b&gt;) -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt; = ...
+</code></pre>
+
+<p>This is the case with the <a href="https://msdn.microsoft.com/en-us/library/ee370544.aspx">F# Option module</a>, which provides <code>map</code> and <code>bind</code> with the required signatures. In these cases we can implement <code>apply</code> in terms of the these other functions:</p>
+
+<pre><code class="fsharp">module Option =
+    let apply ff a = Option.bind (fun f -&gt; Option.map f a) ff
+
+// General case:
+module SomeOtherType =
+    let apply ff a = SomeOtherType.bind (fun f -&gt; SomeOtherType.map f a) ff
+</code></pre>
+
+<p>We can now use the pattern with optionals (and any type with <code>map</code> and <code>flatMap</code>/<code>bind</code>):</p>
+
+<pre><code class="fsharp">let (&lt;^&gt;) = Option.map
+let (&lt;*&gt;) = Option.apply
+
+let result : Option&lt;int&gt; = (+) &lt;^&gt; tryParseInt (first.text) &lt;*&gt; tryParseInt (second.text)
+//&gt; val result : Option&lt;int&gt; = Some 42
+</code></pre>
+
+<h2>Mixing widget and non-widget arguments</h2>
+
+<p>In cases where we have a mix of arguments, some using our generic type and others not, we can still apply^[Sorry.] the pattern by converting the values to our generic type. For our <code>Person.create</code> example, we could already have the person's email as a valid <code>string</code> value from earlier in the sign-up process:</p>
+
+<pre><code class="fsharp">let email : string = "abc@example.com"
+Person.create &lt;^&gt; nonEmpty (name.text) &lt;*&gt; Success email &lt;*&gt; parseInt (age.text)
+    |&gt; ...
+</code></pre>
+
+<p>Here we convert <code>email</code> from a <code>string</code> to a <code>Result&lt;AppError,string&gt;</code> value first using the <code>Success</code> constructor. Then we have our three <code>Result&lt;AppError,'T&gt;</code> values to use with the apply pattern.</p>
+
+<h2>Summary</h2>
+
+<p>This pattern is useful for being able reuse all our existing functions in the context of another type, like <code>Future&lt;T&gt;</code>, <code>Option&lt;T&gt;</code>, <code>Result&lt;E,A&gt;</code> and lots, lots more. To do this for some generic type <code>Widget&lt;T&gt;</code> we need:</p>
+
+<pre><code class="fsharp">let map : ('a -&gt; 'b) -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt;
+let apply : Widget&lt;'a -&gt; 'b&gt; -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt;
+
+// Alternatively, can also use bind/flatMap to get an apply function
+let flatMap : ('a -&gt; Widget&lt;'b&gt;) -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt;
+</code></pre>
+
+<p>We then apply the non-widget function to the first argument using <code>map</code>, and use <code>apply</code> for subsequent applications.</p>
+
+<pre><code class="fsharp">let (&lt;^&gt;) = Widget.map
+let (&lt;*&gt;) = Widget.apply
+let result : Widget&lt;A&gt; =
+    nonWidgetFn &lt;^&gt; firstWidgetArg &lt;*&gt; secondWidgetArg &lt;*&gt; ... &lt;*&gt; lastWidgetArg
+</code></pre>
+
+<p>Calls look similar to regular function application, with the additional operators taking care of conversion into our <code>Widget&lt;T&gt;</code> context.</p>
+
+<p>We can mix widget and non-widget arguments by converting non-widgets:</p>
+
+<pre><code class="fsharp">let result : Widget&lt;A&gt; =
+    nonWidgetFn &lt;^&gt; firstWidgetArg &lt;*&gt; toWidget secondArg &lt;*&gt; ... &lt;*&gt; lastWidgetArg
+</code></pre>
+
+<p>I wrote a bit more about <a href="/2012/05/fp-newbie-learns-applicatives.html">how this works</a> a while back, or search around for "applicative functor" if you are interested in the theory behind the practice. We can effectively use this pattern without delving into the details though - so we can apply now and ask questions later. :)</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[F# type signature gotchas]]></title>
+    <link href="http://davesquared.net/2015/01/fsharp-type-signature-gotchas.html"/>
+    <updated>2015-01-22T23:30:00+11:00</updated>
+    <id>http://davesquared.net/2015/01/fsharp-type-signature-gotchas</id>
+    <content type="html"><![CDATA[<p>Today I was speaking with a colleague about some F#, and he pointed out a few gotchas with F# type signatures, especially if you've spent some time with Haskell (and not OCaml or other ML-ish language).</p>
+
+<!-- more -->
+
+
+
+
+<div class="note">*Aside*: This post just runs through some gotchas, but if you would like more general information on reading `->` style function signatures please let me know.</div>
+
+
+<p>The example we were looking at is <a href="https://msdn.microsoft.com/en-us/library/ee340363.aspx"><code>Seq.unfold</code></a>, whose signature looks like this:</p>
+
+<pre><code class="fsharp">Seq.unfold : ('State -&gt; ('T * 'State) option) -&gt; 'State -&gt; seq&lt;'T&gt;
+</code></pre>
+
+<h2>Apostrophes for type parameters</h2>
+
+<p>Any type prefixed with a <code>'</code> character represents a type parameter (or generic type in C# parlance). For <code>unfold</code> this means <code>'State</code> and <code>'T</code> can be any type. We can also write this in potentially more familiar .NET syntax:</p>
+
+<pre><code class="fsharp">Seq.unfold&lt;'State, 'T&gt; : ('State -&gt; ('T * 'State) option) -&gt; 'State -&gt; seq&lt;'T&gt;
+</code></pre>
+
+<p>A lot of the F# code I see follows a more Haskellish (?) convention of using lowercase type variable names, more like:</p>
+
+<pre><code class="fsharp">Seq.unfold&lt;'s, 't&gt; : ('s -&gt; ('t * 's) option) -&gt; 's -&gt; seq&lt;'t&gt;
+</code></pre>
+
+<h2>Asterisk for tuples</h2>
+
+<p>Types separated by a <code>*</code> are tupled (or <a href="http://en.wikipedia.org/wiki/Product_type">product types</a>, which explains the <code>*</code> symbol). For example, <code>(1, "abc", Foo())</code> is of type <code>int * string * Foo</code>.</p>
+
+<p>So in <code>unfold</code>, <code>'T * 'State</code> represents a tuple of <code>'T</code> and <code>'State</code>.</p>
+
+<h2>Postfix generic syntax</h2>
+
+<p>F# supports <a href="http://stackoverflow.com/questions/10167359/any-difference-between-ta-and-a-t-in-f">both .NET-style prefix generic syntax and ML-style postfix syntax</a>. So instead of writing <code>int option</code>, we can also write <code>Option&lt;int&gt;</code> (<a href="http://stackoverflow.com/a/10167770/906">both forms are equivalent</a>). Which means we can re-write <code>unfold</code> as:</p>
+
+<pre><code class="fsharp">Seq.unfold&lt;'s, 't&gt; : ('s -&gt; Option&lt;'t * 's&gt;) -&gt; 's -&gt; seq&lt;'t&gt;
+</code></pre>
+
+<h2>Using <code>unfold</code></h2>
+
+<p>With those things in mind, let's use the <code>unfold</code> signature to work out what it does.</p>
+
+<pre><code class="fsharp">unfold :
+  ('s -&gt; Option&lt;'t * 's&gt;) -- A function that takes an 's and gives an optional tuple of 't and 's.
+  -&gt; 's                   -- A value of type 's
+  -&gt; seq&lt;'t&gt;              -- A sequence of 't values
+</code></pre>
+
+<p>Given a function that can take <code>'s</code> values and return a tuple of an element and next <code>'s</code> value or nothing, and a starting <code>'s</code>, <code>unfold</code> will generate a sequence of <code>'t</code> values until the generator function returns <code>None</code> (i.e. potentially infinite).</p>
+
+<p>We could use this to generate a sequence of all the days since a starting date (infinite, at least until <code>DateTime</code> hits <code>DateTime.MaxValue</code>):</p>
+
+<pre><code class="fsharp">let daysAfterThisPost = 
+    DateTime(2015, 1, 22)
+    |&gt; Seq.unfold (fun d -&gt; let d' = d.AddDays(1) in Some (d', d'))
+</code></pre>
+
+<h2>Translating to other languages</h2>
+
+<p>Finally, if you're more familiar with C# or Haskell, here are my attempted translations:</p>
+
+<pre><code>// F#
+Seq.unfold : ('State -&gt; ('T * 'State) option) -&gt; 'State -&gt; seq&lt;'T&gt;
+
+-- Haskell
+unfold :: (s -&gt; Maybe (t,s)) -&gt; s -&gt; [t]
+
+// C# (uncurried. seq = IEnumerable)
+IEnumerable&lt;T&gt; Unfold&lt;S,T&gt;(Func&lt;S, Option&lt;Tuple&lt;T,S&gt;&gt;&gt; generator, S initial);
+</code></pre>
+
+<p>Haskell uses lowercase type names for generics (instead of <code>'</code> characters), while concrete types have uppercase names. It also uses the same syntax for tuple types as values, so <code>(1,2) :: (Int, Int)</code>. For some odd reason, Haskell uses <code>::</code> for "type of" instead of a single <code>:</code>.</p>
+
+<p>The C# version is a bit messier due to having to use <code>Func</code> instead of a shorthand for function types, and similarly for declaring tuple types. (I've also uncurried the C# version otherwise we end up with nested <code>Func</code> types everywhere, and it is the more typical form for C# functions.)</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[F#: Pattern matching on field literals]]></title>
+    <link href="http://davesquared.net/2015/01/fsharp-pattern-match-on-field-literals.html"/>
+    <updated>2015-01-14T08:30:00+11:00</updated>
+    <id>http://davesquared.net/2015/01/fsharp-pattern-match-on-field-literals</id>
+    <content type="html"><![CDATA[<p>F# gave me the following error when working with some C# code:</p>
+
+<pre><code>error FS0729: This field is not a literal and cannot be used in a pattern 
+</code></pre>
+
+<p>I'm not entirely sure it's a good idea, but I managed to work around this using a <a href="http://msdn.microsoft.com/en-us/library/dd233248.aspx">partial active pattern</a>.</p>
+
+<!-- more -->
+
+
+<p>Here's the gist of the C# code I was working with:</p>
+
+<pre><code class="csharp">namespace Workshop.SomeCSharpLib {
+    public class Thingamabobs {
+        private Thingamabobs(string s) { }
+        // ... 
+        public static readonly Thingamabobs Foo = new Thingamabobs("foo");
+        public static readonly Thingamabobs Bar = new Thingamabobs("bar");
+        public static readonly Thingamabobs Clunk = new Thingamabobs("clunk");
+        public static readonly Thingamabobs Zap = new Thingamabobs("zap");
+    }
+}
+</code></pre>
+
+<p><code>Thingamabobs</code> represent a sort of enum with an associated value - the kind of thing we'd typically use a <a href="http://fsharpforfunandprofit.com/posts/discriminated-unions/">discriminated union</a> for in F#.</p>
+
+<p>Trying to convert this to my own type using pattern matching resulted in the FS0729 error:</p>
+
+<pre><code class="fsharp">type Things = Foo | Bar | Clunk | Zap
+
+let convertThingamabob =
+    function
+    | Thingamabobs.Foo   -&gt; Some Foo // *
+    | Thingamabobs.Bar   -&gt; Some Bar
+    | Thingamabobs.Clunk -&gt; Some Clunk
+    | Thingamabobs.Zap   -&gt; Some Zap
+    | _                  -&gt; None
+
+    // * error FS0729: This field is not a literal and cannot be used in a pattern 
+</code></pre>
+
+<p>I couldn't find much information on this error, but I gather I need to explicitly compare the argument to the field value using <code>if ... else if ... else</code>, something like:</p>
+
+<pre><code class="fsharp">   fun x -&gt; if x = Thingamabobs.Foo then Some Foo
+            else if x = ...
+</code></pre>
+
+<p>I think it looks neater as a pattern match, so worked around this using a partial active pattern to do the comparison:</p>
+
+<pre><code class="fsharp">// Partial active pattern. Match if field equals value.
+let (|Field|_|) field x = if field = x then Some () else None
+
+type Things = Foo | Bar | Clunk | Zap
+
+let convertThingamabob =
+    function
+    | Field Thingamabobs.Foo   -&gt; Some Foo 
+    | Field Thingamabobs.Bar   -&gt; Some Bar
+    | Field Thingamabobs.Clunk -&gt; Some Clunk
+    | Field Thingamabobs.Zap   -&gt; Some Zap
+    | _                        -&gt; None
+</code></pre>
+
+<p>I'm not sure if there are any drawbacks to this approach, so if you can think of any please let me know.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[F# assertion libraries]]></title>
+    <link href="http://davesquared.net/2014/07/fsharp-assertion-libraries.html"/>
+    <updated>2014-07-22T21:30:00+10:00</updated>
+    <id>http://davesquared.net/2014/07/fsharp-assertion-libraries</id>
+    <content type="html"><![CDATA[<p>There are a few different libraries that provide test assertions for F#. I went through a couple today and tried a trivial example in each.</p>
+
+<!-- more -->
+
+
+<p>I'm using xUnit for these examples, but all of this should apply to NUnit (and other test runners) too. I've put all the code in a <a href="https://gist.github.com/dtchepak/62fe3c689700180777c2">Sample.fs gist</a> if you want to see it all in one place.</p>
+
+<h2>xUnit assertions</h2>
+
+<p>I've written about <a href="http://www.davesquared.net/2013/03/hello-world-testing-in-fsharp.html">getting started with NUnit in F#</a> before. We can also use <a href="https://github.com/xunit/xunit">xUnit</a> and its built in assertions.</p>
+
+<pre><code class="fsharp">open Xunit
+
+[&lt;Fact&gt;]
+let ``map (+1) over list using Xunit`` () =
+    let result = List.map incr [1;2;3]
+    Assert.Equal&lt;int list&gt;([2;3;4], result)
+</code></pre>
+
+<p>I needed to specify the <code>int list</code> type explicitly to get F# to resolve the correct overload.</p>
+
+<p>Here's an example of an assertion failure (when I change the expected value to <code>[2;3;5]</code>):</p>
+
+<pre><code>Position: First difference is at position 2
+Expected: FSharpList&lt;Int32&gt; { 2, 3, 5 }
+Actual:   FSharpList&lt;Int32&gt; { 2, 3, 4 }
+</code></pre>
+
+<h2>FsUnit</h2>
+
+<p><a href="https://github.com/fsharp/FsUnit">FsUnit</a> provides helpers for NUnit, xUnit,  MbUnit, and MSTest assertions to make them play nicely with F# syntax and type inference. I installed the <code>FsUnit.Xunit</code> package.</p>
+
+<pre><code class="fsharp">open FsUnit.Xunit
+
+[&lt;Fact&gt;]
+let ``map (+1) over list using FsUnit.Xunit`` () =
+    let result = List.map incr [1;2;3]
+    result |&gt; should equal [2;3;4]
+</code></pre>
+
+<p>Sample failure:</p>
+
+<pre><code>Position: First difference is at position 0
+Expected: Equals [2; 3; 5]
+Actual:   was [2; 3; 4]
+</code></pre>
+
+<p>(I'm not sure why first difference is at position 0 here?)</p>
+
+<h2>Unquote</h2>
+
+<p><a href="https://code.google.com/p/unquote/">Unquote</a> lets us use quoted expressions for assertions.</p>
+
+<pre><code class="fsharp">open Swensen.Unquote
+
+[&lt;Fact&gt;]
+let ``map (+1) over list using Unquote`` () =
+    test &lt;@ List.map incr [1;2;3] = [2;3;4] @&gt;
+</code></pre>
+
+<p>If the test fails, Unquote shows each step in reducing the expression so you can see where they start to differ:</p>
+
+<pre><code>List.map Sample.incr [1; 2; 3] = [2; 3; 5]
+[2; 3; 4] = [2; 3; 5]
+false
+</code></pre>
+
+<p>This case only shows 3 steps, but more complex expressions will show more.</p>
+
+<h2>FsCheck</h2>
+
+<p><a href="https://fsharp.github.io/FsCheck/">FsCheck</a> is influenced by Haskell's QuickCheck and Scala's scalacheck. Rather than asserting a specific input and output, we define a property that should hold for all values of a type (optionally requiring they meet certain criteria, such as being a positive integer).</p>
+
+<p>The FsCheck.Xunit package has specific support for xUnit through a <code>PropertyAttribute</code> that let us run properties directly as an xUnit test (otherwise a little more boilerplate is required, see <a href="https://fsharp.github.io/FsCheck/QuickStart.html">"Using FsCheck with other testing frameworks" in the Quick Start guide </a>).</p>
+
+<pre><code class="fsharp">open FsCheck
+open FsCheck.Xunit
+
+[&lt;Property&gt;]
+let ``map f . map g = map (f . g)`` (xs:int list) =
+    let f x = x*10
+    let g x = x+1
+    (List.map f &lt;&lt; List.map g) xs = List.map (f &lt;&lt; g) xs
+</code></pre>
+
+<p>If we modify the property to ensure it fails (for example, <code>(List.map f &lt;&lt; List.map g) xs = List.map (f &lt;&lt; g) (List.filter even xs)</code>), we get this output:</p>
+
+<pre><code>FsCheck.Xunit.PropertyFailedException
+Falsifiable, after 3 tests (2 shrinks) (StdGen (267259328,295888818)):
+[1]
+</code></pre>
+
+<p>This shows that given an input of <code>[1]</code> the property does not hold.</p>
+
+<h2>Fuchu</h2>
+
+<p><a href="https://github.com/mausch/Fuchu">Fuchu</a> is more focussed on test organisation than assertions, and can be used with any of the assertion-providing libraries above. If you'd like to try something different to the usual (N|x|Mb)Unit approaches for defining test cases then <a href="http://bugsquash.blogspot.com.au/2012/06/fuchu-functional-test-library-for-net.html">give it a look</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Some regex help from the F# compiler]]></title>
+    <link href="http://davesquared.net/2014/04/fsharp-regex-provider.html"/>
+    <updated>2014-04-19T21:45:00+10:00</updated>
+    <id>http://davesquared.net/2014/04/fsharp-regex-provider</id>
+    <content type="html"><![CDATA[<p><em>tl;dr: Make invalid regular expression strings and attempts to access non-existent capture groups a compile-time error, thanks to the <a href="http://fsprojects.github.io/RegexProvider/">Regex type provider</a>.</em></p>
+
+<!-- more -->
+
+
+<h2>Standard .NET regex</h2>
+
+<p>Say we want to parse out some information from basic <a href="https://github.com/Shopify/liquid">Liquid</a> tags, like this:</p>
+
+<pre><code class="csharp">[Test]
+public void GetInformationFromAllSampleTags() {
+    const string input =
+        @"This is a test. {% sample %}ABC{% endsample %}. Some {% other %} 123 {% endother %} tag.
+          {% sample %} DEF {% endsample %}";
+    GetSamples(input).ShouldBe(new [] { "ABC", "DEF" });
+}
+</code></pre>
+
+<p>We can give ourselves <a href="http://regex.info/blog/2006-09-15/247">two problems</a> and implement this using <code>System.Text.RegularExpressions</code> (it looks almost identical in C#, see <a href="https://gist.github.com/dtchepak/11083161">this gist</a> or footnote<a href="An">^csharp-example</a>):</p>
+
+<pre><code class="fsharp">// F#
+let getSamples s : string seq =
+    let re = @"\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}"
+    Regex.Matches(s, re)
+        |&gt; Seq.cast&lt;Match&gt;
+        |&gt; Seq.filter (fun m -&gt; m.Groups.["tag"].Value = "sample")
+        |&gt; Seq.map (fun m -&gt; m.Groups.["contents"].Value.Trim())
+</code></pre>
+
+<pre><code>&lt;div class="highlight"&gt;
+```csharp
+// C#
+public IEnumerable&lt;string&gt; GetSamples(string s) {
+    var re = @"\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}";
+    return Regex.Matches(s, re)
+                .Cast&lt;Match&gt;()
+                .Where(m =&gt; m.Groups["tag"].Value == "sample")
+                .Select(m =&gt; m.Groups["contents"].Value.Trim());
+}
+```
+&lt;/div&gt;
+</code></pre>
+
+<h2>F# type provider version</h2>
+
+<p>First up we need to add the <a href="http://fsprojects.github.io/RegexProvider/">RegexProvider</a> to our project via nuget: <code>PM&gt; Install-Package RegexProvider</code>.</p>
+
+<p>Now we can rewrite our previous implementation like this:</p>
+
+<pre><code class="fsharp">open FSharp.RegexProvider
+type LiquidTagRegex = Regex&lt; @"\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}" &gt;
+
+let getSamples s : string seq =
+    LiquidTagRegex().Matches(s)
+        |&gt; Seq.filter (fun m -&gt; m.tag.Value = "sample")
+        |&gt; Seq.map (fun m -&gt; m.contents.Value.Trim())
+</code></pre>
+
+<p>This will compile equivalently to our previous implementation^[The type provider creates a type with the <code>tag</code> and <code>contents</code> properties, but this type gets erased in the final compiled output, replaced with the <code>Groups</code> accessor code from our original implementation.], but we've gained some nice static checks.</p>
+
+<p>We can access the <code>tag</code> and <code>contents</code> capture groups of our match as properties. This isn't a <code>method_missing</code>-style dynamic lookup -- if we rename the group in the regex to <code>(?&lt;notTag&gt;\w+)</code> then we get a compile-time error:</p>
+
+<pre><code>error FS0039: The field, constructor or member 'tag' is not defined
+</code></pre>
+
+<p>Also neat, if we completely muck up our regex, the compiler will let us know:</p>
+
+<pre><code>error FS3033: The type provider ... reported an error: parsing "[asd" -
+Unterminated [] set.
+</code></pre>
+
+<p>Tests would catch both these errors, but feedback doesn't get much faster than "as we're typing the code", plus we get precise line numbers for the errors as well. It also reduces code noise, dealing directly with the capture group names rather than having to specify particular collection lookups.</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: haskell | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/haskell/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Quick, hacky truth tables in Haskell]]></title>
+    <link href="http://davesquared.net/2018/12/haskell-truth-tables.html"/>
+    <updated>2018-12-05T16:20:00+11:00</updated>
+    <id>http://davesquared.net/2018/12/haskell-truth-tables</id>
+    <content type="html"><![CDATA[<p>Today I wanted to test a few boolean expressions, and ended up with some quick truth table generation hackery in Haskell which I thought I'd note down for next time. I'm sure there are many better ways of doing this, but this way was mine.</p>
+
+<!-- more -->
+
+
+<p>Here's a list of all booleans in GHCi:</p>
+
+<pre><code class="haskell">λ&gt; let bools = [False, True]
+</code></pre>
+
+<p>We can use the default <a href="https://davesquared.net/2015/07/apply-pattern.html">applicative</a> instance for lists to run all combinations of <code>bools</code> through a function. If we use a tuple constructor, we'll get truth table inputs (shown below for 2 and 3 argument expressions).</p>
+
+<pre><code class="haskell">λ&gt; (,) &lt;$&gt; bools &lt;*&gt; bools
+[(False,False),(False,True),(True,False),(True,True)]
+λ&gt; (,,) &lt;$&gt; bools &lt;*&gt; bools &lt;*&gt; bools
+[(False,False,False),(False,False,True),(False,True,False),(False,True,True),(True,False,False),(True,False,True),(True,True,False),(True,True,True)]
+</code></pre>
+
+<p>Let's check a basic expression <code>p</code>, and its equivalent using <a href="https://en.wikipedia.org/wiki/De_Morgan%27s_laws">De Morgan's laws</a>. Writing <code>x &lt;$&gt; bools &lt;*&gt; bools</code> gets repetitive, so we'll start off by defining <code>tt2</code> to get truth-tableish output values for a 2 input function <code>Bool -&gt; Bool -&gt; Bool</code>.</p>
+
+<pre><code class="haskell">λ&gt; let tt2 f = f &lt;$&gt; bools &lt;*&gt; bools
+tt2 :: (Bool -&gt; Bool -&gt; b) -&gt; [b]
+λ&gt; let p  a b = not (a &amp;&amp; not b)
+λ&gt; let p' a b = not a || b
+λ&gt; tt2 p
+[True,True,False,True]
+λ&gt; tt2 p'
+[True,True,False,True]
+λ&gt; tt2 p == tt2 p'
+True
+</code></pre>
+
+<p>We can then <code>zipWith</code> to get truth table inputs with the corresponding truth table output (using a bit of <code>uncurry</code> trickery):</p>
+
+<pre><code class="haskell">λ&gt; :t uncurry (,,)
+uncurry (,,) :: (a, b) -&gt; c -&gt; (a, b, c)
+λ&gt; zipWith (uncurry (,,)) (tt2 (,)) (tt2 p)
+[(False,False,True),(False,True,True),(True,False,False),(True,True,True)]
+</code></pre>
+
+<p>Or for more arguments:</p>
+
+<pre><code class="haskell">λ&gt; let tt3 f = f &lt;$&gt; bools &lt;*&gt; bools &lt;*&gt; bools
+tt3 :: (Bool -&gt; Bool -&gt; Bool -&gt; b) -&gt; [b]
+λ&gt; zipWith (\(a,b,c) d -&gt; (a,b,c,d)) (tt3 (,,)) (tt3 (\a b c -&gt; a &amp;&amp; b || c))
+[(False,False,False,False),(False,False,True,True),(False,True,False,False),(False,True,True,True),(True,False,False,False),(True,False,True,True),(True,True,False,True),(True,True,True,True)]
+</code></pre>
+
+<p>We can write something to format these nicely, but this was enough for me to get the information I wanted about a few expressions.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[StandaloneDeriving to fix forgetfulness in GHCi]]></title>
+    <link href="http://davesquared.net/2018/07/standalone-deriving-in-ghci.html"/>
+    <updated>2018-07-03T15:09:00+10:00</updated>
+    <id>http://davesquared.net/2018/07/standalone-deriving-in-ghci</id>
+    <content type="html"><![CDATA[<p>Quick reminder to Future Dave, as I'm going to assume he'll keep making the same mistake Past and Present Daves make.</p>
+
+<p>When switching between my editor and GHCi REPL to test stuff out I often forget to add a <code>deriving (Show, Eq)</code> or similar line to my data types. This normally occurs after I've just set up a bit of test data in the REPL, so if I just fix the data declaration and <code>:reload</code> GHCi then my setup will be lost. We can use the <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#stand-alone-deriving-declarations">StandaloneDeriving</a> GHC extension to help here.</p>
+
+<!-- more -->
+
+
+<p>The following example is me playing around with some parsing stuff and forgetting to make <code>ParseError</code> an instance of <code>Show</code> (so it won't print in the REPL), then using <code>:set -XStandaloneDeriving</code> to fix this:</p>
+
+<pre><code class="haskell">λ&gt; :set -XOverloadedStrings
+λ&gt; let kv = M.fromList [ ("hi" :: T.Text, "2011-01-02" :: T.Text), ("world" :: T.Text, "2014-05-07" :: T.Text) ]
+λ&gt; kv
+fromList [("hi","2011-01-02"),("world","2014-05-07")]
+λ&gt; let lookup k = (`tag` (KeyNotFound k)) . M.lookup k
+λ&gt; lookup "hi" kv
+
+&lt;interactive&gt;:94:1: error:
+    • No instance for (Show ParseError) arising from a use of ‘print’
+    • In a stmt of an interactive GHCi command: print it
+
+λ&gt; :set -XStandaloneDeriving
+λ&gt; deriving instance Show ParseError
+
+&lt;interactive&gt;:1:1: warning: [-Worphans]
+    Orphan instance: instance Show ParseError ...
+
+λ&gt; lookup "hi" kv
+Right "2011-01-02"
+</code></pre>
+
+<p>I've trimmed the orphan instance warning. In this case it should not be a problem as I'm just working around my forgetfulness. :)</p>
+
+<p>We can also use this in real <code>.hs</code> files if necessary via a language pragma (<code>{-# LANGUAGE StandaloneDeriving #-}</code>) as described <a href="https://stackoverflow.com/a/12852367/906">here</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A simple circuit, an Arduino, and Haskell]]></title>
+    <link href="http://davesquared.net/2014/08/simple-nodebot-haskell.html"/>
+    <updated>2014-08-12T23:45:00+10:00</updated>
+    <id>http://davesquared.net/2014/08/simple-nodebot-haskell</id>
+    <content type="html"><![CDATA[<p>I recently had loads of fun attending a <a href="http://nodebots.io/">Nodebots AU</a> event in Sydney. (Thanks a lot to <a href="https://twitter.com/DamonOehlman">Damon</a> and <a href="https://twitter.com/ajfisher">Andrew</a> for organising, and <a href="https://www.nicta.com.au/">NICTA</a> for the venue!) I got to muck around with some simple circuits and drive them with Javascript. Towards the end of the day I was running out of time and creativity to do anything fancy, so I decided to see if I could get one of the circuits working with Haskell.</p>
+
+<!-- more -->
+
+
+<h2>Nodebot prerequisites</h2>
+
+<p>I got a <a href="http://node-ardx.org/">Node ARDX kit</a> at the event, and followed the <a href="https://github.com/nodebotsau/nbdau/blob/master/setup.md">Nodebots AU setup guide</a> to get all the software bits and pieces.</p>
+
+<p>For Haskelling, I used my <a href="http://www.davesquared.net/2014/05/platformless-haskell.html">existing Haskell installation</a>, then created a new <code>cabal sandbox</code> and installed the <a href="http://hackage.haskell.org/package/hArduino">hArduino</a> package (v0.9) into it.</p>
+
+<h2>A simple circuit</h2>
+
+<p>Here's a simple circuit that includes a potentiometer and a bunch of LEDs. The idea is that as someone turns up the potentiometer, the number of LEDs switched on increases accordingly. (Yes, this may seem somewhat unimpressive, but as a complete newbie who managed to do this without blowing anything up, I'm calling it a win! :))</p>
+
+<div class="note">**DISCLAIMER:** While I somehow managed to avoid blowing anything up while attempting this, I don't know what I'm doing and so can't guarantee that this won't destroy anything you value. Use at your own risk! :)</div>
+
+
+<p><img src="/images/2014/potlights.png" alt="Arduino Uno with potentiometer connected to A5, and six LEDs (with 330Ω resistors) connected to pins 2-7.
+Image created with the open-source [Fritzing](http://fritzing.org/) app.
+[ [View full size] ](/images/2014/potlights-orig.png)" /></p>
+
+<h2>Haskellbot</h2>
+
+<p>So now I'm in my cabal sandbox and it's time to write some Haskell. Here's the main outline of the program (with some explanatory comments added).</p>
+
+<pre><code class="haskell">import Control.Applicative
+import Control.Monad (when)
+import Data.Foldable (for_)
+import System.Hardware.Arduino
+
+leds = digital &lt;$&gt; [2..7]             -- leds on digital pins 2 to 7
+pot = analog 5                        -- potentiometer on A5 
+setPin = flip setPinMode
+
+main :: IO()
+main =
+  withArduino False "/dev/cu.usbmodemfa131" $ do
+      for_ leds (setPin OUTPUT)       -- set each led pin as an output
+      setPin ANALOG pot               -- set potentiometer's pin as analog
+      run 0                           -- run with initial pot. value of 0
+  where
+    run cur = do
+      new &lt;- analogRead pot           -- read potentiometer's value
+      when (new /= cur) $ updateLeds new  -- if it has changed from current,
+                                          -- update the LEDs based on the new value
+      delay 250                       -- wait for a bit
+      run new                         -- continue main run loop
+</code></pre>
+
+<p>After the initialisation stuff, the main bit of the program is the run loop, which polls the potentiometer and updates the LEDs whenever the value changes.</p>
+
+<p>The <code>updateLeds</code> and related code looks like this:</p>
+
+<pre><code class="haskell ">updateLeds :: Int -&gt; Arduino ()
+updateLeds potVal =
+    for_ (zip leds [1..]) $
+        \(led, ledNum) -&gt; digitalWrite led (ledNum &lt;= maxLedNum)
+    where
+        maxLedNum = numLedsOn potVal
+
+numLedsOn :: Int -&gt; Int
+numLedsOn potVal = numLeds * potVal `div` maxPotVal
+    where
+        maxPotVal = 1023
+        numLeds   = length leds
+</code></pre>
+
+<p>The <code>updateLeds</code> function takes the potentiometer value and works out how many LEDs it needs to turn on based on the <code>numLedsOn</code> function. It then loops through each numbered LED and turns it on or off based on whether the <code>ledNum &lt;= maxLedNum</code> we need to switch on.<a href="The">^applicativeDigitalWrite</a></p>
+
+<p><code>numLedsOn</code> doesn't need to be a separate function like this, but I found it helped to be able to test my arithmetic independently of hardware. :) (We could also get away without specifying any types, but I find doing so makes it easier for me to read.)</p>
+
+<h2>Running this… er… 'masterpiece'</h2>
+
+<p>Rather than setup a build, I just ran <code>cabal repl</code> from my sandbox to get a GHCi with the <code>hArduino</code> package accessible, then loaded and ran the code:</p>
+
+<pre><code>ghci&gt; :load lights.hs
+ghci&gt; main
+</code></pre>
+
+<p>Now I could finally fulfill my life-long dream of adjusting LEDs using a twirly dial! Hooray! :)</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Haskell without the Haskell Platform]]></title>
+    <link href="http://davesquared.net/2014/05/platformless-haskell.html"/>
+    <updated>2014-05-10T20:00:00+10:00</updated>
+    <id>http://davesquared.net/2014/05/platformless-haskell</id>
+    <content type="html"><![CDATA[<p>Apparently it can be <a href="http://www.reddit.com/r/haskell/comments/23tj8y/haskellplatform_vs_ghccabal/ch0l784">a bit tricky to get some Haskell libraries working on Windows</a>, in which case the <a href="http://www.haskell.org/platform/">Haskell Platform</a> is a great way to get going with Haskell. For Mac and Linux the platform works too, but we can also just grab the latest GHC and Cabal (ooh, shiny!) and go from there.</p>
+
+<p><em><strong>UPDATE 2019-02:</strong> I tend to use <a href="https://github.com/haskell/ghcup">ghcup</a> on Mac and Linux these days. Am leaving these steps here as building GHC and Cabal is still a valid way of getting Haskell up and running.</em></p>
+
+<!-- more -->
+
+
+<p>This is how I got it working on my Mac, with loads of help from <a href="https://twitter.com/dom_dere">ddere</a> and <a href="https://twitter.com/bitemyapp">bitemyapp</a> on the <a href="https://twitter.com/bitemyapp/status/463119899640868865">#haskell-beginners channel on Freenode IRC</a>. It is reasonable to assume all mistakes in this write up are mine, while they deserve the credit for any useful bits.</p>
+
+<p>I've got XCode 5.1.1 installed, which I believe is a prerequisite (or at least the dev tools?). Other than that, grab a terminal and a browser, and we're set to go.</p>
+
+<h2>tl;dr</h2>
+
+<p><em><strong>UPDATE 2019-02:</strong> Check out <a href="https://github.com/haskell/ghcup">ghcup</a> for an easier way to get a platformless Haskell running on Mac or Linux. I've switched to using that to manage Haskell installations.</em></p>
+
+<p>Here's the summary if you want the steps without explanation:</p>
+
+<ul>
+<li>Grab the binary <a href="http://www.haskell.org/ghc/download">GHC distribution</a>, extract, <code>configure --prefix=&lt;my-dir&gt;</code>, <code>make install</code>, and add to PATH</li>
+<li>Grab the <a href="https://www.haskell.org/cabal/download.html">Cabal binary</a> and add it to the GHC <code>bin</code> directory</li>
+<li><code>cabal update; cabal install cabal cabal-install alex happy</code></li>
+<li>Add <code>~/.cabal/bin/</code> to PATH</li>
+<li>Build projects in a sandbox (<code>cabal sandbox init</code>)</li>
+<li>Build binaries in a sandbox and symlink or copy to <code>~/.cabal/bin</code>; or install directly into <code>~/.cabal</code> and <code>rm -rf ~/.ghc</code> if we ever get build conflicts. I'm doing the former.</li>
+</ul>
+
+
+<p>The rest of the post will go through the specific commands used, and explain some of the decisions you might need to make.</p>
+
+<h2>Installing GHC</h2>
+
+<ul>
+<li>Grab the latest <a href="http://www.haskell.org/ghc/download">binary distribution of GHC</a> and extract it somewhere (I used <code>~/dev/ghc-7.8.2</code>)</li>
+<li>Open a terminal and run <code>./configure --prefix=&lt;my-dir&gt;</code> from the extract directory. I used <code>./configure --prefix=/Users/dave/dev/ghc</code>.</li>
+<li><code>make install</code></li>
+<li>Next I added the GHC binaries to my PATH. That's <code>~/dev/ghc/bin</code> for me.</li>
+</ul>
+
+
+<p>We should now be able to run <code>ghc</code>, <code>ghci</code> and co. Success!</p>
+
+<h2>Bootstrap cabal-install binary</h2>
+
+<ul>
+<li>Grab the latest <a href="https://www.haskell.org/cabal/download.html">cabal-install binary</a>.</li>
+<li>Extract it and copy the <code>cabal</code> binary somewhere. I put mine in alongside my GHC binaries in <code>~/dev/ghc/bin</code> so it is on my PATH and I can quickly fallback to it if I nuke everything else but GHC.</li>
+<li>Run <code>cabal update</code> to initialise the package database.</li>
+</ul>
+
+
+<p>This will just be used to kick off our cabal-ing. Afterwards we'll be managing cabal with cabal (for that nice recursive touch).</p>
+
+<h2>Final bits and pieces</h2>
+
+<p>We're now going to build and install some final bits and pieces into Cabal's user-db (stored in <code>~/.cabal/</code>).</p>
+
+<pre><code>% cabal install cabal cabal-install alex happy
+</code></pre>
+
+<p>Next up I adjusted my PATH to make sure binaries are loaded from <code>~/.cabal/bin</code> first^[We've now installed a verion of the <code>cabal</code> binary into <code>~/.cabal/bin</code>. By putting that into our PATH first we'll always use the latest version for our builds. If we lose our <code>~/.cabal</code> for some reason then we can fall back to the one we put into the <code>ghc</code> folder earlier.]. My PATH now looks like this:</p>
+
+<pre><code>export PATH=~/.cabal/bin:~/dev/ghc/bin:(non-haskell stuff)
+</code></pre>
+
+<h2>New projects</h2>
+
+<p>We should now have everything we need to build Haskell projects. For projects we'll run all our <code>cabal install</code> commands within a sandbox.</p>
+
+<pre><code>% mkdir myNewProj
+% cd myNewProj
+% cabal sandbox init
+% cabal init
+-- insert joyous haskelling here --
+</code></pre>
+
+<h2>Moar binaries!</h2>
+
+<p>Sometimes we'd like to use <code>cabal</code> to install some binaries like <code>hlint</code>, <code>hoogle</code> or <code>pointfree</code>. I've heard a few schools of thought on this.</p>
+
+<h3>Sandboxed builds</h3>
+
+<p>Here is what I've found works reasonably well for me. I've created a directory <code>~/dev/hs/</code> to build these utilities in. From there:</p>
+
+<pre><code>~/dev/hs/ % mkdir hlint
+~/dev/hs/ % cd hlint
+~/dev/hs/hlint % cabal sandbox init
+~/dev/hs/hlint % cabal install hlint
+~/dev/hs/hlint % ln -s "$(pwd)/.cabal-sandbox/bin/hlint" ~/.cabal/bin/
+</code></pre>
+
+<p>This builds gives us a fresh <code>hlint</code> binary and creates a symbolic link to it in the <code>.cabal/bin</code> directory (i.e. somewhere on my PATH). Sometimes I'll copy instead of symlink.</p>
+
+<p>The good thing about this is if I need to use specific versions of a particular dependent library for a build I can <code>cabal install</code> it without worrying about it affecting other builds outside the sandbox.</p>
+
+<p>The catch is some libraries also link against static assets that get put in <code>$(pwd)/.cabal-sandbox/share</code>, which means if we move or delete this sandbox that binary will stop working.</p>
+
+<h3>In user-db</h3>
+
+<p>The other approach is to <code>cabal install</code> the utility outside of a sandbox. This means all docs and static assets go into a safe location (<code>~/.cabal</code>), but on the downside we'll sometimes get build failures due to library version conflicts.</p>
+
+<p>In these cases we need to delete everything in <code>~/.ghc</code> and try again. I have it on good authority from several sources that this is no problem. All our binaries in <code>~/.cabal</code> should still work, it just means next <code>cabal install</code> won't rely on cached library builds.</p>
+
+<p>Still, I feel more comfortable with the <a href="#sandboxed-builds">sandboxed build</a> approach (almost definitely because I don't fully understand what's going on behind the scenes).</p>
+
+<h3>Pandoc example</h3>
+
+<p>At the time of writing I had some trouble building the wonderful <a href="http://johnmacfarlane.net/pandoc/">Pandoc</a> library due to a change in a dependent library. Pandoc is a library that relies on statically linked assets by default which was <a href="#sandboxed-builds">mentioned in the sandboxed builds</a> section as a possible problem. Thankfully it provides a build option to embed these assets.</p>
+
+<pre><code>% cd ~/dev/hs
+% mkdir pandoc
+% cd pandoc
+% cabal sandbox init
+% cabal install exceptions-0.4
+% cabal install hsb2hs
+% cabal install pandoc -fembed_data_files
+% cp "$(pwd)/.cabal-sandbox/bin/" ~/.cabal/bin/
+</code></pre>
+
+<p>Installing a specific version of <code>exceptions-0.4</code> fixed the build problem, while passing the <code>-fembed_data_files</code> option to the Pandoc build embeds the static assets so we can move the binary and delete the sandbox without breaking Pandoc.</p>
+
+<p>Thanks to <a href="https://twitter.com/cartazio">Carter</a> for telling me which version of <code>exceptions</code> I needed, and about <code>-fembed_data_files</code> for Pandoc.</p>
+
+<h2>Request for corrections</h2>
+
+<p>This seems to be working ok for me, but if you can see any problems with this approach or can suggest any improvements please let me know and I'll update the post.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Terminal IO example in Haskell]]></title>
+    <link href="http://davesquared.net/2013/11/terminal-io-example-in-haskell.html"/>
+    <updated>2013-11-11T20:30:00+11:00</updated>
+    <id>http://davesquared.net/2013/11/terminal-io-example-in-haskell</id>
+    <content type="html"><![CDATA[<p><a href="/2013/11/freedom-from-side-effects-fsharp.html">Last post</a> we looked at using a less general form of the Free monad to purely represent side-effects in F#. Because Haskell supports higher-order polymorphism it makes using this approach much easier. Here is the complete example from that post, rewritten in Haskell:</p>
+
+<!-- more -->
+
+
+<pre><code class="haskell">{-# LANGUAGE DeriveFunctor #-}
+import Control.Monad.Free
+
+data Terminal a =
+    WriteLine String a
+    | ReadLine (String -&gt; a)
+    deriving (Functor)
+
+writeLine :: String -&gt; Free Terminal ()
+writeLine s = liftF $ WriteLine s ()
+readLine :: Free Terminal String
+readLine = liftF $ ReadLine id
+
+helloWorld :: Free Terminal ()
+helloWorld = do
+    writeLine "Hi, what's your name?"
+    name &lt;- readLine
+    writeLine $ "Hello " ++ name
+
+interpretIO :: Free Terminal a -&gt; IO a
+interpretIO (Free (WriteLine s a)) = putStrLn s &gt;&gt; interpretIO a
+interpretIO (Free (ReadLine f)) = getLine &gt;&gt;= interpretIO . f
+interpretIO (Pure a) = return a
+</code></pre>
+
+<p>This is using <code>Free</code> and <code>liftF</code> from <a href="http://hackage.haskell.org/package/free">Control.Monad.Free</a>, but for the sake of equivalence with the F# example, here's a definition that can be used in place of the <code>import Control.Monad.Free</code> line in the above code.</p>
+
+<pre><code class="haskell">data Free f a = Pure a | Free (f (Free f a))
+instance Functor f =&gt; Monad (Free f) where
+    return = Pure
+    (Pure a) &gt;&gt;= f = f a
+    (Free fr) &gt;&gt;= f = Free (fmap (&gt;&gt;= f) fr)
+
+liftF :: Functor f =&gt; f a -&gt; Free f a
+liftF =  Free . fmap Pure
+</code></pre>
+]]></content>
+  </entry>
+  
+</feed>

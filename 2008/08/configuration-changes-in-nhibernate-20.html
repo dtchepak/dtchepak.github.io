@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Configuration changes in NHibernate 2.0 - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I downloaded NHibernate 2.0 today and started to play around with it, only to be greeted by a host of configuration errors like System. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Configuration changes in NHibernate 2.0</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-08-25T16:33:00+10:00" pubdate data-updated="true">25 Aug 2008</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I downloaded <a href="http://ayende.com/Blog/archive/2008/08/23/NHibernate-2.0-Final-is-out.aspx">NHibernate 2.0</a> today and started to play around with it, only to be greeted by a host of configuration errors like <code>System.InvalidOperationException : Could not find the dialect in the configuration</code>. It was then I remembered reading somewhere about some changes to the configuration syntax, so I downloaded the source and looked at the examples (after a brief, ill-fated search for NHibernate 2.0-specific documentation*).</p>
+
+<div class="note">* <b>Update 2008-08-26</b>: Fabio has published a <a href="http://knol.google.com/k/fabio-maulo/nhibernate/1nr4enxv3dpeq/21">knol on NH2.0</a>. <a href="http://knol.google.com/k/fabio-maulo/nhibernate-chapter-3">Chapter 3 covers configuration.</a></div>
+
+<p>Here is an example of how an <code>App.config</code> looked for NHibernate 1.2:</p>
+
+<pre>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name=&quot;nhibernate&quot; type=&quot;System.Configuration.NameValueSectionHandler, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089&quot; /&gt;
+  &lt;/configSections&gt;
+  &lt;nhibernate&gt;
+    &lt;add key=&quot;hibernate.connection.provider&quot; value=&quot;NHibernate.Connection.DriverConnectionProvider&quot; /&gt;
+    &lt;add key=&quot;hibernate.dialect&quot; value=&quot;NHibernate.Dialect.MsSql2005Dialect&quot; /&gt;
+    &lt;add key=&quot;hibernate.connection.driver_class&quot; value=&quot;NHibernate.Driver.SqlClientDriver&quot; /&gt;
+    &lt;add key=&quot;hibernate.connection.connection_string&quot; value=&quot;Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=DbWorkshop;Integrated Security=True&quot; /&gt;
+  &lt;/nhibernate&gt;
+&lt;/configuration&gt;
+</pre>
+
+<p>And here is the equivalent for version 2.0:</p>
+<pre>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name=&quot;<b>hibernate-configuration</b>&quot; type=&quot;<b>NHibernate.Cfg.ConfigurationSectionHandler, NHibernate</b>&quot; /&gt;
+  &lt;/configSections&gt;
+  &lt;<b>hibernate-configuration</b> xmlns=&quot;urn:nhibernate-configuration-2.2&quot;&gt;
+    <b>&lt;session-factory&gt;</b>
+      &lt;<b>property</b> name=&quot;<b>connection.provider</b>&quot;&gt;NHibernate.Connection.DriverConnectionProvider&lt;/property&gt;
+      &lt;property name=&quot;dialect&quot;&gt;NHibernate.Dialect.MsSql2005Dialect&lt;/property&gt;
+      &lt;property name=&quot;connection.driver_class&quot;&gt;NHibernate.Driver.SqlClientDriver&lt;/property&gt;
+      &lt;property name=&quot;connection.connection_string&quot;&gt;Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=DbWorkshop;Integrated Security=True&lt;/property&gt;
+    <b>&lt;/session-factory&gt;</b>
+  &lt;/hibernate-configuration&gt;
+&lt;/configuration&gt;
+</pre>
+
+<p>The main changes are:</p>
+<ul>
+<li>We aren&#8217;t using an <code>nhibernate</code> configuration section, it&#8217;s <code>hibernate-configuration</code> now (yay for more typing! :P).</li>
+<li>We now have a <code>session-factory</code> child node for adding the configuration properties.</li>
+<li>We aren&#8217;t adding properties using the <code>&lt;add key=&quot;...&quot; value=&quot;...&quot; /&gt;</code> syntax. Instead we are using <code>&lt;property name=&quot;...&quot;&gt;(property value)&lt;/property&gt;</code>.</li>
+<li>The property names aren&#8217;t prefixed by &quot;hibernate&quot; anymore, so &quot;hibernate.connection.provider&quot; becomes &quot;connection.provider&quot;.</li></ul>
+
+<p>Moral of the story is to check the source first &#8211; the NHibernate.Examples folder is filled with helpful goodies. :) Svend Tofte also has a helpful post on <a href="http://www.svendtofte.com/serverside/setting-up-nhibernate-20/">setting up NHibernate 2.0</a>.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-08-26T09:51:21+10:00" class="updated">Updated 26 Aug 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/nhibernate/'>nhibernate</a>, <a class='category' href='/categories/orm/'>orm</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html" data-via="" data-counturl="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2008/07/why-cant-i-access-static-members-from.html" title="Previous Post: Why can't I access static members from instances using C#?">&laquo; Why can't I access static members from instances using C#?</a>
+      
+      
+        <a class="basic-alignment right" href="/2008/08/rhino-mocks-and-multidimensional-arrays.html" title="next Post: Rhino Mocks and multidimensional arrays">Rhino Mocks and multidimensional arrays &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html';
+        var disqus_url = 'http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

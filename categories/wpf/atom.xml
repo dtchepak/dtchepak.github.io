@@ -1,0 +1,1139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: wpf | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/wpf/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[WPF newbie and ContentPresenter solve the case of the disappearing content]]></title>
+    <link href="http://davesquared.net/2010/05/wpf-newbie-and-contentpresenter-solve.html"/>
+    <updated>2010-05-20T23:00:00+10:00</updated>
+    <id>http://davesquared.net/2010/05/wpf-newbie-and-contentpresenter-solve</id>
+    <content type="html"><![CDATA[<p>This cost me a bit of time (and 9'59&quot; of our UX Designer's time) a few weeks back. My aim was very simple: write a WPF <code><a href="http://msdn.microsoft.com/en-us/magazine/cc163497.aspx">ControlTemplate</a></code> that I could apply to certain controls and decorate their existing content. &quot;Easy&quot;, thought WPF newbie, &quot;I'll use a <code>ContentPresenter</code>!&quot;</p>
+
+
+
+
+<p>My understanding of <code>ContentPresenter</code> at the time was that it dumps whatever is in the control's content into that section of the template. So if I have something like this:</p>
+
+
+
+
+<pre>
+&lt;Button Template=&quot;{StaticResource FancyTemplate}&quot;&gt;Hello&lt;/Button&gt;
+&lt;Button Template=&quot;{StaticResource FancyTemplate}&quot;&gt;World&lt;/Button&gt;
+</pre>
+
+
+
+
+<p>With this template in the resource dictionary (except preferably something pretty):</p>
+
+
+
+
+<pre>
+&lt;ControlTemplate x:Key=&quot;FancyTemplate&quot;&gt;            
+    &lt;Grid Background=&quot;{StaticResource FancyBackground}&quot; Margin=&quot;10&quot;&gt;
+        &lt;ContentPresenter /&gt;
+    &lt;/Grid&gt;            
+&lt;/ControlTemplate&gt;
+</pre>
+
+
+
+
+<p>I expected to see something like this:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-ContentTemplate_Buttons.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://davesquared.net/images/fromblogger/s1600-ContentTemplate_Buttons.png" /></a></div>
+
+
+
+
+<p>But got this:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-ContentTemplate_Buttons_Fail.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="http://davesquared.net/images/fromblogger/s1600-ContentTemplate_Buttons_Fail.png" /></a></div>
+
+
+
+
+<p>That's right -- nothing. Nada. Zilch. No content. Not so much as a vague hint of the ghastly template I so thoughtlessly dumped into this post.</p>
+
+
+
+
+<p>So it turns out that <code>ContentPresenter</code> needs a little more information to be able to do its work. The easiest way to fix this was to set the <code>TargetType</code> on the template so our <code>ContentPresenter</code> knows what &quot;content&quot; is:</p>
+
+
+
+
+<pre>
+&lt;ControlTemplate x:Key=&quot;FancyTemplate&quot; <b>TargetType=&quot;Button&quot;</b>&gt;            
+    &lt;Grid Background=&quot;{StaticResource FancyBackground}&quot; Margin=&quot;10&quot;&gt;
+        &lt;ContentPresenter /&gt;
+    &lt;/Grid&gt;            
+&lt;/ControlTemplate&gt;
+</pre>
+
+
+
+
+<p>The other option is to explicitly specify the property from which the <code>ContentPresenter</code> will get the content, using <code>TemplateBinding</code>:</p>
+
+
+
+
+<pre>
+&lt;ControlTemplate x:Key=&quot;FancyTemplate&quot;&gt;            
+    &lt;Grid Background=&quot;{StaticResource FancyBackground}&quot; Margin=&quot;10&quot;&gt;
+        &lt;ContentPresenter <b>Content=&quot;{TemplateBinding Property=ContentControl.Content}&quot</b> ;/&gt;
+    &lt;/Grid&gt;            
+&lt;/ControlTemplate&gt;
+</pre>
+
+
+
+
+<p>Both of these options work fine. Hope this saves someone a bit of time.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A WPF newbie battles the StackPanel]]></title>
+    <link href="http://davesquared.net/2010/03/wpf-newbie-battles-stackpanel.html"/>
+    <updated>2010-03-23T23:30:00+11:00</updated>
+    <id>http://davesquared.net/2010/03/wpf-newbie-battles-stackpanel</id>
+    <content type="html"><![CDATA[<p>I had a number of prospective titles dreamed up for this post, including:</p>
+
+
+
+
+<ul>
+<li>I fought the StackPanel and the StackPanel won</li>
+<li>StackPanel: you keep using that word. I do not think it means what you think it means</li>
+<li>Why the !@#$ isn't my TextBox scrollbar appearing?</li>
+<li>Everytime you use a StackPanel the CLR drowns a kitten</li>
+<li>Pure evil and StackPanels: BFFs</li>
+</ul>
+
+
+
+
+<p>In the end, I decided to curb my hatred for this loathesome WPF control, and simply continue along the same vein as my previous <a href="http://davesquared.net/2010/03/wpf-newbie-styles-listbox.html">WPF newbie</a> post. After all, StackPanels don't <i>really</i> kill kittens; VB programmers do. (joking! Unless there are no VB coders reading... ;) :P)</p>
+
+
+
+
+<h2>An innocent request</h2>
+
+
+
+
+<p>I only wanted to do something really simple. I didn't think I was being at all demanding. I just wanted a <code>TextBox</code> with a scrollbar. This had always just worked for me before. To see what I mean, let's start a new WPF project and create a new WPF Window XAML file. We'll just whack in a <code>TextBox</code> with vertical scroll bar enabled and bask in the XAMLily glory of WPF:</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;WpfApplication1.MainWindow&quot; 
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;MainWindow&quot; Height=&quot;350&quot; Width=&quot;525&quot;&gt;
+    &lt;TextBox VerticalScrollBarVisibility=&quot;Auto&quot; AcceptsReturn=&quot;True&quot; /&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-textbox_resizing.PNG" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="300" src="http://davesquared.net/images/fromblogger/s320-textbox_resizing.PNG" width="320" /></a></div>
+
+
+
+
+<p>You can see that as I resize the window, our <code>TextBox</code> resizes to fit the area, and the scrollbar appears as required.</p>
+
+
+
+
+<p>Now we want to add a simple label on top. We don't need a <code>Grid</code> for this right? We just want to <i>stack</i> a <code>Label</code> or <code>TextBlock</code> on top of our <code>TextBox</code>. Stack, huh? This handy <code>StackPanel</code> thing should be just what we need! There's absolutely no way this will be able to waste the better part of our day...</p>
+
+
+
+
+<h2>The problem</h2>
+
+
+
+
+<pre>
+&lt;!-- Window cruft omitted --&gt;
+&lt;StackPanel Orientation=&quot;Vertical&quot;&gt;
+    &lt;TextBlock&gt;Enter stuff in here:&lt;/TextBlock&gt;
+    &lt;TextBox VerticalScrollBarVisibility=&quot;Auto&quot; AcceptsReturn=&quot;True&quot; /&gt;
+&lt;/StackPanel&gt;
+</pre>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-textbox_in_stackpanel.PNG" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-textbox_in_stackpanel.PNG" width="320" /></a></div>
+
+
+
+
+<p>After running this the first thing we notice is that without text in it, our <code>TextBox</code> does not fill up all the remaining space in the window. When we paste in a chunk of text the box resizes to fit it in, but what happens when we try and resize the window? Hey, where's our scrollbar?!?!</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-dudeWheresMyScrollbar.PNG" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="163" src="http://davesquared.net/images/fromblogger/s320-dudeWheresMyScrollbar.PNG" width="320" /></a></div>
+
+
+
+
+<h2>StackPanel size</h2>
+
+
+
+
+<p>I have read up a number of times on how WPF layout passes work. I have also promptly forgotten this information each time I've read it. So if you want to know the real reason for this behaviour then it would be a great idea to read up on this from a reliable source. If instead you want to get a vague idea from the ignoramous pounding dumbly away on the keyboard to bring you this post, then read on! :)</p>
+
+
+
+
+<p>As I understand it the problem is the <code>StackPanel</code> (delightful little control that it is) is happy to expand indefinitely in whatever direction it is oriented. In the case of our vertically aligned panel, the child controls will fill out to the horizontal size of the <code>StackPanel</code>, but the <code>StackPanel</code> will not constrain their vertical size.</p>
+
+
+
+
+<p>Instead the vertical size of the child controls will be determined by their own contents, rather than using height available to the parent panel. The minimum height of the <code>StackPanel</code> will in turn be determined by the heights of its child controls. When the <code>StackPanel</code> is rendered within the space available from its parent, any overflow will be clipped, rather than the <code>StackPanel</code> resizing and passing on its size to its children.</p>
+
+
+
+
+<p>In our case, this means that when we resize the window, our <code>StackPanel</code> and its children will keep their actual heights and the overflow (like half our <code>TextBox</code>) will get clipped. The <code>TextBox</code> can't know to display a scrollbar, because it is still the same height: a height which has expanded to fit its contents. (You can see this in action if you <a href="http://snoopwpf.codeplex.com/">Snoop</a> the actual height of the <code>StackPanel</code> and its parent as you resize the window.)</p>
+
+
+
+
+<div class="note"><b>Note: </b> Before you suggest trying to set <code>VerticalAlignment</code> or <code>VerticalContentAlignment</code> to stretch somewhere in the hierarchy, forget it. The <code>StackPanel</code> will keep expanding indefinitely, so you can't stretch its child controls to take up all the available space. Learning that took several hours of setting everything I could find to stretch. (It was a more complex example, I should have tried a minimal case like this one over trial and error. :-\)</div>
+
+
+
+
+<h2>Ditching the StackPanel</h2>
+
+
+
+
+<p>One way to semi-fix this is to wrap our <code>StackPanel</code> in a <code>ScrollViewer</code> control:</p>
+
+
+
+
+<pre>
+&lt;ScrollViewer VerticalScrollBarVisibility=&quot;Auto&quot;&gt;
+  &lt;StackPanel ... /&gt;
+&lt;/ScrollViewer&gt;  
+</pre>
+
+
+
+
+<p>The <code>ScrollViewer</code> will try and cover-up the <code>StackPanel</code>'s refusal to resize by scrolling the <code>StackPanel</code> and its contents instead of clipping the overflow. This doesn't work that well in our case, as it will also scroll our "Enter stuff in here:" prompt that is within the <code>StackPanel</code>.</p>
+
+
+
+
+<p>The other solution is to use a decent layout container instead:</p>
+
+
+
+
+<pre>
+&lt;Grid&gt;
+    &lt;Grid.RowDefinitions&gt;
+        &lt;RowDefinition Height=&quot;Auto&quot;/&gt;
+        &lt;RowDefinition Height=&quot;*&quot; /&gt;
+    &lt;/Grid.RowDefinitions&gt;        
+    &lt;TextBlock Grid.Row=&quot;0&quot;&gt;Enter stuff in here:&lt;/TextBlock&gt;
+    &lt;TextBox Grid.Row=&quot;1&quot; VerticalScrollBarVisibility=&quot;Auto&quot; AcceptsReturn=&quot;True&quot; /&gt;
+&lt;/Grid&gt;
+</pre>
+
+
+
+
+<p>Sure, it's a bit more work to use a <code>Grid</code>, but it has the added advantage of working. :) Our first row definition is set to automatically determine the height (which will use the height of the row contents), while the second definition uses a star (*), which tells the grid we want to use whatever height is available for this row.</p>
+
+
+
+
+<div class="note"><b>Note: </b> There is lots more you can do with <code>Grid</code> row and column sizing., such as proportionally distributing available space between rows and columns. But for this example, the explanation above is close enough to correct.</div>
+
+
+
+
+<p>And now everything works as expected:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-happiness_is_a_vertical_scrollbar.PNG" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="121" src="http://davesquared.net/images/fromblogger/s320-happiness_is_a_vertical_scrollbar.PNG" width="320" /></a></div>
+
+
+
+
+<div class="note"><b>Update: </b> <a href="http://kevin-berridge.blogspot.com/">Kevin Berridge</a> wrote in to note that <a href="http://davesquared.net/2010/03/wpf-newbie-battles-stackpanel.html?showComment=1269351754877#c8207778472298731109">a <code>DockPanel</code> will work here too</a>. And he is quite right. The reason I'm using a <code>Grid</code> is I want to get <code>StackPanel</code>-like ability to stack any number of items. The example presented here is a simplified version of the problem I encountered which had 7 stacked controls, each containing 2 other stacked controls. For this case I used a <code>DockPanel</code> for the inner 2 controls, and a <code>Grid</code> for the 7 outer controls. The important thing here is that regardless of what container you choose, just make sure it's not a <code>StackPanel</code>! ;)</div>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>The <code>StackPanel</code> isn't really evil; it's just fairly useless for the layout I was trying to achieve. In fact, I'd go so far to say that in many (most?) cases it is pretty useless (how often will you want your controls to clip?).</p>
+
+
+
+
+<p>From now on my default choice for stacked layouts will be a <code>Grid</code> with a single row or column. I find the cell assignments (<code>Grid.Row=&quot;0&quot;</code>) to be annoying noise, but at least I know my contents should generally resize sensibly.</p>
+
+
+
+
+<p>Funny thing was that I had come across this months ago when first spiking a WPF application, but it took almost a day of battling the <code>StackPanel</code> again today before I remembered it. This time I'm blogging it to make sure it sticks! :) </p>
+
+
+
+
+<p>Hope this spares you from experiencing the same pain. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A WPF newbie styles a ListBox]]></title>
+    <link href="http://davesquared.net/2010/03/wpf-newbie-styles-listbox.html"/>
+    <updated>2010-03-02T23:41:00+11:00</updated>
+    <id>http://davesquared.net/2010/03/wpf-newbie-styles-listbox</id>
+    <content type="html"><![CDATA[<p>Hi, I'm Dave, and I'm a WPF newbie. In this post I jump headlong into the exciting world of styling a WPF ListBox, coming face to face with creatures such as templates, styles, brushes and resources.</p>
+
+
+
+
+<p>The aim of this exercise is to display some widgets that the user can select. A widget has both a <code>Name</code> and a <code>Quantity</code>. I've got a <code>WidgetListViewModel</code> with a public <code>ObservableCollection&lt;Widget&gt;</code> property called <code>Widgets</code> that our view will bind to. If you're not familiar with the basics of MVVM, you can get a quick introduction from <a href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html">my attempt at simple MVVM with WPF</a>. </p>
+
+
+
+
+<h2>Simple data-binding</h2>
+
+
+
+
+<p>Let's start with our basic view, <code>WidgetListView.xaml</code>:</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;DaveSquared.StylingListBox.WidgetListView&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;Widgets&quot; Height=&quot;350&quot; Width=&quot;525&quot;&gt;
+    <b>&lt;ListBox ItemsSource=&quot;{Binding Widgets}&quot;/&gt;</b>
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<p>Here we are setting the <code>ItemsSource</code> of our ListBox to bind to something called <code>Widgets</code>. WPF works out what to do with this by search this control's <code>DataContext</code> for a public property with the same name. If it can't find it, it will check the control's parent, parent's parent etc. until it urns out of parents or finds the property to bind to. In this case I've set the <code>DataContext</code> of our window to our view model in the codebehind, <code>WidgetListView.xaml.cs</code>:</p>
+
+
+
+
+<pre class="brush:csharp">
+public partial class WidgetListView : Window {
+    public WidgetListView(WidgetListViewModel viewModel) {
+        InitializeComponent();
+        DataContext = viewModel;
+    }
+}
+</pre>
+
+
+
+
+<p>As this view model has a <code>Widgets</code> property, the binding resolves correctly and we get a not-so-useful list of type names:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-DefaultBinding.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-DefaultBinding.png" width="320" /></a></div>
+
+
+
+
+<p>By default, the binding process will just call <code>ToString()</code> on each object. As my <code>Widget</code> class doesn't implement <code>ToString()</code> we get the default behaviour from <code>Object</code>, which is just the type name. We can fix this by telling our binding to use a specific member for each item. Let's try using the <code>Name</code> property on each widget.</p>
+
+
+
+
+<pre>
+&lt;ListBox ItemsSource=&quot;{Binding Widgets}&quot; <b>DisplayMemberPath=&quot;Name&quot;</b> /&gt;
+</pre>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-DisplayMemberPath.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-DisplayMemberPath.png" width="320" /></a></div>
+
+
+
+
+<h2>Displaying more information using DataTemplates</h2>
+
+
+
+
+<p>We can now see the name of each widget, but say we also want to display the quantity. One way of doing this is to specify a <code>DataTemplate</code>. We can put this directly in our ListBox using <code>ListBox.ItemTemplate</code> (which we'll see in the final example), but for now let's look at how to do this using a <code>DataType</code>-specific template.</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;DaveSquared.StylingListBox.WidgetListView&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot; 
+        <b>xmlns:local=&quot;clr-namespace:DaveSquared.StylingListBox&quot;</b> 
+        Title=&quot;Widgets&quot; Height=&quot;350&quot; Width=&quot;525&quot;&gt;
+    &lt;Window.Resources&gt;
+        &lt;DataTemplate <b>DataType=&quot;{x:Type local:Widget}&quot;</b>&gt;
+            &lt;Border CornerRadius=&quot;10&quot; BorderBrush=&quot;Black&quot; BorderThickness=&quot;1&quot; Margin=&quot;1&quot;&gt;
+                &lt;StackPanel Orientation=&quot;Horizontal&quot;&gt;
+                    &lt;Label Content=&quot;{Binding Name}&quot; /&gt;
+                    &lt;Label Content=&quot;{Binding Quantity}&quot; /&gt;
+                &lt;/StackPanel&gt;
+            &lt;/Border&gt;
+        &lt;/DataTemplate&gt;
+    &lt;/Window.Resources&gt;
+    &lt;ListBox ItemsSource=&quot;{Binding Widgets}&quot; HorizontalContentAlignment=&quot;Stretch&quot; /&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<p><a href="http://msdn.microsoft.com/en-us/library/ms750613.aspx">Resources</a> are a way to resuse different elements within WPF. In this case we are adding a <code>DataTemplate</code> to our <code>Window.Resources</code> resource dictionary, so this template can be reused in many places around the window. In this case it isn't too useful, but it does give some separation between the layout of our main UI elements (our ListBox), and the specific rendering used for it.</p>
+
+
+
+
+<p>When we run the application, we see each widget rendered with its name and quantity, surrounded by a cheesy looking border:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-StyledDataTemplate.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-StyledDataTemplate.png" width="320" /></a></div>
+
+
+
+
+<p>So how does this work? The ListBox doesn't have any specific attributes linking it to our <code>DataTemplate</code>. On the template itself however is a <code>DataType</code> attribute that has a cryptic <code>{x:Type local:Widget}</code> value. This is telling WPF that we want this template to be used whenever rendering a bound object of type <code>Widget</code>. The <code>x:Type</code> string tells WPF the attribute is referring to a type (sort of like XAML's equivalent of <code>typeof</code>). The <code>local:</code> prefix also looks a bit odd. If you check the <code>Window</code> node you'll see an <code>xmlns:local</code> attribute that has a value of <code>&quot;clr-namespace:DaveSquared.StylingListBox&quot;</code>. This is mapping the namespace of my project into XAML, so <code>local:Widget</code> resolves to the <code>DaveSquared.StylingListBox.Widget</code> type.</p>
+
+
+
+
+<p>So each widget ends up getting its border, and two labels arranges horizontally thanks to a <code>StackPanel</code>. We've also had to add a <code>HorizontalContentAlignment=&quot;Stretch&quot;</code> attribute to our listbox, other wise each listbox item would be a different width depending on its name's length. Telling the listbox to stretch its items horizontally makes each item take up the full width of the listbox. We didn't need to worry about this before as we didn't have a border to make the width obvious.</p>
+
+
+
+
+<h2>Adding a touch of style</h2>
+
+
+
+
+<p>There's a few interesting things happening with our current code. First, the highlighting of the selected item does not take any notice of our border, so it just highlights the entire item, which looks a bit strange. The second thing to notice is that we are mixing data-binding specific markup (binding to our name and quantity properties) with more general presentation concerns (putting rounded borders around items). Let's look at fixing the second issue, as it will end up helping us with the first.</p>
+
+
+
+
+<p>Now rounded borders don't have any relation to widgets; we could easily imagine having sprockets or doodads displayed with rounded borders. So let's separate the widget-specific markup from our general item style. Let's see the XAML first, then we'll step through it.</p>
+
+
+
+
+<pre>
+    &lt;Window.Resources&gt;
+        &lt;Style <b>x:Key=&quot;RoundedItem&quot; TargetType=&quot;ListBoxItem&quot;</b>&gt;
+            &lt;Setter <b>Property=&quot;Template&quot;</b>&gt;
+                &lt;Setter.Value&gt;
+                    &lt;ControlTemplate TargetType=&quot;ListBoxItem&quot;&gt;
+                        &lt;Border CornerRadius=&quot;10&quot; BorderBrush=&quot;Black&quot; BorderThickness=&quot;1&quot; Margin=&quot;1&quot;&gt;
+                            <b>&lt;ContentPresenter /&gt;</b>
+                        &lt;/Border&gt;
+                    &lt;/ControlTemplate&gt;
+                &lt;/Setter.Value&gt;
+            &lt;/Setter&gt;
+        &lt;/Style&gt;
+        &lt;DataTemplate DataType=&quot;{x:Type local:Widget}&quot;&gt;
+            &lt;StackPanel Orientation=&quot;Horizontal&quot;&gt;
+                &lt;Label Content=&quot;{Binding Name}&quot; /&gt;
+                &lt;Label Content=&quot;{Binding Quantity}&quot; /&gt;
+            &lt;/StackPanel&gt;
+        &lt;/DataTemplate&gt;
+    &lt;/Window.Resources&gt;
+    &lt;ListBox ItemsSource=&quot;{Binding Widgets}&quot; <b>ItemContainerStyle=&quot;{StaticResource RoundedItem}&quot;</b> HorizontalContentAlignment=&quot;Stretch&quot; /&gt;
+</pre>
+
+
+
+
+<p>Here we've moved the non-binding specific markup from our <code>DataTemplate</code> into a <code>Style</code>. We've given it a key so we can refer to it by the string &quot;RoundedItem&quot;, and set a target type so it can be applied to any <code>ListBoxItem</code>. If we don't set a target type, then we won't be able to access any <code>ListBoxItem</code> specific properties.</p>
+
+
+
+
+<div class="note"><b>Aside:</b> We don't have to do the whole <code>{x:Type}</code> thing to refer to ListBoxItem. I'm not sure why, but it is probably something to do with it being a built-in WPF type. Maybe the type converter automatically searches built-in types.</div>
+
+
+
+
+<p>Our <code>RoundedItem</code> style is going to set the <code>Template</code> property of the styled ListboxItem to be the <code>ControlTemplate</code> we specify, which is just our cheesy rounded border. Inside the border element is a <code>&lt;ContentPresenter /&gt;</code> node. This is going to render our item with whatever template is applied to the contents. In our case, this is our existing <code>DataTemplate</code>, which now just contains the widget-specific binding markup. The style is being applied to the ListBoxItem container, whereas the template is being applied to the bound widget. They are linked by the <code>ContentPresenter</code> element in the style.</p>
+
+
+
+
+<p>To apply this we just add a <code>ItemContainerStyle=&quot;{StaticResource RoundedItem}&quot;</code> attribute to our ListBox. (Note: <code>ListBox.Style</code> will apply to the listbox itself, whereas <code>ListBox.ItemContainerStyle</code> is the style used for each ListBoxItem.) The <code>{StaticResource}</code> value tells WPF to try and find the named resource in its various resource dictionaries (similar to how <code>DataContext</code> is searched for binding). WPF also has a <code>{DynamicResource}</code> which is used for resources that can change, and so need to be reevaluated throughout the life of the control. As our resources for this example are static we won't need that here.</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-ContentTemplate.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-ContentTemplate.png" width="320" /></a></div>
+
+
+
+
+<p>Our app looks the same until we try to select an item and find that it does not get hightlighted. This is because we've overriden the ListBoxItem template that previously did this for us. Luckily we are now in a good position to not only restore the highlighting, but also fix it so it only highlights within the border of the item.</p>
+
+
+
+
+<h2>Triggers</h2>
+
+
+
+
+<p>To reinstate the highlighting, we can add a trigger to our <code>ControlTemplate</code> in our <code>RoundedItem</code> style to update our item when a particular property changes.</p>
+
+
+
+
+<pre>
+&lt;ControlTemplate TargetType=&quot;ListBoxItem&quot;&gt;
+    &lt;Border <b>Name=&quot;ItemBorder&quot;</b> CornerRadius=&quot;10&quot; BorderBrush=&quot;Black&quot; BorderThickness=&quot;1&quot; Margin=&quot;1&quot; Background=&quot;Transparent&quot;&gt;
+        &lt;ContentPresenter /&gt;
+    &lt;/Border&gt;
+    &lt;ControlTemplate.Triggers&gt;
+        <b>&lt;Trigger Property=&quot;IsSelected&quot; Value=&quot;True&quot;&gt;
+            &lt;Setter TargetName=&quot;ItemBorder&quot; Property=&quot;Background&quot; Value=&quot;LightBlue&quot; /&gt;
+        &lt;/Trigger&gt;</b>
+    &lt;/ControlTemplate.Triggers&gt;
+&lt;/ControlTemplate&gt;
+</pre>
+
+
+
+
+<p>Here we're telling our template that when the <code>IsSelected</code> property of our <code>ListBoxItem</code> is true, we want the background of our border element set to light blue. Notice we've given the border element a name (&quot;ItemBorder&quot;) so that we can refer to it in our trigger's <code>Setter</code>. We also need to specify a starting background (in this case I've set it to transparent), otherwise it won't change back properly when the item is unselected (it needs to have an initial value to revert to).</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-ContentTemplateWithSelected.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-ContentTemplateWithSelected.png" width="320" /></a></div>
+
+
+
+
+<h2>MultiTriggers</h2>
+
+
+
+
+<p>But we don't have to stop there. Let's also change the background when an item is hovered over. Now this one is a bit trickier, as we don't want to change the background of a selected item that is hovered over, only of unselected items (otherwise the selected item will appear to lose its selection). The answer is a <code>MultiTrigger</code>:</p>
+
+
+
+
+<pre>
+&lt;ControlTemplate.Triggers&gt;
+    &lt;Trigger Property=&quot;IsSelected&quot; Value=&quot;True&quot;&gt;
+        &lt;Setter TargetName=&quot;ItemBorder&quot; Property=&quot;Background&quot; Value=&quot;LightBlue&quot; /&gt;
+    &lt;/Trigger&gt;
+    &lt;MultiTrigger&gt;
+        &lt;MultiTrigger.Conditions&gt;
+            &lt;Condition Property=&quot;IsMouseOver&quot; Value=&quot;True&quot; /&gt;
+            &lt;Condition Property=&quot;IsSelected&quot; Value=&quot;False&quot; /&gt;
+        &lt;/MultiTrigger.Conditions&gt;
+        &lt;Setter TargetName=&quot;ItemBorder&quot; Property=&quot;Background&quot; Value=&quot;Azure&quot; /&gt;
+    &lt;/MultiTrigger&gt;
+&lt;/ControlTemplate.Triggers&gt;
+</pre>
+
+
+
+
+<p>Here we've set two conditions necessary for the multitrigger to be applied, IsMouseOver must be true, and IsSelected must be false. If these conditions are satisfied then we'll set the background to azure, and get this effect:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-ContentTemplateSelectedAndHover.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="213" src="http://davesquared.net/images/fromblogger/s320-ContentTemplateSelectedAndHover.png" width="320" /></a></div>
+
+
+
+
+<h2 id="March2010_WpfListBox_LastSection">Tidying up</h2>
+
+
+
+
+<p>I mentioned earlier that resources enabled us to share styles and templates across controls, windows or even applications. We can even create and load resource dictionaries to provide different themes for applications. Let's move some of the more general pieces of markup into our application dictionary. To do this, we'll open our <code>App.xaml</code> (or whatever <code>Application</code> class we have) and drop our <code>RoundedItem</code> style in there.</p>
+
+
+
+
+<pre>
+&lt;Application x:Class=&quot;DaveSquared.StylingListBox.App&quot;
+             xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+             xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+             &gt;
+    &lt;Application.Resources&gt;
+        <b>&lt;SolidColorBrush x:Key=&quot;ItemBrush&quot; Color=&quot;Transparent&quot; /&gt;
+        &lt;SolidColorBrush x:Key=&quot;SelectedItemBrush&quot; Color=&quot;LightBlue&quot; /&gt;
+        &lt;SolidColorBrush x:Key=&quot;HoverItemBrush&quot; Color=&quot;Azure&quot; /&gt; </b>
+        &lt;Style x:Key=&quot;RoundedItem&quot; TargetType=&quot;ListBoxItem&quot;&gt;
+            &lt;Setter Property=&quot;Template&quot;&gt;
+                &lt;Setter.Value&gt;
+                    &lt;ControlTemplate TargetType=&quot;ListBoxItem&quot;&gt;
+                        &lt;Border Name=&quot;ItemBorder&quot; CornerRadius=&quot;10&quot; BorderBrush=&quot;Black&quot; BorderThickness=&quot;1&quot; Margin=&quot;1&quot; <b>Background=&quot;{StaticResource ItemBrush}&quot;</b>&gt;
+                            &lt;ContentPresenter /&gt;
+                        &lt;/Border&gt;
+                        &lt;ControlTemplate.Triggers&gt;
+                            &lt;Trigger Property=&quot;IsSelected&quot; Value=&quot;True&quot;&gt;
+                                &lt;Setter TargetName=&quot;ItemBorder&quot; Property=&quot;Background&quot; <b>Value=&quot;{StaticResource SelectedItemBrush}&quot;</b> /&gt;
+                            &lt;/Trigger&gt;
+                            &lt;MultiTrigger&gt;
+                                &lt;MultiTrigger.Conditions&gt;
+                                    &lt;Condition Property=&quot;IsMouseOver&quot; Value=&quot;True&quot; /&gt;
+                                    &lt;Condition Property=&quot;IsSelected&quot; Value=&quot;False&quot; /&gt;
+                                &lt;/MultiTrigger.Conditions&gt;
+                                &lt;Setter TargetName=&quot;ItemBorder&quot; Property=&quot;Background&quot; <b>Value=&quot;{StaticResource HoverItemBrush}&quot;</b> /&gt;
+                            &lt;/MultiTrigger&gt;
+                        &lt;/ControlTemplate.Triggers&gt;
+                    &lt;/ControlTemplate&gt;
+                &lt;/Setter.Value&gt;
+            &lt;/Setter&gt;
+        &lt;/Style&gt;
+    &lt;/Application.Resources&gt;
+&lt;/Application&gt;
+</pre>
+
+
+
+
+<p>Here we've also pulled out the brushes we're using to paint our border backgrounds. This will allow use to use common colours for selected and hovered-over screen elements. This means we can get a much lighter view:</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;DaveSquared.StylingListBox.WidgetListView&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;Widgets&quot; Height=&quot;350&quot; Width=&quot;525&quot;&gt;
+    &lt;ListBox ItemsSource=&quot;{Binding Widgets}&quot; ItemContainerStyle=&quot;{StaticResource RoundedItem}&quot; HorizontalContentAlignment=&quot;Stretch&quot;&gt;
+        <b>&lt;ListBox.ItemTemplate&gt;</b>
+            &lt;DataTemplate&gt;
+                &lt;StackPanel Orientation=&quot;Horizontal&quot;&gt;
+                    &lt;Label Content=&quot;{Binding Name}&quot; /&gt;
+                    &lt;Label Content=&quot;{Binding Quantity}&quot; /&gt;
+                &lt;/StackPanel&gt;
+            &lt;/DataTemplate&gt;
+        <b>&lt;/ListBox.ItemTemplate&gt;</b>
+    &lt;/ListBox&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<p>As I mentioned towards the beginning of this post, we can also stick our <code>DataTemplate</code> directly in the listbox using the <code>ListBox.ItemTemplate</code>. We've done so here to get rid of our specific Window resources, and we no longer need to directly specify the target type of the template. I probably should have done this to begin with, but at least we got to see how target types work. :)</p>
+
+
+
+
+<p>Now you can do <a href="http://bea.stollnitz.com/blog/?p=40">much more</a> with this stuff, but at least we've covered some of the key elements we need to apply styles and templates to our WPF controls. Hope this helps any fellow WPF newbies out there. Comments and corrections welcomed. </p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[An attempt at simple MVVM with WPF]]></title>
+    <link href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html"/>
+    <updated>2010-02-15T11:16:00+11:00</updated>
+    <id>http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf</id>
+    <content type="html"><![CDATA[<p>I have very little practical experience with MVVM and WPF, so I thought it would be incredibly useful for me to post some misinformation on the subject. Please feel free to correct any (or all) of my mistakes in the comments or via email, and I'll update the post accordingly.</p>
+
+
+
+
+<p>At work a few of us went through a very simple practice exercise to try and get the basics of the pattern. The goal was to create a screen that accepts two numbers and displays their sum, but do it using MVVM as if it were a real problem rather than a trivial one.</p>
+
+
+
+
+<p>MVVM, or <a href="http://msdn.microsoft.com/en-us/magazine/dd419663.aspx">Model - View - ViewModel</a> (a.k.a. <a href="http://www.martinfowler.com/eaaDev/PresentationModel.html">Presentation Model</a>), is a <a href="http://martinfowler.com/eaaDev/SeparatedPresentation.html">separated presentation pattern</a> for use with frameworks like WPF that have good support for data-binding and other view interations. This differs from Model View Presenter (MVP) in that MVP tends to be more prescriptive, the presenter explicitly controlling everything the view does (at least in the <a href="http://www.martinfowler.com/eaaDev/PassiveScreen.html">Passive View</a> incarnation of the pattern). This tends to result in a lot of plumbing code (these items should go in this list on the view, when a new item is selected the view should display a new list of items, etc.).</p>
+
+
+
+
+<p>MVVM relies on databinding, commands etc. in the framework to remove some of this plumbing code, leaving us to focus on the logical model of our view (or the ViewModel), and our application/domain logic (the Model). The View is then just the physical representation of our logical ViewModel, containing no logic other than how to physically represent the logical view.</p>
+
+
+
+
+<p>For this example we'll design a view for our adder screen, test drive a ViewModel representation of the screen, then wire them together using WPF databinding.</p>
+
+
+
+
+<h2>Designing our view</h2>
+
+
+
+
+<p>For our very useful Adder screen we'll need two text boxes so the user can enter the numbers to add, and a label that will display the result of the addition. Whenever one of the numbers is changed our result will need to be updated to reflect the number total. When we are done it might look a bit like this:</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-AdderMockUp.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="245" alt="Mockup of how the adder application should look." src="http://davesquared.net/images/fromblogger/s320-AdderMockUp.png" width="320" /></a></div>
+
+
+
+
+<p>Because we are separating the physical from logical representation of the view, we will fairly easily be able to change how this looks, but in terms of how our screen will logically function, this contains all the details we need.</p>
+
+
+
+
+<h2>Test driving the ViewModel</h2>
+
+
+
+
+<p>Our view design requires input for two numbers. Whenever those numbers change our result will change. We'll write a test for that, and make it pass:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class AdderViewModelTests {
+    [TestFixture]
+    public class When_both_numbers_are_provided {
+        private Adder _adder;
+        private AdderViewModel _adderViewModel;
+        private int _expectedResult;
+
+        [SetUp]
+        public void SetUp() {
+            const int firstNumber = 10;
+            const int secondNumber = 123;
+            _expectedResult = 4545;
+            
+            _adder = MockRepository.GenerateStub&lt;Adder&gt;();
+            _adder.Stub(x =&gt; x.Add(firstNumber, secondNumber)).Return(_expectedResult);
+            _adderViewModel = new AdderViewModel(_adder);
+            
+            _adderViewModel.FirstNumber = firstNumber;
+            _adderViewModel.SecondNumber = secondNumber;
+        }
+
+        [Test]
+        public void Should_set_result_from_adder() {
+            Assert.That(_adderViewModel.Result, Is.EqualTo(_expectedResult));
+        }
+    }
+}
+
+public class AdderViewModel {
+    private readonly Adder _adder;
+    public AdderViewModel(Adder adder) { _adder = adder; }
+    public int FirstNumber { get; set; }
+    public int SecondNumber { get; set; }
+    public int Result { get { return _adder.Add(FirstNumber, SecondNumber); } }
+}
+</pre>
+
+
+
+
+<p>This test is specifying that our <code>AdderViewModel</code> will use an <code>Adder</code>, and the result of the call to <code>_adder.Add(firstNumber, secondNumber)</code> will be used to set the <code>Result</code> in the view model.</p>
+
+
+
+
+<p>Now, logically, the element displaying our result will need to know when a new result is calculated so it can update. One way to do this in WPF is to make our ViewModel implement <code>INotifyPropertyChanged</code> and use a property changed event whenever the result changes . Let's add a test for that (there are better ways of doing this, but this will do for now):</p>
+
+
+
+
+<pre class="brush:csharp">
+[SetUp]
+public void SetUp() {
+    const int firstNumber = 10;
+    const int secondNumber = 123;
+    _expectedResult = 4545;
+    
+    _adder = MockRepository.GenerateStub<Adder>();
+    _adder.Stub(x => x.Add(firstNumber, secondNumber)).Return(_expectedResult);
+    _adderViewModel = new AdderViewModel(_adder);
+    RecordPropertyChangeOnViewModel();
+
+    _adderViewModel.FirstNumber = firstNumber;
+    _adderViewModel.SecondNumber = secondNumber;
+}
+
+private void RecordPropertyChangeOnViewModel() {
+    _adderViewModel.PropertyChanged += (sender, args) =&gt; _propertyChanged = args.PropertyName;
+}
+
+[Test]
+public void Should_indicate_that_result_has_changed() {
+    Assert.That(_propertyChanged, Is.EqualTo(&quot;Result&quot;), &quot;Should have raised property changed event for Result property&quot;);
+}
+
+[Test]
+public void Should_set_result_from_adder() {
+/* ... snip ... */
+</pre>
+
+
+
+
+<p>One thing I want to make absolutely, 100% clear here: <b><i>our tests are not driving this design decision</i></b>. We are doing this whole <code>INotifyPropertyChanged</code> thing because we know it is one of the ways to get our WPF view to update the displayed result. This is something that has tended to annoy me greatly when reading TDD UI examples, these patterns seem to pop out from nowhere and I can never see the link between the tests and the design. In this case there isn't any. I'll save my rant for another day, but just be aware that while tests can drive design, you still need to be aware of the basic direction you are heading: the fundamental algorithm you are building, and the UI framework you'll be interacting with. When I did this exercise I didn't even have the changed event tested. But it is an easy enough test to write, and is essential for our binding to work, so we may as well include it (before the code, after the code, it's all good!).</p>
+
+
+
+
+<p>We start by making <code>AdderViewModel</code> implement <code>INotifyPropertyChanged</code>, then add the <code>PropertyChanged</code> event. We'll then want to fire this event whenever the <code>Result</code> changes. As the result changes as the numbers do, we can do this from the setters of our <code>FirstNumber</code> and <code>SecondNumber</code> properties. While we could just raise the property changed event directly from these setters, I think it makes more sense to raise this when the <code>Result</code> itself changes. To me it is a bit more intention-revealing that way (in other situations where we had delayed execution or an out-of-proc service call then it would also make more sense to update when the value is set rather than when a dependency changes).</p>
+
+
+
+
+<div class="note">
+<p><b>Update 2010-05-02:</b> There is a problem with this approach! The ViewModel is meant to be a logical representation of the physical view. In the implementation below, if we set the <code>FirstNumber</code> or <code>SecondNumber</code> properties via code then there will not be <code>PropertyChanged</code> events raised specifically for those properties. As a result, the data-binding on our view will not be notified of the update and the text boxes will still show the old numbers. Not a good representation of our view!</p>
+
+<p>In this case we're only setting these properties from the view, so we won't see the problem, but the fact our ViewModel does not adequately represent the view could cause problems later. To fix it we can raise <code>PropertyChanged</code> when any data-bindable properties are changed (not just when <code>Result</code> changes). We can cover this with tests just as we did for when <code>Result</code> changes.</p>
+
+<p>Thanks a lot to Hüseyin Tüfekçilerli for <a href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html?showComment=1272737976310#c1288989468056178507">pointing this out</a> in the comments.</p>
+</div>
+
+
+
+
+<pre class="brush:csharp">
+public class AdderViewModel : INotifyPropertyChanged {
+    private readonly Adder _adder;
+    private int _firstNumber;
+    private int _secondNumber;
+    private int _result;
+
+    public AdderViewModel(Adder adder) {
+        _adder = adder;
+    }
+
+    public int FirstNumber {
+        get { return _firstNumber; }
+        set { _firstNumber = value; NumberChanged(); }
+    }
+
+    public int SecondNumber {
+        get { return _secondNumber; }
+        set { _secondNumber = value; NumberChanged(); }
+    }
+
+    private void NumberChanged() {
+        Result = _adder.Add(_firstNumber, _secondNumber);
+    }
+
+    public int Result {
+        get { return _result; }
+        set { _result = value; OnResultChanged(); }
+    }
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    private void OnResultChanged() {
+        var handler = PropertyChanged;
+        if (handler == null) return;
+        handler(this, new PropertyChangedEventArgs(&quot;Result&quot;));
+    }
+}
+</pre>
+
+
+
+
+<p>Test's pass, so let's hit the XAML.</p>
+
+
+
+
+<h2>Implementing a physical view over our view model</h2>
+
+
+
+
+<p>When I created my project for this exercise I used the basic WPF Application template, which creates an <code>App.xaml</code> and <code>MainWindow.xaml</code>. Let's just get an ugly <code>MainWindow</code> working first.</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;WpfCalculatorKata.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;Adder&quot; Width=&quot;200&quot; Height=&quot;200&quot;&gt;
+    &lt;StackPanel&gt;
+        &lt;TextBox Name=&quot;firstNumber&quot; Text=&quot;{Binding FirstNumber}&quot; /&gt;
+        &lt;TextBox Name=&quot;secondNumber&quot; Text=&quot;{Binding SecondNumber}&quot; /&gt;
+        &lt;Label Name=&quot;result&quot; Content=&quot;{Binding Result}&quot; /&gt;
+    &lt;/StackPanel&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<p>Here we're just shoving two textboxes and one label into a stack panel, and attempting to bind each control to the relevant property on the view model.</p>
+
+
+
+
+<h2>A word or two on XAML</h2>
+
+
+<p>We now interrupt this example to provide a 5 second overview of XAML. The easiest way I've found to think of XAML is an XML version of C#'s object initialisation syntax. For example, when I see <code>&lt;TextBox Name=&quot;FirstNumber&quot; Width=&quot;120&quot; /&gt;</code> I think of something more like this:</p>
+
+
+
+
+<pre class="brush:csharp">
+TextBox textBox = new TextBox {Name = &quot;FirstNumber&quot;, Width = 120};
+</pre>
+
+
+
+
+<p>Similarly for the <code>StackPanel</code> node shown above, I picture using a list initialisation to populate the control's <code>Children</code> property (or <code>Content</code> property for most other controls):</p>
+
+
+
+
+<pre class="brush:csharp">
+StackPanel stackPanel = new StackPanel { 
+    Children = new List&lt;Control&gt; {
+                    new TextBox {Name = &quot;FirstNunber&quot;},
+                    new TextBox {Name = &quot;SecondNumber&quot;}
+                }};            
+</pre>
+
+
+
+
+<p>This won't actually compile as the <code>Children</code> property is not settable, but the basic idea is the same. Nested elements get added to a property of the parent object (for many controls this is the <code>Content</code> property, but the exact mapping is object-specific).</p>
+
+
+
+
+<p>In the process of building the project, the compiler will create the code required to instantiate each object, initialise its properties (mainly via the XML attributes on the node), and basically build up a nice, big object graph. It also has some additional smarts to handle binding and other expressions, cascading properties etc. I'm not sure if this helps you at all, but this idea really helped demystify XAML for me, even if it is not an exact representation of what actually occurs.</p>
+
+
+
+
+<h2>Getting our view to work</h2>
+
+
+
+
+<p>How does our app know what <code>{Binding FirstNumber}</code> means? Well, if you try and run the code we have at the moment it's not going to work. While binding WPF searches the control's <code>DataContext</code> for the specific (and public!) property. If it can't find that it will check the parent's <code>DataContext</code>, and the parent's parent's and so on up the object tree. What we want to do is set our view's <code>DataContext</code> to our view model. We can easily do this in the <code>MainWindow.xaml.cs</code>  code behind:</p>
+
+
+
+
+<pre class="brush:csharp">
+public partial class MainWindow : Window {
+    public MainWindow(AdderViewModel viewModel) {
+        DataContext = viewModel;
+        InitializeComponent();
+    }
+}
+</pre>
+
+
+
+
+<p>Unfortunately our <code>App.xaml</code> is expecting <code>MainWindow</code> to have a default constructor, so we'll need to remove the startup attribute and override the application started event to show our view. For a real application this would be a great place for an IoC container call and/or screen activator, but we'll just new it up for now.</p>
+
+
+
+
+<pre>
+&lt;Application x:Class=&quot;WpfCalculatorKata.App&quot;
+             xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+             xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;&gt;
+    &lt;Application.Resources&gt;         
+    &lt;/Application.Resources&gt;
+&lt;/Application&gt;
+</pre>
+
+
+
+
+<pre class="brush:csharp">
+public partial class App : Application {
+    protected override void OnStartup(StartupEventArgs e) {
+        var window = new MainWindow(new AdderViewModel(new ConreteAdder()));
+        window.Show();
+    }
+}
+
+public class ConreteAdder : Adder {
+    public int Add(int firstNumber, int secondNumber) {
+        return firstNumber + secondNumber;
+    }
+}
+</pre>
+
+
+
+
+<p>You'll notice that to create our <code>AdderViewModel</code> we need an implementation of our <code>Adder</code> interface. I've just chucked in a <code>ConcreteAdder</code> here, completely and utterly uncovered by automated testing (gasp!). It looks close to right from here though, so let's run it.</p>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-Adder.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" alt="Screenshot of the basic adder application" src="http://davesquared.net/images/fromblogger/s1600-Adder.png" /></a></div>
+
+
+
+
+<p>Here we see our UI, happily adding the numbers it's given. As an aside, if you enter an invalid number while debugging you'll see data binding errors appear in the output window, but the application will continue running. If you've got bindings setup but nothing is happening when you run the app, check the output window and see if there are any messages there.</p>
+
+
+
+
+<h2>Updating our view to match our initial mockup</h2>
+
+
+
+
+<p>To get a similar UI to our initial mockup, we just need to add some labels to our textboxes and adjust the spacing on our form. We'll use a <code>Grid</code> instead of our original <code>StackPanel</code> so we can easily align our labels with their textboxes, and we'll use a style to hard code in the height and vertical alignment of our text boxes. The final XAML and application look like this:</p>
+
+
+
+
+<pre>
+&lt;Window x:Class=&quot;WpfCalculatorKata.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        Title=&quot;Adder&quot; Width=&quot;250&quot; Height=&quot;200&quot;&gt;
+    &lt;Window.Resources&gt;
+        &lt;Style TargetType=&quot;{x:Type TextBox}&quot;&gt;
+            &lt;Setter Property=&quot;Height&quot; Value=&quot;23&quot; /&gt;
+            &lt;Setter Property=&quot;VerticalAlignment&quot; Value=&quot;Top&quot; /&gt;
+        &lt;/Style&gt;
+    &lt;/Window.Resources&gt;
+    &lt;Grid Margin=&quot;15&quot;&gt;
+        &lt;Grid.RowDefinitions&gt;
+            &lt;RowDefinition /&gt;
+            &lt;RowDefinition /&gt;
+            &lt;RowDefinition /&gt;
+        &lt;/Grid.RowDefinitions&gt;
+        &lt;Grid.ColumnDefinitions&gt;
+            &lt;ColumnDefinition Width=&quot;100&quot; /&gt;
+            &lt;ColumnDefinition /&gt;
+        &lt;/Grid.ColumnDefinitions&gt;
+        &lt;Label Content=&quot;First Number&quot; Grid.Row=&quot;0&quot; /&gt;
+        &lt;Label Content=&quot;Second Number&quot; Grid.Row=&quot;1&quot; /&gt;
+        &lt;Label Content=&quot;Result&quot; Grid.Row=&quot;2&quot; /&gt;
+        &lt;TextBox Name=&quot;firstNumber&quot; Text=&quot;{Binding FirstNumber}&quot; Grid.Row=&quot;0&quot; Grid.Column=&quot;1&quot; /&gt;
+        &lt;TextBox Name=&quot;secondNumber&quot; Text=&quot;{Binding SecondNumber}&quot; Grid.Row=&quot;1&quot; Grid.Column=&quot;1&quot; /&gt;
+        &lt;Label Name=&quot;result&quot; Content=&quot;{Binding Result}&quot; Grid.Row=&quot;2&quot; Grid.Column=&quot;1&quot;/&gt;
+    &lt;/Grid&gt;
+&lt;/Window&gt;
+</pre>
+
+
+
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="http://davesquared.net/images/fromblogger/s1600-h-FinalAdder.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" alt="Screenshot of the adder application with similar layout to the initial mockup." src="http://davesquared.net/images/fromblogger/s1600-FinalAdder.png" /></a></div>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>We've implemented a tremendously useful calculator (well, more correctly, a completely useless small integer adder)  using MVVM and WPF. We represented the logical view of our screen using a testable <code>AdderViewModel</code>, which we then bind to from our XAML view. While we used TDD to flesh out how the <code>AdderViewModel</code> was going to interact with our domain model (the <code>Adder</code>), we also needed to know enough about the end goal (to bind to a WPF form) to tell us which tests to write -- our tests were not magically going to guide us to a bindable view model. Finally we changed our physical view to better match the layout of our initial mock up, but didn't have to change any non-XAML code as we did not change the logical model of the view.</p>
+
+
+
+
+<p>Feel free to <a href="http://davesquared.googlecode.com/files/WpfCalculatorKata.zip">download the code</a> and have a play. Hope this helps! And remember to correct any n00b mistakes I've made. :)</p>
+
+]]></content>
+  </entry>
+  
+</feed>

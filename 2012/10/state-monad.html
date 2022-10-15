@@ -1,0 +1,517 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>State monad - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="During some recent work I found the need to use the State monad. Unfortunately I had no idea how to do this.
+In this post we’ll retrace the steps I &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/10/state-monad.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">State monad</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-10-02T21:55:00+10:00" pubdate data-updated="true">02 Oct 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>During some recent work I found the need to use the State monad. Unfortunately I had no idea how to do this.</p>
+<p>In this post we’ll retrace the steps I took while trying to generate random strings with Haskell. We’ll start by coding specific, non-monadic pieces to solve the problem, then generalise this by implementing our own State monad, before finally switching over to use Haskell’s implementation. By the end of it we’ll hopefully all understand the State monad (which is more than I can say for when I first started tackling this problem :)).</p>
+<!-- more -->
+<p>If you’ve never encountered monads before then you may want to start with my <a href="http://davesquared.net/2012/06/fp-newbie-learns-monads.html">introduction to monads</a> (yes, yes, Yet Another Monad tutorial. Feel free to <a href="http://www.haskell.org/haskellwiki/Monad_tutorials_timeline">read a good one instead</a> if you don’t like mine :)).</p>
+<div class="note">
+<strong>Aside:</strong> I think we can actually use <a href="http://www.haskell.org/haskellwiki/Introduction_to_QuickCheck2">QuickCheck</a> to generate arbitrary strings for us. But where’s the fun in that?
+</div>
+<h2 id="random-characters">Random characters</h2>
+<p>To get a (pseudo-)random value we can use Haskell’s <code>System.Random</code> module:</p>
+<pre><code>ghci&gt; import System.Random
+ghci&gt; :t randomR
+randomR :: (RandomGen g, Random a) =&gt; (a, a) -&gt; g -&gt; (a, g)</code></pre>
+<p>The <code>randomR</code> function takes as input a tuple with the lower and upper-bounds of the random value to generate, and a random number generator. Its output is a tuple consisting of a random value within those bounds, and a new generator which will generate the next random value in the sequence. (This will work for any type <code>a</code> that is an instance of the <code>Random</code> type class, and any generator <code>g</code> which is an instance of <code>RandomGen</code>.) We can use it like this:</p>
+<pre><code>ghci&gt; let g = mkStdGen 42
+ghci&gt; randomR (1,10) g
+(2,1720602 40692)
+ghci&gt; randomR (&#39;a&#39;,&#39;z&#39;) g
+(&#39;n&#39;,1720602 40692)</code></pre>
+<p>Here we’ve seeded a new generator with the number <code>42</code> and generated a number between <code>(1,10)</code> to get <code>2</code>, and a character between <code>('a','z')</code> to get <code>'n'</code>. So we’ve got random character generation under control.</p>
+<h2 id="multiple-random-characters">Multiple random characters</h2>
+<p>To get a new random value we’re going to have to use <code>randomR</code> again, but this time with the new generator from the tuple outputted by our previous call. (Remember Haskell functions are pure; their output depends purely on their input. If we pass the same generator <code>mkStdGen 42</code> as input we’ll get exactly the same “random” character as output.) We’ll have to keep feeding each generator that comes out of one call as input to the next call:</p>
+<pre><code>ghci&gt; let (a&#39;, g&#39;) = randomR (&#39;a&#39;,&#39;z&#39;) g
+ghci&gt; let (a&#39;&#39;,g&#39;&#39;) = randomR (&#39;a&#39;,&#39;z&#39;) g&#39;
+ghci&gt; let (a&#39;&#39;&#39;,g&#39;&#39;&#39;) = randomR (&#39;a&#39;,&#39;z&#39;) g&#39;&#39;
+ghci&gt; let (a&#39;&#39;&#39;&#39;,g&#39;&#39;&#39;&#39;) = randomR (&#39;a&#39;,&#39;z&#39;) g&#39;&#39;&#39;
+ghci&gt; let (a&#39;&#39;&#39;&#39;&#39;,g&#39;&#39;&#39;&#39;&#39;) = randomR (&#39;a&#39;,&#39;z&#39;) g&#39;&#39;&#39;&#39;
+ghci&gt; [a&#39;, a&#39;&#39;, a&#39;&#39;&#39;, a&#39;&#39;&#39;&#39;, a&#39;&#39;&#39;&#39;&#39;]
+&quot;ndfeo&quot;</code></pre>
+<p>To generate a string of some length <code>i</code>, we’ll need to call this <code>randomR ('a','z')</code> function <code>i</code> times, accumulating both the string value and the generator at each step. Let’s hack this out:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">import</span> <span class="nn">System.Random</span>
+
+<span class="nf">getRandomChar</span> <span class="ow">::</span> <span class="kt">RandomGen</span> <span class="n">g</span> <span class="ow">=&gt;</span> <span class="n">g</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">Char</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+<span class="nf">getRandomChar</span> <span class="ow">=</span> <span class="n">randomR</span> <span class="p">(</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="sc">&#39;z&#39;</span><span class="p">)</span>
+
+<span class="nf">getRandomStringWithLength</span> <span class="ow">::</span> <span class="kt">RandomGen</span> <span class="n">g</span> <span class="ow">=&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="n">g</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">String</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+<span class="nf">getRandomStringWithLength</span> <span class="n">i</span> <span class="n">g</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">charGenerators</span> <span class="ow">=</span> <span class="n">replicate</span> <span class="n">i</span> <span class="n">getRandomChar</span>
+    <span class="kr">in</span>  <span class="n">foldr</span> <span class="n">apply</span> <span class="p">(</span><span class="kt">[]</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="n">charGenerators</span>
+
+<span class="nf">apply</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span> <span class="ow">-&gt;</span> <span class="p">([</span><span class="n">b</span><span class="p">],</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">([</span><span class="n">b</span><span class="p">],</span> <span class="n">a</span><span class="p">)</span>
+<span class="nf">apply</span> <span class="n">f</span> <span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=</span> <span class="kr">let</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g&#39;</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">g</span>
+                  <span class="kr">in</span>  <span class="p">(</span><span class="n">x</span><span class="kt">:</span><span class="n">xs</span><span class="p">,</span> <span class="n">g&#39;</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Here we’ve used the name <code>getRandomChar</code> to refer to the <code>randomR ('a','z')</code> function which will give us a single character plus a new generator.</p>
+<p>We’ve also got a <code>getRandomStringWithLength</code> function which takes an integer (how many characters long the string should be) and a generator, and outputs the resulting string and the last generator produced. It calls <code>replicate i getRandomChar</code>, which will output a list of <code>getRandomChar</code> functions. If we call <code>replicate 3 getRandomChar</code>, we’ll get <code>[getRandomChar, getRandomChar, getRandomChar]</code>. We need to reduce this list, accumulating characters and the most recent generator as we go.</p>
+<p>For that <code>getRandomStringWithLength</code> uses a <a href="http://davesquared.net/2012/02/folds-pt1-from-recursion-to-folds.html">fold</a>. The fold’s initial value (seed) is an empty list and the first generator passed in (<code>([],g)</code>), and from there we <code>apply</code> each of the <code>charGenerators</code>.</p>
+<p>The <code>apply</code> function is fairly hideous. It takes the current <code>getRandomChar</code> function and the <code>(string, generator)</code> value accumulated in the fold, applies the function to that generator, and outputs a tuple of <code>(newString, newGenerator)</code>. But, hideousness aside, we now have a function that will generate a random string of characters:</p>
+<pre><code>ghci&gt; getRandomStringWithLength 5 (mkStdGen 42)
+(&quot;oefdn&quot;,1421974012 652912057)</code></pre>
+<h2 id="encapsulating-state">Encapsulating state</h2>
+<p>So let’s tidy up this mess I’ve made. The <code>getRandomChar</code> function takes some initial generator, and outputs a tuple with a character and a new generator. A more general way to think of this is as a function <code>s -&gt; (a,s)</code>, so that for some initial state <code>s</code>, we want to output a value <code>a</code> and a new state of <code>s</code>. We’ll wrap this computation up in a new data type, representing a <code>Stateful</code> computation:</p>
+<pre><code>newtype Stateful s a = Stateful { runState :: s -&gt; (a,s) }</code></pre>
+<p>Now we can modify <code>getRandomChar</code> to output a <code>Stateful</code> computation, and we can run a state through that computation using <code>runState</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">randomChar</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Stateful</span> <span class="n">g</span> <span class="kt">Char</span>
+<span class="nf">randomChar</span> <span class="ow">=</span> <span class="kt">Stateful</span> <span class="o">$</span> <span class="n">randomR</span> <span class="p">(</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="sc">&#39;z&#39;</span><span class="p">)</span>
+
+<span class="c1">-- ghci&gt; runState randomChar (mkStdGen 42)</span>
+<span class="c1">-- (&#39;n&#39;,1720602 40692)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="combining-stateful-computations">Combining stateful computations</h2>
+<p>Now what we want to do is to chain together functions which work on states, so that the state output from one function gets fed into the input of the next function (which we saw in <a href="#multiple-random-characters">Multiple random characters</a>). In <a href="http://davesquared.net/2012/06/fp-newbie-learns-monads.html#monads">my take on monads</a> I concluded “Monads let us apply functions inside a context which depend on previous results”. In this case our next random number depends on the random generator produced by the previous call. So let’s wire up a monad instance based on our <code>Stateful</code> type, so that when we combine two stateful computations, the new state produced by one gets passed as the input to the next. To do this we’ll implement two functions. The first is the bind function <code>&gt;&gt;=</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="c1">-- For a monad m:</span>
+<span class="p">(</span><span class="o">&gt;&gt;=</span><span class="p">)</span> <span class="ow">::</span> <span class="n">m</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">b</span>
+
+<span class="c1">-- For (Stateful s), substitute for m:</span>
+<span class="p">(</span><span class="o">&gt;&gt;=</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">Stateful</span> <span class="n">s</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Stateful</span> <span class="n">s</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Stateful</span> <span class="n">s</span> <span class="n">b</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>By substituting our monad type <code>Stateful s</code> into the type signature, we can see bind needs to take a stateful computation which produces an <code>a</code>, and a function which takes an <code>a</code> and outputs a new stateful computation <code>Stateful s b</code>. The entire bind function ultimately outputs a <code>Stateful s b</code>, a stateful computation that combines the result of the initial <code>Stateful s a</code> and the <code>Stateful s b</code> produced from the <code>a -&gt; Stateful s b</code> function, feeding through the correct state at each step.</p>
+<p>The second function we need is <code>return</code>, which will take some <code>a</code> and return a new computation that always returns that <code>a</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">return</span> <span class="ow">::</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">a</span>
+<span class="c1">-- Substituting in for (Stateful s):</span>
+<span class="nf">return</span> <span class="ow">::</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Stateful</span> <span class="n">s</span> <span class="n">a</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="implementing-our-state-monad">Implementing our state monad</h2>
+<p>Here’s an implementation that satisfies these type signatures:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">instance</span> <span class="kt">Monad</span> <span class="p">(</span><span class="kt">Stateful</span> <span class="n">s</span><span class="p">)</span> <span class="kr">where</span>
+    <span class="c1">-- (&gt;&gt;=) :: Stateful s a -&gt; (a -&gt; Stateful s b) -&gt; Stateful s b</span>
+    <span class="n">statefulA</span> <span class="o">&gt;&gt;=</span> <span class="n">f</span>
+        <span class="ow">=</span> <span class="kt">Stateful</span> <span class="o">$</span> <span class="nf">\</span><span class="n">s</span> <span class="ow">-&gt;</span>
+                <span class="kr">let</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">s&#39;</span><span class="p">)</span>   <span class="ow">=</span> <span class="n">runState</span> <span class="n">statefulA</span> <span class="n">s</span>
+                    <span class="n">statefulB</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">a</span>
+                    <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s&#39;&#39;</span><span class="p">)</span>  <span class="ow">=</span> <span class="n">runState</span> <span class="n">statefulB</span> <span class="n">s&#39;</span>
+                <span class="kr">in</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">s&#39;&#39;</span><span class="p">)</span>
+
+    <span class="c1">-- return :: a -&gt; Stateful s a</span>
+    <span class="n">return</span> <span class="n">a</span> <span class="ow">=</span> <span class="kt">Stateful</span> <span class="o">$</span> <span class="nf">\</span><span class="n">s</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The first argument is a stateful computation that produces an <code>a</code>. Let’s call this <code>statefulA</code>. The second argument is a function <code>f</code> that given an <code>a</code> will produce a stateful computation that will give us a <code>b</code>. The final output will need to be a new <code>Stateful s b</code>, which is a type that holds a function <code>s -&gt; (b, s)</code>. So we’ll start by creating an instance of this type, <code>Stateful $ \s -&gt; ...</code>.</p>
+<p>The function in this new stateful computation, when given a state <code>s</code>, will run <code>statefulA</code> to produce a tuple containing an <code>a</code> and new state <code>s'</code>. If we feed this <code>a</code> into the function <code>f</code> we’ll get a new stateful computation that produces a <code>b</code>, which we’ll call <code>statefulB</code>.</p>
+<p>We can’t just output <code>statefulB</code> though. Its type is <code>statefulB :: Stateful s b</code>, but we’re in the middle of implementing a function <code>s -&gt; (b, s)</code> that we’re already wrapping in a <code>Stateful</code> context. We don’t want to end up with a <code>Stateful (Stateful s b)</code>!</p>
+<p>So instead we output the result of calling <code>runState statefulB s'</code>, which gets a tuple containing a <code>b</code> and the next state <code>s''</code> out of <code>statefulB</code> by passing through the state <code>s'</code> from the previous call. In this way we ensure that the state transformation from <code>s</code> to <code>s'</code> to <code>s''</code> is passed through the resulting stateful computation, which was our aim from the beginning.</p>
+<p>That’s the bulk of the work done, but for completeness let’s go look at the <code>return</code> function. It takes some value <code>a</code> and returns a <code>Stateful</code> computation that, given a state <code>s</code>, will always produce that value <code>a</code> and the same state <code>s</code>. In other words, it takes an ordinary value and puts it into the context of a stateful computation that takes a state and returns <code>(value, state)</code>.</p>
+<div class="note">
+<strong>Aside:</strong> We should also make <code>Stateful</code> and instance of <code>Functor</code> and <code>Applicative</code> (all monads are also functors and applicative functors), but I’ll omit that step as this post is long enough already. If you’d like me to go through it let me know. We should also make sure that our monad implementation satisfies the <a href="http://www.haskell.org/haskellwiki/Monad_Laws">Monad Laws</a>, but again, long post, so let’s press on.
+</div>
+<h2 id="using-our-shiny-new-monad-instance-to-generate-strings">Using our shiny new monad instance to generate strings</h2>
+<p>So we have a <code>randomChar</code> function which produces a <code>Stateful g Char</code> computation, and we have a shiny new monad instance that lets us combine computations. We now have everything we need to run a stateful computation that will produce a random string, or a <code>Stateful g [Char]</code>.</p>
+<p>Let’s take stock of what we have so far:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">getRandomChar</span> <span class="ow">::</span> <span class="kt">RandomGen</span> <span class="n">g</span> <span class="ow">=&gt;</span> <span class="n">g</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">Char</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+<span class="nf">getRandomChar</span> <span class="ow">=</span> <span class="n">randomR</span> <span class="p">(</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="sc">&#39;z&#39;</span><span class="p">)</span>
+
+<span class="nf">getRandomStringWithLength</span> <span class="ow">::</span> <span class="kt">RandomGen</span> <span class="n">g</span> <span class="ow">=&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="n">g</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">String</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+<span class="nf">getRandomStringWithLength</span> <span class="n">i</span> <span class="n">g</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">charGenerators</span> <span class="ow">=</span> <span class="n">replicate</span> <span class="n">i</span> <span class="n">getRandomChar</span>
+    <span class="kr">in</span>  <span class="n">foldr</span> <span class="n">apply</span> <span class="p">(</span><span class="kt">[]</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="n">charGenerators</span>
+
+<span class="c1">-- snip --</span>
+<span class="kr">newtype</span> <span class="kt">Stateful</span> <span class="n">s</span> <span class="n">a</span> <span class="ow">=</span> <span class="kt">Stateful</span> <span class="p">{</span> <span class="n">runState</span> <span class="ow">::</span> <span class="n">s</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">s</span><span class="p">)</span> <span class="p">}</span>
+<span class="kr">instance</span> <span class="kt">Monad</span> <span class="p">(</span><span class="kt">Stateful</span> <span class="n">s</span><span class="p">)</span> <span class="kr">where</span>
+    <span class="n">statefulA</span> <span class="o">&gt;&gt;=</span> <span class="n">f</span> <span class="ow">=</span> <span class="o">...</span>
+    <span class="n">return</span> <span class="n">a</span> <span class="ow">=</span> <span class="o">...</span>
+<span class="c1">-- snip --</span>
+
+<span class="nf">randomChar</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Stateful</span> <span class="n">g</span> <span class="kt">Char</span>
+<span class="nf">randomChar</span> <span class="ow">=</span> <span class="kt">Stateful</span> <span class="o">$</span> <span class="n">randomR</span> <span class="p">(</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="sc">&#39;z&#39;</span><span class="p">)</span>
+
+<span class="nf">randomStringWithLength</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Stateful</span> <span class="n">g</span> <span class="kt">String</span>
+<span class="nf">randomStringWithLength</span> <span class="n">i</span> <span class="ow">=</span> <span class="n">undefined</span> <span class="c1">-- ???</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Our original <code>getRandomStringWithLength</code> function called <code>replicate i getRandomChar</code> to get a <code>[g -&gt; (Char, g)]</code>. If we use our new function, <code>replicate i randomChar</code>, we get <code>[Stateful g Char]</code>. We’d like a way to convert a <code>[Stateful g Char]</code> to a <code>Stateful g [Char]</code>.</p>
+<p>Haskell has a built-in function called <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Prelude.html#v:sequence"><code>sequence</code></a> which does just this. It has the signature <code>[m a] -&gt; m [a]</code>, for any monad <code>m</code>. Substituting in for our <code>Stateful s</code> monad, when producing a <code>Char</code>, this gives us <code>[Stateful s Char] -&gt; Stateful s [Char]</code>. Now <code>[Char]</code> is the same as <code>String</code>, which means we can generate a stateful computation for a random string from <code>randomChar</code> like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">randomStringWithLength</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Stateful</span> <span class="n">g</span> <span class="kt">String</span>
+<span class="nf">randomStringWithLength</span> <span class="n">i</span> <span class="ow">=</span> <span class="n">sequence</span> <span class="p">(</span><span class="n">replicate</span> <span class="n">i</span> <span class="n">randomChar</span><span class="p">)</span>
+                   <span class="c1">-- or = (sequence . replicate i) randomChar</span>
+                   <span class="c1">-- or = replicateM i randomChar</span>
+
+<span class="c1">-- ghci&gt; runState (randomStringWithLength 10) (mkStdGen 42)</span>
+<span class="c1">-- (&quot;ndfeolyrgn&quot;,2052659270 1336516156)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>I assume this pattern of <code>replicate</code> and <code>sequence</code> is fairly common, as Haskell provides a <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Control-Monad.html#v:replicateM"><code>replicateM</code></a> function that does just this.</p>
+<h2 id="now-with-12-extra-randomness">Now with 12% extra randomness!</h2>
+<p>Let’s randomise the string length:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">randomString</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Stateful</span> <span class="n">g</span> <span class="kt">String</span>
+<span class="nf">randomString</span> <span class="ow">=</span> <span class="n">state</span> <span class="o">$</span> <span class="nf">\</span><span class="n">g</span> <span class="ow">-&gt;</span>
+    <span class="kr">let</span> <span class="p">(</span><span class="n">charsToGen</span><span class="p">,</span> <span class="n">g&#39;</span><span class="p">)</span> <span class="ow">=</span> <span class="n">randomR</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span> <span class="n">g</span>
+    <span class="kr">in</span>  <span class="n">runState</span> <span class="p">(</span><span class="n">randomStringWithLength</span> <span class="n">charsToGen</span><span class="p">)</span> <span class="n">g&#39;</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This works, but we’re back to explicitly passing around the state of the random number generator. That’s no good. Instead we can create a stateful computation for getting a random number between 1 and 10 using <code>Stateful (randomR (1,10))</code>, and bind that to our <code>randomStringWithLength</code> function. This will do the work of passing the random number and new state into our <code>randomStringWithLength</code> function:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">randomString</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Stateful</span> <span class="n">g</span> <span class="kt">String</span>
+<span class="nf">randomString</span> <span class="ow">=</span> <span class="kt">Stateful</span> <span class="p">(</span><span class="n">randomR</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span> <span class="o">&gt;&gt;=</span> <span class="p">(</span><span class="nf">\</span><span class="n">i</span> <span class="ow">-&gt;</span> <span class="n">randomStringWithLength</span> <span class="n">i</span><span class="p">)</span>
+       <span class="c1">-- or just:</span>
+       <span class="c1">--   = Stateful (randomR (1,10)) &gt;&gt;= randomStringWithLength</span>
+
+<span class="c1">-- ghci&gt; runState randomString (mkStdGen 1234)</span>
+<span class="c1">-- (&quot;xxetyzjjrk&quot;,995854900 498340277)</span>
+<span class="c1">-- ghci&gt; runState randomString (mkStdGen 4321)</span>
+<span class="c1">-- (&quot;jbetvvma&quot;,876562129 1422611300)</span>
+<span class="c1">-- ghci&gt; runState randomString (mkStdGen 1423)</span>
+<span class="c1">-- (&quot;ikavsm&quot;,962541241 535353314)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="using-the-built-in-state-monad">Using the built-in State monad</h2>
+<p>Haskell’s built-in state monad is called <code>State</code> (rather than <code>Stateful</code>) and is in the <code>Control.Monad.State</code> module. We can translate our example very quickly by adding an <code>import</code>, changing references from the type <code>Stateful</code> to <code>State</code>, and constructing new stateful computations using the <code>state</code> function:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">import</span> <span class="nn">Control.Monad.State</span>
+<span class="kr">import</span> <span class="nn">System.Random</span>
+
+<span class="nf">randomChar</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">State</span> <span class="n">g</span> <span class="kt">Char</span>
+<span class="nf">randomChar</span> <span class="ow">=</span> <span class="n">state</span> <span class="o">$</span> <span class="n">randomR</span> <span class="p">(</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="sc">&#39;z&#39;</span><span class="p">)</span>
+
+<span class="nf">randomStringWithLength</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">State</span> <span class="n">g</span> <span class="kt">String</span>
+<span class="nf">randomStringWithLength</span> <span class="n">i</span> <span class="ow">=</span> <span class="n">replicateM</span> <span class="n">i</span> <span class="n">randomChar</span>
+
+<span class="nf">randomString</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">RandomGen</span> <span class="n">g</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">State</span> <span class="n">g</span> <span class="kt">String</span>
+<span class="nf">randomString</span> <span class="ow">=</span> <span class="n">state</span> <span class="p">(</span><span class="n">randomR</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span> <span class="o">&gt;&gt;=</span> <span class="n">randomStringWithLength</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="parting-thoughts">Parting thoughts</h2>
+<p>Until I walked through the steps I had a tough time understanding how the State monad worked. One thing that helped me to understand it was to force myself to switch between the different levels of abstraction.</p>
+<p>First, implementing the <code>Stateful s</code> monad instance was a matter of mechanically substituting in types for <code>&gt;&gt;=</code> and <code>return</code>, then building up expressions that satisfied those types, taking care to make sure I used all the variables involved so I didn’t drop out any terms.</p>
+<p>When it came to using that instance, I found it helped to forget how <code>&gt;&gt;=</code> works, and focus instead on what it does: it lets us create a new stateful computation based on the value produced from an existing computation. It seems to be one of those things that is very easy to over-think, and the only way I’ve found around this is to focus on what (not how) the abstraction doing its thing, and following the types.</p>
+<p>Another thing I got from working through this is a bit more of a sense of how useful the monad abstraction is; we get a <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/Control-Monad.html#g:2">whole lot of useful functions</a> for free, like <code>sequence</code> and <code>replicateM</code>. The State monad itself ensures we can combine these and our own functions while ensuring our state gets reliably passed through the entire computation.</p>
+<p>If you’ve found any of this hard to follow please send me an email or leave a comment; I’d be really keen to try and help out.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-10-02T21:55:00+10:00" pubdate data-updated="true">02 Oct 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/10/state-monad.html" data-via="" data-counturl="http://davesquared.net/2012/10/state-monad.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/09/imperative-world.html" title="Previous Post: It's an imperative, mutable world out there">&laquo; It's an imperative, mutable world out there</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/10/fold-for-free.html" title="next Post: Fold for free">Fold for free &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/10/state-monad.html';
+        var disqus_url = 'http://davesquared.net/2012/10/state-monad.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

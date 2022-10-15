@@ -1,0 +1,366 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>FP newbie learns a little about functors - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="As you may have noticed I’m a little obsessed with functional programming at the moment. I’ve recently been reading up on bizarre-sounding terms like &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/05/fp-newbie-learns-functors.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">FP newbie learns a little about functors</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-05-03T23:40:00+10:00" pubdate data-updated="true">03 May 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>As you may have noticed I’m a little obsessed with <a href="/categories/functional-programming/">functional programming</a> at the moment. I’ve recently been reading up on bizarre-sounding terms like <a href="http://learnyouahaskell.com/functors-applicative-functors-and-monoids">functors, applicatives and monoids in Learn You A Haskell</a>, only to discover they’re not nearly as incomprehensible as they sound. This post outlines some of the information on functors that this newbie has been able to pick up so far.</p>
+<!-- more -->
+<div class="note">
+<p><strong>Note:</strong> One thing I’ve noticed while reading introductory FP material is that each concept seems quite small and understandable, but happens to depend on another million or so small and understandable things. I find this makes it difficult to write about without assuming lots of knowledge, going down a rabbit hole of detail, or glossing over potentially important points. For this post I’ve elected to gloss over details like type constructors and type classes in favour of trying to give a general overview. If you’d like to get the details instead, skip through to the <a href="#references">References</a>, starting with <a href="http://learnyouahaskell.com/functors-applicative-functors-and-monoids">Learn You A Haskell</a>.</p>
+</div>
+<h2 id="types-containing-values">Types containing values</h2>
+<p>Many types can be thought of as holding values. For example, lists and arrays can hold integers, strings or other types of values. In .NET, we have the <code>Nullable&lt;T&gt;</code> type, which can hold <code>null</code>, or a value of type <code>T</code>. In Haskell there’s the <code>Maybe a</code> type, which similarly can hold <code>Nothing</code> or an <code>a</code>. We can even think of commands or partially evaluated functions as holding values: once they finish executing they’ll have or return a particular value.</p>
+<p>For now, let’s just think of these types as boxes or containers that can hold values of some type.</p>
+<h2 id="mapping-over-boxes-of-values">Mapping over boxes of values</h2>
+<p>Say we have a function <code>fn</code> which can take some value of type <code>a</code> and return a value of type <code>b</code>. In Haskell we express this as <code>fn :: a -&gt; b</code>, or as <code>Func&lt;A,B&gt; fn</code> in C#.</p>
+<figure>
+<img src="/images/2012/function_a_to_b.png" alt="An ‘a’ is passed into ‘fn’, and it spits out a ‘b’" /><figcaption>An ‘a’ is passed into ‘fn’, and it spits out a ‘b’</figcaption>
+</figure>
+<p>Now imagine we have some sort of box that can hold some quantity of <code>a</code>. We’d like to apply <code>fn</code> to the <code>a</code> we have in the box, and get a new box of <code>b</code>. But <code>fn</code> works on an <code>a</code>, not on a “box of <code>a</code>”, so we need a way of apply our <code>fn</code> inside the box, and then a way of shoving the resulting <code>b</code> into a new box.</p>
+<figure>
+<img src="/images/2012/fmap.png" alt="‘a’ is passed from the box into ‘fn’, and the ‘b’ is returned in a new box" /><figcaption>‘a’ is passed from the box into ‘fn’, and the ‘b’ is returned in a new box</figcaption>
+</figure>
+<p>The solution is to define a function called <code>fmap</code> which does exactly that. It takes a function <code>(a -&gt; b)</code>, and a box of <code>a</code>, and returns a box of <code>b</code>:</p>
+<pre><code>-- Pseudo-Haskell
+fmap :: (a -&gt; b) -&gt; boxOf a -&gt; boxOf b
+
+// Pseudo-C#
+Box&lt;B&gt; Fmap&lt;A,B&gt;(Func&lt;A,B&gt; fn, Box&lt;A&gt; boxOfA);</code></pre>
+<h2 id="defining-fmap">Defining fmap</h2>
+<p>Now we’ve previously mentioned that these boxes can actually be different types (lists, <code>Maybe</code>s or <code>Nullable&lt;T&gt;</code>s). How does <code>fmap</code> know how to unpack and repack all the different types of boxes?</p>
+<p>To be able to do this, each type of box needs its own implementation of <code>fmap</code>. Boxes that have a valid <code>fmap</code> defined for them are called <em>functors</em>. Haskell has a lot of these built-in, but we could also define them ourselves:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="c1">-- For lists:</span>
+<span class="nf">fmap</span> <span class="n">fn</span> <span class="n">list</span> <span class="ow">=</span> <span class="n">map</span> <span class="n">list</span>
+
+<span class="c1">-- For Maybe, which can be either Nothing or (Just someValue)</span>
+<span class="nf">fmap</span> <span class="n">fn</span> <span class="kt">Nothing</span> <span class="ow">=</span> <span class="kt">Nothing</span>
+<span class="nf">fmap</span> <span class="n">fn</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">someValue</span><span class="p">)</span> <span class="ow">=</span> <span class="kt">Just</span> <span class="p">(</span><span class="n">fn</span> <span class="n">someValue</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Notice that <code>fmap</code> for a list is exactly the same as normal <code>map</code>. In other words, we iterate over each value in the list, apply the function to each, and then return the new list. For <code>Maybe</code>, mapping the function over <code>Nothing</code> returns <code>Nothing</code>. Mapping over an instance that holds a value gets that value, applies the function to it, and returns a new instance of <code>Just</code> the result.</p>
+<p>C#’s type system doesn’t support all the features we need to get a lot of use out of functors, but we can still get an idea of how <code>fmap</code> might look for enumerables and nullables:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="k">static</span> <span class="n">IEnumerable</span><span class="p">&lt;</span><span class="n">B</span><span class="p">&gt;</span> <span class="n">fmap</span><span class="p">&lt;</span><span class="n">A</span><span class="p">,</span><span class="n">B</span><span class="p">&gt;(</span><span class="n">Func</span><span class="p">&lt;</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">&gt;</span> <span class="n">fn</span><span class="p">,</span> <span class="n">IEnumerable</span><span class="p">&lt;</span><span class="n">A</span><span class="p">&gt;</span> <span class="n">functor</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">functor</span><span class="p">.</span><span class="n">Select</span><span class="p">(</span><span class="n">fn</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">B</span><span class="p">?</span> <span class="n">fmap</span><span class="p">&lt;</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">&gt;(</span><span class="n">Func</span><span class="p">&lt;</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">&gt;</span> <span class="n">fn</span><span class="p">,</span> <span class="n">A</span><span class="p">?</span> <span class="n">functor</span><span class="p">)</span> <span class="k">where</span> <span class="n">A</span> <span class="p">:</span> <span class="k">struct</span> <span class="nc">where</span> <span class="n">B</span> <span class="p">:</span> <span class="k">struct</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">functor</span> <span class="p">==</span> <span class="k">null</span> <span class="p">?</span> <span class="k">null</span> <span class="p">:</span> <span class="p">(</span><span class="n">B</span><span class="p">?)</span> <span class="n">fn</span><span class="p">(</span><span class="n">functor</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="graduating-from-boxes">Graduating from boxes</h2>
+<p>Notice that <code>fmap</code> preserves the type of box used. For example, if we call <code>fmap</code> on a list, we’ll get another list back. If we call <code>fmap</code> on a <code>Maybe</code>, we’ll get another <code>Maybe</code> back. We never call it with a list and get a <code>Maybe</code> back. If we call our box <code>f</code>, then calling <code>fmap</code> on <code>f a</code> will give us back an <code>f b</code>. The <code>f</code> is preserved.</p>
+<p>Rather than using the box analogy, the type <code>f</code> is often referred to as the <em>context</em>, so <code>f a</code> is an <code>a</code> value in the context of <code>f</code>. An <code>a</code> in a context where there maybe be 0 or more values is a list of <code>a</code>. <code>Maybe</code> is a context that may have zero or one <code>a</code>. <code>fmap</code> maps a function from <code>a</code> to <code>b</code>, preserving the context.</p>
+<h2 id="lifting-functions-is-useful">Lifting functions is useful</h2>
+<p>Haskell (and I assume most functional programming languages) has some really interesting ways of putting types together. It is quite common to have simple data types (like integers, strings etc) and functions that operate on them. We can also have more complex data types that can work over many types (they are <em>polymorphic</em>), such as lists of <code>a</code> or <code>Maybe a</code> (where <code>a</code> can be an integer, string, function or even another type of list). Because this polymorphism is so common, it would be nice to be able to reuse functions that work on simple types in different contexts, and that’s exactly what functors let us do.</p>
+<p>This is known as <em>lifting</em> a function; transforming a function like <code>a -&gt; b</code> to work in another context, like <code>f a -&gt; f b</code>.</p>
+<p>For example, we can use lift a standard integer operation like (+1) to work on <code>Maybe Int</code>:</p>
+<pre><code>ghci&gt; fmap (+1) (Just 10)
+Just 11
+ghci&gt; fmap (+1) Nothing
+Nothing</code></pre>
+<p>Or apply a standard string function to a <code>Maybe String</code>:</p>
+<pre><code>ghci&gt; fmap reverse (Just &quot;hello world!&quot;)
+Just &quot;!dlrow olleh&quot;
+ghci&gt; fmap reverse Nothing
+Nothing</code></pre>
+<p>And then of course there is the familiar mapping over a list (as mentioned earlier, <code>map</code>, or <code>Select</code> in .NET, is just <code>fmap</code> for list):</p>
+<pre><code>ghci&gt; fmap (*2) [1..10]
+[2,4,6,8,10,12,14,16,18,20]
+
+csharp&gt; new[] {1,2,3,4,5,6,7,8,9,10}.Select(x =&gt; x*2);
+{ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 }</code></pre>
+<p>As a <a href="http://en.wikipedia.org/wiki/Purely_functional">pure functional language</a>, Haskell eschews code with side-effects, which includes some innocuous-sounding things like reading or writing to files. To work within this restriction, side-effects can be wrapped up in types like <code>IO a</code>. Because <code>IO</code> is a functor, we can use <code>fmap</code> to work with the value inside the <code>IO</code> context without having to explicitly pull out the value (so side-effects stay neatly wrapped up in their <code>IO</code> box). Say we wanted to read an integer from STDIN, here’s how it would work with and without <code>fmap</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">doubleInput</span> <span class="ow">=</span> <span class="kr">do</span>
+    <span class="n">input</span> <span class="ow">&lt;-</span> <span class="n">getLine</span>
+    <span class="kr">let</span> <span class="n">enteredNumber</span> <span class="ow">=</span> <span class="n">read</span> <span class="n">input</span> <span class="ow">::</span> <span class="kt">Int</span>   <span class="c1">-- read string as int</span>
+    <span class="kr">let</span> <span class="n">double</span> <span class="ow">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">enteredNumber</span>          <span class="c1">-- (2*)</span>
+    <span class="n">return</span> <span class="o">$</span> <span class="n">show</span> <span class="n">double</span>                    <span class="c1">-- show int as string</span>
+
+<span class="nf">doubleInputWithFmap</span> <span class="ow">=</span> <span class="n">fmap</span> <span class="p">(</span><span class="n">show</span> <span class="o">.</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">)</span><span class="o">.</span> <span class="n">read</span><span class="p">)</span> <span class="n">getLine</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Finally, functors are just one part of a <a href="http://www.haskell.org/haskellwiki/Image:Typeclassopedia-diagram.png">large hierarchy of type classes</a>. Other type classes like applicative functors and monads build on the properties of functors to provide their own interesting capabilities.</p>
+<h2 id="well-behaved-functors">Well-behaved functors</h2>
+<p>We’ve seen that functors are types that can can have functions mapped over them, thanks to an corresponding implementation of <code>fmap</code>. That’s the bulk of it, but there are also two formal properties that these <code>fmap</code> implementations need to have in order for a type to act as a functor.</p>
+<p>The first is that mapping the identity function over a functor is the same as calling the identity function directly on the functor. <code>id</code> is the identity function in Haskell, the C# equivalent being <code>x =&gt; x</code>. The identity function takes an argument and returns it, unchanged.</p>
+<pre><code>fmap id a = id a
+
+-- Example
+ghci&gt; id (Just 42)
+Just 42
+ghci&gt; fmap id (Just 42)
+Just 42</code></pre>
+<p>The second is that composing two functions then mapping them needs to give the same result as mapping each function in turn. In other words:</p>
+<pre><code>fmap (f . g) = fmap f . fmap g</code></pre>
+<p><a href="http://www.haskell.org/haskellwiki/Typeclassopedia#Laws">Typeclassopedia’s entry on functor laws</a> mentions that satisfying the first law automatically satisfies the second. Which is good, because to me the first is a lot easier to follow. :)</p>
+<p>These properties aren’t enforced by the type system, but we need to make sure our functors have them or else our functor won’t behave like all the other nice functors. These properties guarantee that <code>fmap</code> preserves the structure (or context) of our functor.</p>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="http://learnyouahaskell.com/functors-applicative-functors-and-monoids">“Functors, Applicative Functors and Monoids”</a>, Learn You A Haskell</li>
+<li><a href="http://en.wikipedia.org/wiki/Functor">“Functor”</a>, Wikipedia</li>
+<li><a href="http://en.wikipedia.org/wiki/Map_(higher-order_function)#Generalization">“Map (higher-order function)”</a>, Wikipedia</li>
+<li><a href="http://www.haskell.org/haskellwiki/Typeclassopedia">“Typeclassopedia”</a>, HaskellWiki</li>
+<li><a href="http://en.wikibooks.org/wiki/Haskell/Applicative_Functors#Functors">“Applicative functors”</a>, Haskell Wikibook</li>
+</ul>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-05-03T23:40:00+10:00" pubdate data-updated="true">03 May 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/05/fp-newbie-learns-functors.html" data-via="" data-counturl="http://davesquared.net/2012/05/fp-newbie-learns-functors.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/05/design-via-minimum-code.html" title="Previous Post: Design via minimum code">&laquo; Design via minimum code</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/05/lengthy-approach-to-haskell.html" title="next Post: A lengthy approach to Haskell fundamentals">A lengthy approach to Haskell fundamentals &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/05/fp-newbie-learns-functors.html';
+        var disqus_url = 'http://davesquared.net/2012/05/fp-newbie-learns-functors.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

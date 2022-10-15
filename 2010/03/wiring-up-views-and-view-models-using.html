@@ -1,0 +1,361 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Using conventions and StructureMap to wire up Views and View Models - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="In the small WPF project I&#8217;m currently working on we are using MVVM (Model - View - ViewModel) to separate our UI concerns from other logic. &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/03/wiring-up-views-and-view-models-using.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Using conventions and StructureMap to wire up Views and View Models</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2010-03-15T23:07:00+11:00" pubdate data-updated="true">15 Mar 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>In the small WPF project I&#8217;m currently working on we are using <a href="http://davesquared.net/2010/02/attempt-at-simple-mvvm-with-wpf.html">MVVM (Model - View - ViewModel)</a> to separate our UI concerns from other logic.</p>
+
+<p>Now for various reasons we&#8217;ve ended up with two main projects (excluding tests): the core application DLL, and the WPF UI executable that references the core DLL. Our ViewModels are defined in the application DLL, which knows absolutely nothing about the UI executable. Our Views (XAML) live in the UI exe, and depend on the ViewModels in the core DLL. All pretty standard.</p>
+
+<p>The one hiccup is that sometimes our application DLL needs to do something that will result in getting a reference to a view. For example, an application controller, screen conductor, or in our case, an <code>ApplicationShellViewModel</code> needs to load up the relevant views (it&#8217;s a small project, remember? :)). So how does it do this when it knows nothing about the views in the UI exe?</p>
+
+<div class="separator" style="clear: both; text-align: center;">
+<a href="/images/fromblogger/s1600-h-ui_and_core_components.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="109" src="/images/fromblogger/s320-ui_and_core_components.png" width="320" /></a></div>
+
+<p>In this case we decided to use a convention to map a ViewModel to a View. We&#8217;ve mandated that each View will have one and only one ViewModel (not strictly always the case, but works for us). So we can use our ViewModel types as &#8220;currency&#8221; to deal with our views, and exchange it for a view when required. We just need a way to map between a ViewModel and its View. </p>
+
+<p>The way we decided to do this mapping is to use an <code>IView</code> marker interface (defined in the core DLL) on all our views in the UI exe, and use a <code>ViewFactory</code> class to resolve an <code>IView</code> based on the name of a ViewModel, with the help of our IoC container (StructureMap 2.6). The naming convention we&#8217;ll use is very simple: if we have a <code>GherkinViewModel</code>, we expect the matching view to be of type <code>Gherkin</code>. If you&#8217;re new to IoC containers this all probably sounds a little confusing, so let&#8217;s look at some code.</p>
+
+<div class="note"><b>Note:</b> This is probably a good time to stress that this post isn&#8217;t about great ways to wire up MVVM components. It is more an example of using conventions and StructureMap to implement a fairly naive approach to View/View Model wire-up. If you are after more the former than the latter then you may want jump over to <a href="http://www.nikhilk.net/View-ViewModel-Hookup-Convention-Configuration.aspx">Nikhil&#8217;s post on View/ViewModel association</a>. I won&#8217;t take it personally. :)</div>
+
+<h2>The <code>ViewFactory</code></h2>
+
+<p>Given a ViewModel type, we want our <code>ViewFactory</code> to get an instance of the <code>IView</code> for that view model using our naming convention. Let&#8217;s write a test for this, specifying that we want to resolve an <code>IView</code> named &#8220;Example&#8221; for our <code>ExampleViewModel</code>:</p>
+
+<pre class="brush:csharp">
+public class ViewFactoryFixture {
+    [Test]
+    public void ShouldResolveViewForViewModelUsingNamingConvention() {
+        var exampleView = MockRepository.GenerateStub&lt;IView&gt;();
+        var applicationFactory = MockRepository.GenerateStub&lt;IApplicationFactory&gt;();
+        var viewFactory = new ViewFactory(applicationFactory);
+        applicationFactory.Stub(x =&gt; x.ResolveNamed&lt;IView&gt;(&quot;Example&quot;)).Return(exampleView);
+
+        var result = viewFactory.CreateViewFor&lt;ExampleViewModel&gt;();
+
+        Assert.That(result, Is.SameAs(exampleView));
+    }
+
+    public class ExampleViewModel {}
+}
+</pre>
+
+<p>The <code>ViewFactory</code> will need to use our IoC container to resolve the instance, which we&#8217;ve wrapped in an <code>IApplicationFactory</code> interface (not the best name perhaps &#8211; it creates application objects). Our test is specifying that when we ask the <code>ViewFactory</code> to create a view for our <code>ExampleViewModel</code> type, it should return the instance resolved from the <code>IApplicationFactory</code> named &#8220;Example&#8221;. Let&#8217;s pass this:</p>
+
+<pre class="brush:csharp">
+public class ViewFactory : IViewFactory {
+    private IApplicationFactory _applicationFactory;
+
+    public ViewFactory(IApplicationFactory applicationFactory) { _applicationFactory = applicationFactory; }
+
+    public IView CreateViewFor&lt;TViewModel&gt;() {
+        var viewNameByConvention = typeof (TViewModel).Name.Replace(&quot;ViewModel&quot;, &quot;&quot;);
+        return _applicationFactory.ResolveNamed&lt;IView&gt;(viewNameByConvention);
+    }
+}
+</pre>
+
+<p>Now we just need to implement an <code>IApplicationFactory</code> class and we&#8217;re done.</p>
+
+<h2>Registering named views in StructureMap</h2>
+
+<p>For our project our core StructureMap configuration lives in the core application DLL &#8211; the one with no references to the UI exe that has our views. Thankfully StructureMap has a really nice way of looking through assemblies and wiring up types you&#8217;re interested in.</p>
+
+<pre class="brush:csharp">
+class CoreRegistry : Registry {
+    public CoreRegistry(IApplicationFactory applicationFactory) {
+        For&lt;IApplicationFactory&gt;().Use(applicationFactory);
+        Scan(x =&gt;
+            {
+                x.AssembliesFromApplicationBaseDirectory(
+                    assembly =&gt; assembly.FullName.StartsWith(&quot;DaveSquared.&quot;));
+                x.AddAllTypesOf&lt;IView&gt;().NameBy(type =&gt; type.Name);
+                x.WithDefaultConventions();
+            });
+    }
+}
+</pre>
+
+<p><code>Registry</code> is a StructureMap type that is used to configure the container. We&#8217;re telling StructureMap to <a href="http://structuremap.github.com/structuremap/ScanningAssemblies.htm">scan</a> the assemblies in the application base directory, and add those that are specific to this project (which in this example will be <code>DaveSquared.MvvmConventionWireup.Core</code> and <code>DaveSquared.MvvmConventionWireup.UI</code>). The magic happens in this line:</p>
+
+<pre class="brush:csharp">
+x.AddAllTypesOf&lt;IView&gt;().NameBy(type =&gt; type.Name);
+</pre>
+
+<p>Here we&#8217;re telling the StructureMap scanner to add all types that implement <code>IView</code> into the container, and name each specific type by the short type name. This, you&#8217;ll remember, is our naming convention. When asked for the view for <code>ExampleViewModel</code> we&#8217;ll lookup an <code>IView</code> called &#8220;Example&#8221; (which will live in the UI project in a <code>Example.xaml</code> file). </p>
+
+<p>Some other quick notes: <code>WithDefaultConventions()</code> tells StructureMap to automatically wireup cases where there is only one concrete type that implements an interface (for example, <code>Foo</code> for <code>IFoo</code>). Also we register a singleton <code>IApplicationFactory</code> instance, as we need this as a dependency into our <code>ViewFactory</code>.</p>
+
+<p>The last step is just to put this altogether for our <code>IApplicationFactory</code> implementation:</p>
+
+<pre class="brush:csharp">
+public class ApplicationFactory : IApplicationFactory {
+    public ApplicationFactory() {
+        ObjectFactory.Initialize(x =&gt; x.AddRegistry(new CoreRegistry(this)));
+    }
+
+    public T Resolve&lt;T&gt;() {
+        return ObjectFactory.GetInstance&lt;T&gt;();
+    }
+
+    public T ResolveNamed&lt;T&gt;(string name) {
+        return ObjectFactory.GetNamedInstance&lt;T&gt;(name);
+    }
+
+    class CoreRegistry : Registry { /* ... snipped, already shown above ... */ }
+}
+</pre>
+
+<div class="note"><b>Aside:</b> I can&#8217;t help but point out that this <code>ApplicationFactory</code> is covered by tests. We make sure we can resolve views by name, and resolve a view factory, and a few other key instances. These are integration tests, but I&#8217;ve made the mistake of not testing this stuff before and having it grow into a real mess, the lack of tests encouraging sloppiness to creep in. There are better ways to test more complex configurations, but this is a nice and simple approach for a nice and simple app.</div>
+
+<p>We can now resolve Views like this from within our core application DLL code:</p>
+
+<pre class="brush:csharp">
+public ApplicationShellViewModel(IViewFactory viewFactory) {
+    Top = viewFactory.CreateViewFor&lt;FunkyViewModel&gt;();
+    Bottom = viewFactory.CreateViewFor&lt;AwesomeViewModel&gt;();
+}
+public IView Top { get; set; }
+public IView Bottom{ get; set; }
+</pre>
+
+<div class="note"><b>Note:</b> Check out <a href="http://www.codeplex.com/CompositeWPF">Prism / Composite WPF</a> or <a href="http://www.codeplex.com/caliburn">Caliburn</a> for real ways to do view composition. :)</div>
+
+<h2>Final thoughts</h2>
+
+<p>This post has shown a basic example of how to use conventions to resolve Views from ViewModels in situations where you don&#8217;t want to have hard references to View types. I have no idea if this is a blatant misuse of StructureMap or IoC containers in general (please correct me! :)), but it is working fine for us at the moment. It is especially nice to just name a View and have it auto-magically wireup to its ViewModel. It&#8217;s not quite as nice for the poor designer, but in our case we&#8217;re only doing fairly basic UI for which I&#8217;ve found it easier to deal directly with the XAML.</p>
+
+<p>One thing to keep in mind is that our <code>ViewFactory</code> and <code>ApplicationFactory</code> classes reference our container, which means we want to be very careful how widespread their use becomes in the application. Ideally you only want a couple of references to your IoC container in your application, so for us we only have it referenced in the class that handles our startup, and in our application shell (which is playing the role that an application controller or screen conductor might play in a larger app).</p>
+
+<p>Hope this gives you some idea of how easy it is to get some simple conventions going in your code. If I&#8217;ve glossed over anything you&#8217;d like to know more about feel free to drop me a line.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2010-03-15T23:07:00+11:00" pubdate data-updated="true">15 Mar 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/patterns/'>patterns</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/03/wiring-up-views-and-view-models-using.html" data-via="" data-counturl="http://davesquared.net/2010/03/wiring-up-views-and-view-models-using.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/03/structuremap-gotcha-ienumerable.html" title="Previous Post: StructureMap gotcha: IEnumerable<T> instance registered but not injected">&laquo; StructureMap gotcha: IEnumerable<T> instance registered but not injected</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/03/wpf-newbie-battles-stackpanel.html" title="next Post: A WPF newbie battles the StackPanel">A WPF newbie battles the StackPanel &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/03/wiring-up-views-and-view-models-using.html';
+        var disqus_url = 'http://davesquared.net/2010/03/wiring-up-views-and-view-models-using.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

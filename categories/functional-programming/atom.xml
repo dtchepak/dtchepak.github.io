@@ -1,0 +1,768 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: functional programming | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/functional-programming/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Aggregation]]></title>
+    <link href="http://davesquared.net/2017/11/aggregation.html"/>
+    <updated>2017-11-04T17:30:00+11:00</updated>
+    <id>http://davesquared.net/2017/11/aggregation</id>
+    <content type="html"><![CDATA[<p>Today I wanted to look at an approach for producing aggregate data from multiple measurements over a source. I'm learning <a href="https://kotlinlang.org/">Kotlin</a> at the moment so I'll use that for the examples in this post, but we can apply the same idea to pretty much any language (I've used similar approaches in F#, and it would work with C# albeit with a bit more code noise). <!-- more --> Any feedback on the approach in general and on my Kotlin-ing attempts is appreciated.</p>
+
+<h2>Motivating example</h2>
+
+<p>For this post we'll consider the example of a list of <code>Sample</code> values we want aggregate information for. A <code>Sample</code> includes the month and year it was collected, and an integer representing the value sampled. For each set of samples we are required to show the following information:</p>
+
+<ul>
+<li>The total value sampled for each month and year</li>
+<li>The earliest sample date in this data set</li>
+<li>The largest individual sample collected</li>
+<li>A count of how many samples where within a specific range.</li>
+</ul>
+
+
+<pre><code class="kotlin">data class MonthYear(val year: Int, val month: Int) : Comparable&lt;MonthYear&gt; { /* ... */ }
+data class Sample(val date: MonthYear, val value: Int)
+</code></pre>
+
+<h2>Initial attempts</h2>
+
+<p>We could neatly get each individual bit of information by using multiple queries<a href="Example">^multipleQueries</a>, but requiring multiple iterations seems quite wasteful, especially for larger data sets. Instead we could use multiple variables, or an aggregate type containing those variables, and update each as we loop or fold over the data set:</p>
+
+<pre><code class="kotlin">data class CandidateAggregate(var data: Map&lt;MonthYear, Int&gt;,
+                              var earliestSampleDate: MonthYear?,
+                              var largestSample: Int,
+                              var inRangeCount: Int)
+
+val result = samples.fold(
+        CandidateAggregate(emptyMap(), null, 0, 0), // empty case
+        { acc, s -&gt;
+            CandidateAggregate(
+                acc.data.insertOrUpdate(s.date) { if (it==null) s.value else it + s.value },
+                minOf(acc.earliestSampleDate ?: s.date, s.date),
+                maxOf(acc.largestSample, s.value),
+                acc.inRangeCount + if ((100..200).contains(s.value)) 1 else 0
+            )
+        })
+
+/** Helper for updating the value for a key in a map, or inserting it if it does not exist. */
+private fun &lt;K, V&gt; Map&lt;K, V&gt;.insertOrUpdate(key: K, transform: (V?) -&gt; V): Map&lt;K, V&gt; =
+        plus(key to transform(get(key)))
+</code></pre>
+
+<p>This seems a reasonable approach to me, and we'll take this and adapt it in an attempt to get a few additional benefits:</p>
+
+<ul>
+<li>Include more information about the type of calculation used for each field in the aggregate</li>
+<li>Enable reuse of specific calculations in other aggregates</li>
+<li>Enable independent testing of each calculation type</li>
+<li>Make it fairly simple to change existing aggregates, and to create new ones.</li>
+</ul>
+
+
+<h2>Representing aggregate calculations</h2>
+
+<p>First we'll create a type to represent values that can be combined. We'll use Kotlin's <code>plus</code> operator for this purpose.</p>
+
+<pre><code class="kotlin">/** A type [T] with an associative binary operation. Must satisfy the associative property:  `a + (b + c) == (a + b) + c` */
+interface Semigroup&lt;T&gt; {
+    operator fun plus(other: T): T
+}
+</code></pre>
+
+<p>We'll steal the term "<a href="https://en.wikipedia.org/wiki/Semigroup">semigroup</a>" from mathematics as its definition includes the constraints our <code>plus</code> operation needs<a href="A">^semigroup</a>, although we could also call it <code>Combinable</code> or <code>Addable</code> or something else if we prefer.</p>
+
+<p>If you haven't used Kotlin before, defining a <code>plus</code> operator function lets us also use the <code>+</code> symbol, so <code>a + b</code> will get translated to <code>a.plus(b)</code>. Whenever you see two semigroups being added using <code>+</code> for the remainder of this post, keep in mind it will be calling the <code>plus</code> function defined by that semigroup instance. (If you don't like co-opting <code>+</code> in this way feel free to change the interface to declare <code>fun combine(other: T): T)</code> or similar.)</p>
+
+<p>Next, we'll define instances that represent sum, max, and min aggregation:</p>
+
+<pre><code class="kotlin">data class Sum(val value: Int) : Semigroup&lt;Sum&gt; {
+    override fun plus(other: Sum): Sum = Sum(value + other.value)
+}
+
+data class Max&lt;T : Comparable&lt;T&gt;&gt;(val value: T) : Semigroup&lt;Max&lt;T&gt;&gt; {
+    override operator fun plus(other: Max&lt;T&gt;) = Max(maxOf(value, other.value))
+}
+
+data class Min&lt;T : Comparable&lt;T&gt;&gt;(val value: T) : Semigroup&lt;Min&lt;T&gt;&gt; {
+    override operator fun plus(other: Min&lt;T&gt;) = Min(minOf(value, other.value))
+}
+</code></pre>
+
+<p>Looking at our <code>CandidateAggregate</code> from earlier, we also need to handle nullable values (<code>earliestSampleDate: MonthYear?</code>), as well as combining <code>Map&lt;MonthYear, Int&gt;</code> values. Rather than building these specifically for this case, we can express these concepts more generally in terms of other semigroups, so they can be reused for different cases:</p>
+
+<pre><code class="kotlin">/**
+ * Combine nullable values. Use the semigroup instance to combine if both have values, or if only
+ * one value is present use that.
+ */
+data class Nullable&lt;T : Semigroup&lt;T&gt;&gt;(val value: T?) : Semigroup&lt;Nullable&lt;T&gt;&gt; {
+    override fun plus(other: Nullable&lt;T&gt;): Nullable&lt;T&gt; =
+            if (value != null &amp;&amp; other.value != null) {
+                Nullable(value + other.value) // Reminder: `+` here will call T.plus defined for the Semigroup&lt;T&gt;.
+            } else {
+                Nullable(this.value ?: other.value)
+            }
+}
+
+/**
+ * Merge [Map]s where the values have a semigroup instance. If both maps have an entry for the same key, these
+ * will be combined using the semigroup operation.
+ */
+data class Mapped&lt;K, V : Semigroup&lt;V&gt;&gt;(val value: Map&lt;K, V&gt;) : Semigroup&lt;Mapped&lt;K, V&gt;&gt; {
+    override fun plus(other: Mapped&lt;K, V&gt;): Mapped&lt;K, V&gt; =
+            value.entries.fold(other.value) { acc, entry -&gt;
+                acc.insertOrUpdate(entry.key) { if (it != null) it + entry.value else entry.value }
+            }.let { Mapped(it) }
+}
+</code></pre>
+
+<p>Each of these operations is implemented quite similarly to the code we used for each field in <code>CandidateAggregate</code>, but now we can reuse them for different aggregates, as well as test each in isolation. The cost is we have now spread this code across more types.</p>
+
+<p>We can also write some general functions, <code>concat</code> and <code>concatMap</code>, to combine any list of <code>Semigroup&lt;T&gt;</code> values into a single <code>Semigroup&lt;T&gt;</code> value, effectively combining aggregates^[Both <code>concat</code> and <code>concatMap</code> take an <code>empty: T</code> value for cases where the <code>items</code> lists are empty. We could use a <code>Monoid</code> constraint instead of <code>Semigroup</code>, which adds the concept of an empty identity element, but I found this messy to implement in Kotlin.]. Here is an example of how to define and use these functions (as well as an example of testing <code>Sum</code> and <code>Max</code> in isolation):</p>
+
+<pre><code class="kotlin">/** Reduce a list of `T` to a single `T` using a semigroup operation */
+fun &lt;T : Semigroup&lt;T&gt;&gt; concat(empty: T, items: Iterable&lt;T&gt;) = items.fold(empty) { acc, t -&gt; t + acc }
+
+/** Reduce a list of [A] by converting each item to a [T] with a semigroup instance, then combining to a single value using [concat]. */
+fun &lt;T : Semigroup&lt;T&gt;, A&gt; concatMap(empty: T, items: Iterable&lt;A&gt;, f: (A) -&gt; T) =
+        items.fold(empty) { acc, t -&gt; f(t) + acc }
+        /* Note: this is logically equivalent to the simpler:
+         *      concat(empty, items.map(f))
+         * But this would do two passes through the list.
+         */
+
+@Test
+fun examples() {
+    val list = listOf(42, 123, 19, 73)
+    assertEquals(Sum(257), Semigroup.concatMap(Sum(0), list) { Sum(it) })
+    assertEquals(Max(123), Semigroup.concatMap(Max(0), list) { Max(it) })
+}
+</code></pre>
+
+<h2>Using our aggregation types</h2>
+
+<p>Now we can rewrite <code>CandidateAggregate</code> using our aggregation types:</p>
+
+<pre><code class="kotlin">data class Aggregate(var data: Mapped&lt;MonthYear, Sum&gt;,
+                     var earliestSampleDate: Nullable&lt;Min&lt;MonthYear&gt;&gt;,
+                     var largestSample: Max&lt;Int&gt;,
+                     var inRange: Sum) : Semigroup&lt;Aggregate&gt; {
+    companion object {
+        val empty = Aggregate(Mapped(emptyMap()), Nullable(null), Max(0), Sum(0))
+    }
+
+    override fun plus(other: Aggregate): Aggregate =
+            Aggregate(data + other.data,
+                    earliestSampleDate + other.earliestSampleDate,
+                    largestSample + other.largestSample,
+                    inRange + other.inRange)
+}
+</code></pre>
+
+<p>The type of aggregation used appears explicitly for each field in <code>Aggregate</code>. For example <code>largestSample: Max&lt;Int&gt;</code> conveys both the type of the result (<code>Int</code>), as well as the process being used to calculated it (<code>Max</code>). In <code>CandidateAggregate</code> only the former was expressed. We also build some field types by composing semigroups, such as <code>Mapped&lt;MonthYear, Sum&gt;</code>, which specifies we will be adding values using <code>Sum</code> rather than some other approach. This also makes it very simple to update the method of aggregation (as illustrated <a href="#what-have-we-gained-for-the-price">below</a>).</p>
+
+<p>We have made <code>Aggregate</code> itself a semigroup to define how we combine these composite aggregates. We've also added an <code>empty</code> property to make it easier to call <code>concat</code> and <code>concatMap</code>.</p>
+
+<p>The last piece we need is to translate a single <code>Sample</code> into an <code>Aggregate</code>, then we can do the entire aggregation using <code>concatMap</code> as shown in the <code>aggregateSamples()</code> test. Each <code>Sample</code> gets transformed into an <code>Aggregate</code> representing that individual sample (an aggregate of 1), then each <code>Aggregate</code> in turn gets combined to calculate the required information across all the samples.</p>
+
+<pre><code class="kotlin">fun aggregateSample(sample: Sample): Aggregate =
+        Aggregate(Mapped(mapOf(sample.date to Sum(sample.value))),
+                Nullable(Min(sample.date)),
+                Max(sample.value),
+                sample.value.countWithin(100..200))
+
+fun &lt;T : Comparable&lt;T&gt;&gt; T.countWithin(range: ClosedRange&lt;T&gt;) =
+        Sum(if (range.contains(this)) 1 else 0)
+
+@Test
+fun aggregateSamples() {
+    // Aggregation
+    val result = Semigroup.concatMap(Aggregate.empty, samples) { aggregateSample(it) }
+
+    // Actual results are equivalent to the individual queries on the left:
+    assertEquals(samples.minBy { it.date }?.date, result.earliestSampleDate.value?.value)
+    assertEquals(samples.maxBy { it.value }?.value, result.largestSample.value)
+    assertEquals(samples.count { (100..200).contains(it.value) }, result.inRange.value)
+    val june2017 = MonthYear(2017, 6)
+    assertEquals(samples.filter { x -&gt; june2017 == x.date }.sumBy { it.value }, result.data.value[june2017]?.value)
+}
+</code></pre>
+
+<h2>What have we gained for the price?</h2>
+
+<p>This definitely has more pieces that the <code>CandidateAggregate</code> version (although the code for each piece has not changed much, it is now spread over multiple types). More pieces suggest a performance impact, but I have not measured this.</p>
+
+<p>We do get a few benefits for this price. Firstly, we now have some small, simple, genuinely reusable aggregation types (<code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Mapped</code> etc.). These can be combined into other aggregates, and they can be tested in isolation. Secondly, we explicitly define aggregate types in terms of the aggregates of which they are composed. We don't have an aggregate that contains an <code>Int</code>, we have a <code>Sum</code> or a <code>Max&lt;Int&gt;</code> which conveys more information as to the aggregation process, as well as preventing errors (summing two <code>Int</code> values that should have been combined using <code>maxOf</code> for example).</p>
+
+<p>We also make it simpler to change our aggregation. For example, if we wanted to change from reporting the total value to the maximum value for each month, we can change <code>Mapped&lt;MonthYear, Sum&gt;</code> to <code>Mapped&lt;MonthYear, Max&lt;Int&gt;&gt;</code> and the aggregation process will adjust accordingly.</p>
+
+<h2>Conclusion</h2>
+
+<p>We introduced a <code>Semigroup&lt;T&gt;</code> interface which represents values that can be combined with an associative, binary operation. We also introduced <code>concat</code> and <code>concatMap</code> operations that work for any instance of this interface. We created <code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Nullable</code> and <code>Mapped</code> instances of this interface to represent common methods of aggregation, then built a custom <code>Aggregate</code> semigroup composed of some of these instances.</p>
+
+<p>This is a bit more complex compared than manually aggregating a set of values over a loop or fold, but in return gives us reusable and testable aggregate types, more communicative types for our aggregate model, less opportunities for bugs in the aggregation process, as well as making the creation of new aggregates and modifications to existing aggregates simpler.</p>
+
+<h2>Suggested reading</h2>
+
+<ul>
+<li><p><a href="https://fsharpforfunandprofit.com/series/understanding-monoids.html">Understanding monoids</a>, a three part series on monoids (a special case of semigroup) by Scott Wlaschin at the excellent <a href="https://fsharpforfunandprofit.com/">F# for fun and profit</a> site.</p>
+
+<pre><code class="``kotlin">  val minDate = samples.map { it.date }.min()
+  val maxSample = samples.map { it.value }.max()
+  val inRangeCount = samples.count { (100..200).contains(it.value) }
+</code></pre>
+
+<pre><code class="``">  100 - (30 - 10) - 5 /= ((100 - 30) - 10) - 5
+  75 /= 55
+</code></pre>
+
+<p>  The end result is we can use associativity to combine values without having to also take evaluation order into account.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Pondering a prescription for pattern matching prevalance]]></title>
+    <link href="http://davesquared.net/2016/02/pattern-matching.html"/>
+    <updated>2016-02-16T20:45:00+11:00</updated>
+    <id>http://davesquared.net/2016/02/pattern-matching</id>
+    <content type="html"><![CDATA[<p>In which I ramble on about how my thoughts on pattern matching have changed over the years.</p>
+
+<!-- more -->
+
+
+<h2>Glorified conditional?</h2>
+
+<p>At its most basic, pattern matching can be use to represent standard conditionals and <code>switch</code> statements. For example (in F#):</p>
+
+<pre><code class="fsharp">// Pattern matching syntax:
+let menu s =
+    match s with
+    | "X" = exitCommand
+    | "U" = moveUpCommand
+    | "D" = moveDownCommand
+    |  _  = ...
+
+// Conditionals:
+let menu2 s =
+    if s = "X" then exitCommand
+    else if s = "U" then moveUpCommand
+    else if s = "D" then moveDownCommand
+    else ...
+</code></pre>
+
+<p>This did not initially seem very exciting to me. There has to be more to it than this, right? (Spoiler: yes :) )</p>
+
+<h2>Pattern match all teh things!</h2>
+
+<p>Things get more interesting when we are dealing with types whose values can have different shapes. For example, <code>Option&lt;T&gt;</code> (similar to <code>Nullable&lt;T&gt;</code> in C#). In F# <code>Option&lt;T&gt;</code> has an <code>IsSome</code> property (like <code>HasValue</code> for <code>Nullable&lt;T&gt;</code>). If this is <code>true</code> then it is safe to access that value's <code>Value</code> property. If <code>IsSome</code> is <code>false</code>, then accessing <code>Value</code> will throw a <code>NullReferenceException</code>. So we could (but please don't) use option types like this:</p>
+
+<pre><code class="fsharp">// Don't do this!
+let getKeyAndValue (key : string) (dict : Map&lt;string,string&gt;) =
+    let result = dict.TryFind(key)
+    if result.IsSome then
+        Some (key, result.Value)  // please don't do this
+    else
+        None
+</code></pre>
+
+<p>I don't like this. I'm not fond of null reference exceptions, and I don't like checking <code>IsSome</code> before accessing values because I do silly things like messing up the conditional, or forgetting to check and crashing with a <code>NullReferenceException</code> (or if not forgetting, there are always those cases that "will never be null" which end up being just that due to a misunderstanding or a change somewhere along a call stack). And what about more complicated types, where we may have to check several different preconditions before accessing a number of different values?</p>
+
+<p>Instead, we can use pattern matching to match all the possible shapes of our type:</p>
+
+<pre><code class="fsharp">// Better (but can still be improved)
+let getKeyAndValue (key : string) (dict : Map&lt;string,string&gt;) =
+    match dict.TryFind(key) with
+    | Some value -&gt; Some (key, value)
+    | None       -&gt; None
+</code></pre>
+
+<p>This is great because we don't need to access the null reference-throwing <code>.Value</code> property. Instead the value is assigned as part of the pattern: <code>Some value</code>. For the <code>None</code> case there is no value we can access within the pattern. If we tried to add one, the compiler will stop and tell use we have the wrong pattern. What is extra great is that if we don't cover all the possible allowable values of the type we are matching against the compiler will warn us.</p>
+
+<p>So we've ruled out a whole bunch of errors, and have very explicit, compiler-checked documentation about valid ways to use values of each type.</p>
+
+<p>This is awesome! Pattern match all teh things!</p>
+
+<h2>The "meh" of matching</h2>
+
+<p>Say we have a collection of key value pairs, where both keys and values are strings. Maybe we got this from a POST request, or a flattened JSON object or something. We want to get the value for a particular key, and convert it to an integer (or <code>0</code> if we can not do the conversion).</p>
+
+<p>So we have two cases that can be <code>None</code>, looking up a value for a key that may not be in the JSON, and trying to convert the value to a valid integer.</p>
+
+<p>Let's start out with the conditional version:</p>
+
+<pre><code class="fsharp">let getRows (dict : Map&lt;string, string&gt;) : int =
+    let rows = dict.TryFind("numberOfRows")
+    if rows.IsSome then
+        let result = tryParseInt(rows.Value)
+        if result.IsSome then result.Value
+        else 0
+    else 0
+</code></pre>
+
+<p>Yuck, look at all those potentially catastrophic <code>.Value</code> calls! Let's rewrite it with our new-found hammer:</p>
+
+<pre><code class="fsharp">let getRows2 (dict : Map&lt;string, string&gt;) : int =
+    match dict.TryFind("numberOfRows") with
+    | None -&gt; 0
+    | Some rows -&gt;
+        match tryParseInt rows with
+        | None -&gt; 0
+        | Some result -&gt; result
+</code></pre>
+
+<p>What isn't so great is that we are still writing very similar code, just with safer pattern-matching instead of free-form conditionals. But we're still going through the same code branches.</p>
+
+<p>What I also found alarming when first starting out with this is a side-effect of the compiler warning us about unmatched values -- we're now forced to be explicit everywhere about how to handle all the values. Isn't this going to get horribly verbose? We already have a good idea about when things are going to be null, so why trade concise code for a little safety?</p>
+
+<p>Well, the good thing is we can have our safety and eat... er... code... concisely too!</p>
+
+<h2>Combinator all teh things!</h2>
+
+<p>Rather than digging into the details of a type by pattern matching all the time, we can define operations for using and combining values of these types. I often see these referred to as "combinators"  (although <a href="https://wiki.haskell.org/Combinator">that term seems overloaded</a>). For example, we can rewrite our <code>getRows</code> function using <code>Option.bind</code> and <code>Option.getOrElse</code>^[<code>getOrElse</code> is not part of the <code>Option</code> module in F#3, but thankfully we can add members to modules.] without ever digging in to grab a value from an <code>Option&lt;T&gt;</code> type.</p>
+
+<pre><code class="fsharp">let getRows3 (dict : Map&lt;string, string&gt;) : int =
+    dict.TryFind("numberOfRows")
+    |&gt; Option.bind tryParseInt
+    |&gt; Option.getOrElse 0
+</code></pre>
+
+<p>Under the hood this code is still doing exactly the same thing, but we are now expressing the operation in terms of other distinct operations, instead of via the details of deconstructing values<a href="To">^combinators-and-classes</a>. This allows us to start thinking at a higher level of abstraction. Rather than thinking about things like "if this is <code>Some value</code> return that, or if it is <code>None</code> then return the second option", we start thinking in terms of the higher-level operations like <code>or</code> and <code>map</code>. These operations allow us to more easily and precisely express more complex ideas.</p>
+
+<p>This was a huge turning point for me. Previously I was worried about things like <code>Option&lt;T&gt;</code> values propagating all over the code, and having to pattern match at each call site. Now we still get propagation (which is completely valid! If we are dealing with a call that can return an empty value, chances are the caller will also need to return an empty value), but there is no cost for this. Combinators make using these values almost as convenient as using the wrapped type^[...and every bit as easy as using an object with methods hanging off it, which is one valid way of implementing these combinator functions], with the benefit that we are now safely handling empty values instead of relying on us to remember which calls sometimes return <code>null</code> instead of a <code>T</code>.</p>
+
+<h2>An aside for pattern matching-less languages</h2>
+
+<p>If we mainly use combinators for combining types of values, this makes pattern matching a less essential part of a language. It is still a very nice feature to have, as it is pretty natural to implement combinators using pattern matching, and pattern matching seems to go hand-in-hand with <a href="http://fsharpforfunandprofit.com/posts/discriminated-unions/">sum types</a> which I regard as an essential language feature. But for those who still do a lot of work in C# and similar languages this means that we can implement these combinators in others ways (sometimes messy ways, without as much compiler/type system help) and get a lot out of useful, oft-pattern-matched types like <code>Option</code> and <code>Either</code>.</p>
+
+<h2>Conclusion</h2>
+
+<p>My experience with pattern matching has gone from not understanding why it was useful, then to wanting to use it everywhere, now to favouring combinators and avoiding having to dig in to the details of a type as much as possible. Using these operations defined over types gives me a nice, high-level way of thinking about building up these values.</p>
+
+<p>Pattern-matching is still really useful, particularly for defining operations over a type, but in general I try to use those defined operations instead, only falling back to pattern matching in the cases where it is much simpler (for example: cases like <code>let (a,b) = foo</code> instead of <code>let a = fst foo; let b = snd foo</code>).</p>
+
+<p>If you currently use pattern matching all the time, maybe try to pull out the repeated operations the pattern matches represent and see if you prefer that style. Operations like <code>map</code>, <code>flatMap</code>, <code>apply</code>, <code>reduce</code>/<code>fold</code>, and other combining functions along the lines of <code>+</code>, <code>and</code>, and <code>or</code> are good places to start.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Currying vs. partial application]]></title>
+    <link href="http://davesquared.net/2016/02/currying-vs-partialapp.html"/>
+    <updated>2016-02-10T21:30:00+11:00</updated>
+    <id>http://davesquared.net/2016/02/currying-vs-partialapp</id>
+    <content type="html"><![CDATA[<p>When I first came across the terms "currying" and "partial application" I was a bit confused about the difference. Here is my attempt at an explanation^[Also left as a comment to <a href="http://blog.thecodewhisperer.com/2016/01/21/how-a-smell-in-the-tests-points-to-a-risk-in-the-design/">this post</a>, modified slightly here]. I'm not 100% confident of my understanding, so please point out any inconsistencies -- I'm happy to be corrected :).</p>
+
+<!-- more -->
+
+
+<p>Consider a call that takes 2 arguments and returns some value^[See <a href="/2016/02/reading-type-annotations.html">Reading type annotations</a> if this style of writing out types is unfamiliar.]:</p>
+
+<pre><code class="fsharp">f : (String, Int) -&gt; Widget
+// Example call:
+f("a", 1)
+</code></pre>
+
+<p>Currying is the process of converting this to a function that takes a single argument, and returns another function that takes a single argument.</p>
+
+<pre><code class="fsharp">f' : String -&gt; (Int -&gt; Widget)
+// or just:
+f' : String -&gt; Int -&gt; Widget
+
+// Example call:
+f'("a")(1)
+</code></pre>
+
+<p>For functions with more than 2 arguments, we can use currying to convert it to a series of functions that each take a single argument:</p>
+
+<pre><code class="fsharp">g : (a,b,c,d) -&gt; e
+g' : a -&gt; (b -&gt; (c -&gt; (d -&gt; e)))
+// or just:
+g' : a -&gt; b -&gt; c -&gt; d -&gt; e
+</code></pre>
+
+<p>Partial application is when we can have a function that takes multiple arguments, give it a subset of those arguments, and get back a function that will take the remaining arguments. With curried functions we get this ability for free, but you could imagine a language feature that implements this for uncurried functions:</p>
+
+<pre><code class="fsharp">// With curried function:
+g' : a -&gt; b -&gt; c -&gt; d -&gt; e
+let partialApplyG' = g'(1)(2) 
+// partialApplyG' : c -&gt; d -&gt; e
+partialApplyG'(3)(4) // &lt;- providing the rest of the arguments
+
+// With uncurried function (via our imagined language feature):
+g : (a,b,c,d) -&gt; e
+let partialApplyG = g (1, 2) 
+// partialApplyG : (c, d) -&gt; e
+partialApplyG (3, 4) // &lt;- providing the rest of the arguments
+</code></pre>
+
+<p>I think it is correct to say that all curried functions support partial application, but not all partial application implementations require currying.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Reading type annotations]]></title>
+    <link href="http://davesquared.net/2016/02/reading-type-annotations.html"/>
+    <updated>2016-02-09T22:30:00+11:00</updated>
+    <id>http://davesquared.net/2016/02/reading-type-annotations</id>
+    <content type="html"><![CDATA[<p>C and C-style languages like C++, Java, and C# tend to have method types written like this:</p>
+
+<pre><code>returnType methodName(argType0 arg0, argType1 arg1);
+</code></pre>
+
+<p>Other typed languages and programming papers use a notation more like this:</p>
+
+<pre><code>methodName : (argType0, argType1) -&gt; returnType
+</code></pre>
+
+<p>I found it took a bit of getting used to, but I now much prefer to read and write this style. I think it is worth becoming familiar with, as it is used in quite a few languages^[Such as Haskell, F#, Swift, Scala, OCaml, ML, Idris, Elm, PureScript, and TypeScript.] and in all the programming papers I've seen. So here's a quick guide on how to read this style of type annotation.</p>
+
+<!-- more -->
+
+
+<h2>Structure</h2>
+
+<p>From the <code>methodName</code> example above, we can see the structure has changed from "return type - name - arguments" to "name - arguments - return type". So the main change is moving the return type from the beginning to the end.</p>
+
+<p>A <code>:</code> separates the name from the type signature. <code>:</code> can be read as "has type". Haskell unfortunately uses <code>::</code> for this, instead of the <code>:</code> character which seems to be used pretty much everywhere else.</p>
+
+<p>A <code>-&gt;</code> arrow separates function input from function output. So <code>a -&gt; b</code> reads as "I take values of type <code>a</code> and produce values of type <code>b</code>".</p>
+
+<p>Arguments are shown as a tuple of one or more types. In some languages (like ML, OCaml, and F#) tuple types are shown denoted by types separated by <code>*</code> characters, so the signature would look like <code>methodName : argType0 * argType1 -&gt; returnType</code>.</p>
+
+<h2>Generics</h2>
+
+<p>There are a few different ways of representing generic parameters. Let's take a function that, given a single element of some type, returns a singleton list of that type.</p>
+
+<pre><code>// C#
+List&lt;T&gt; Singleton&lt;T&gt;(T value);
+
+// Haskell
+singleton :: t -&gt; List t
+
+// F#
+singleton : 't -&gt; List&lt;'t&gt;
+// or F# can use postfix syntax where the type variable
+// is followed by the type constructor
+singleton : 't -&gt; 't list
+</code></pre>
+
+<p>In Haskell, any type starting with a lowercase character is a type variable rather than a concrete type. In F# type parameters begin with a quote character <code>'</code>. Not requiring an additional step to list generic parameters is handy.</p>
+
+<h2>Higher order functions</h2>
+
+<p>Where this notation starts to show some advantages is with higher order functions. For example, say we want a generic <code>map</code> function:</p>
+
+<pre><code>// C#-style
+List&lt;A&gt; Select&lt;T,A&gt;(Func&lt;T,A&gt; f, List&lt;T&gt; list);
+
+// Haskell-style
+map :: (t -&gt; a) -&gt; List t -&gt; List a
+
+// or a more exact, less idiomatic translation:
+map :: ((t -&gt; a), List t) -&gt; List a
+</code></pre>
+
+<p>These functions take a function that translates Ts to As, and a list of Ts, to produce a list of As. The parentheses around the <code>(t -&gt; a)</code> in the Haskell-style signature show that this is a single argument (that happens to itself be another function). This is a bit cleaner than the equivalent <code>Func&lt;T, A&gt;</code> in the C# version, particularly when the explicit type parameter declarations are taken into account. The difference becomes more noticeable as we increase the number of functions and type parameters:</p>
+
+<pre><code>// Example: function composition, (f ∘ g)(x) = f(g(x))
+
+// Haskell style:
+compose :: (b -&gt; c) -&gt; (a -&gt; b) -&gt; (a -&gt; c)
+
+// C#-style:
+Func&lt;A,C&gt; Compose&lt;A,B,C&gt;(Func&lt;B,C&gt; f, Func&lt;A,B&gt; g);
+</code></pre>
+
+<h2>Curried functions</h2>
+
+<p>In the <code>map</code> example above a "more exact, less idiomatic translation" was shown:</p>
+
+<pre><code>map1 :: (t -&gt; a) -&gt; List t -&gt; List a
+map2 :: ((t -&gt; a), List t) -&gt; List a
+</code></pre>
+
+<p><code>map1</code> takes a function <code>(t -&gt; a)</code> and returns a function <code>List t -&gt; List a</code>. It would also be correct to write it as <code>map1 :: (t -&gt; a) -&gt; (List t -&gt; List a)</code>. In constrast, <code>map2</code> takes a single argument that happens to be a tuple of <code>((t -&gt; a), List t)</code>. If we are supplying both arguments at once there is not much difference, but the <code>map1</code> version also lets us supply just the <code>(t -&gt; a)</code> argument to create a new function.</p>
+
+<pre><code>&gt; map1 (+1) [1..3]
+[2,3,4]
+&gt; map2 ((+1), [1..3])
+[2,3,4]
+
+&gt; let addOne = map1 (+1)
+addOne :: [List Int] -&gt; [List Int]
+&gt; addOne [1..3]
+[2,3,4]
+</code></pre>
+
+<p>Being able to supply less than the full contingent of arguments to a function, and get back a function that takes the remainder of the arguments, is called partial application.</p>
+
+<p>The <code>map1</code> form of signature, where a function is built out of functions that each take a single argument, is called a curried function (<code>map2</code> is "uncurried"). We get partial application, the ability to provide one argument at a time, for free with curried functions.</p>
+
+<p>Curried function signatures in C# get unpleasant fairly quickly:</p>
+
+<pre><code>// Haskell-style
+curriedEg :: a -&gt; b -&gt; c -&gt; d -&gt; e
+uncurriedEg :: (a, b, c, d) -&gt; e
+
+// C#
+Func&lt;B, Func&lt;C, Func&lt;D, E&gt;&gt;&gt; CurriedEg&lt;A,B,C,D,E&gt;(A a);
+E UncurriedEg&lt;A,B,C,D,E&gt;(A a, B b, C c, D d);
+
+// cluck cluck, bgark!
+</code></pre>
+
+<h2>Unit values</h2>
+
+<p>Some methods take no input and return a value (either a constant, or due to some side-effect). The "no input" value is normally represented by empty parenthesis <code>()</code>, and is called "unit" (because there is only a single legal value of this type, <code>()</code>).</p>
+
+<pre><code>DateTime GetDate();
+
+getDate : () -&gt; DateTime
+</code></pre>
+
+<p>Similarly for things that take an argument but produce no direct output value (i.e. performs a side-effect)^[Note that <code>void</code> in C-style languages is different to the terms "unit" and "Void" in non-C-style languages. In C-style languages <code>void</code> means "has no return value", where a return type of <code>()</code> means "returns the value ()". In contrast, the type <code>Void</code> is one with no legal instance. We can never return a value of type <code>Void</code>, so my understanding is a function <code>a -&gt; Void</code> can never return.]. Again, this is represented by unit:</p>
+
+<pre><code>void Save(Widget w);
+save : Widget -&gt; ()
+</code></pre>
+
+<p>This starts to look a bit funny when methods take other calls with no input and no direct output:</p>
+
+<pre><code>void Subscribe(Action callback);
+subscribe : (() -&gt; ()) -&gt; ()
+</code></pre>
+
+<p>It does give some immediate clues as to where side-effects are in a type signature thought.</p>
+
+<h2>Types inside implementations</h2>
+
+<p>We've looked at different forms of type signatures, but this style also tends to work its way into method definitions, again using the form <code>name : type</code>.</p>
+
+<pre><code>// C#
+List&lt;T&gt; Singleton&lt;T&gt;(T t) {
+    return new List&lt;T&gt; { t };
+}
+
+// Haskell
+singleton :: t -&gt; [T]
+singleton t = [t]
+
+// F#
+let singleton (t : 'T) : List&lt;'T&gt; = [t]
+
+// Swift
+func singleton&lt;T&gt;(t : T) -&gt; [T] {
+    return [t]
+}
+</code></pre>
+
+<p>Haskell tends to split the type signature from definition. F# specifies the arguments as <code>argName : argType</code>, and then gives the type of the resulting value (in this case <code>List&lt;'T&gt;</code>. Generic type parameters are indicated with a <code>'</code> prefix. Swift uses a similar style, but an arrow is used for the return type. Swift needs explicit declaration of generic type parameters.</p>
+
+<p>In both the Haskell and F# cases the type information can actually be omitted -- the type system will infer the correct type signature.</p>
+
+<h2>Conclusion</h2>
+
+<p>This has been a quick tour through the things that first tripped me up when reading type signatures from non-C-style languages.</p>
+
+<p>The main habit I needed to break was expecting to see a type then a name. Instead, names are first, then their type shown. So method types change like this:</p>
+
+<pre><code>returnType blah()
+// becomes something like:
+blah : () -&gt; returnType
+</code></pre>
+
+<p>Similarly arguments go from <code>ArgType name</code> to <code>name : ArgType</code>.</p>
+
+<pre><code>void Load(int id)
+// becomes something like:
+load(id : int) : ()
+</code></pre>
+
+<p>Hope this helps!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[The Apply pattern]]></title>
+    <link href="http://davesquared.net/2015/07/apply-pattern.html"/>
+    <updated>2015-07-27T21:45:00+10:00</updated>
+    <id>http://davesquared.net/2015/07/apply-pattern</id>
+    <content type="html"><![CDATA[<p>I really enjoy trying to understand how and why things like work, but for this post I'm going to try to skip all that wonderful stuff and instead give a practical outline of how to use a very useful pattern arising from <a href="http://www.davesquared.net/2012/05/fp-newbie-learns-applicatives.html">applicative functors</a>.</p>
+
+<p>I've found this pattern incredibly useful in F#, Swift and Haskell. The examples here are in F#, but as far as I can tell we can use it anywhere that has generic types and higher-order functions.</p>
+
+<!-- more -->
+
+
+<h2>Aim</h2>
+
+<p>Say we have some generic type, let's call it <code>Widget&lt;T&gt;</code> (we'll use the term "widget" as a placeholder for a generic type we are working with - feel free to substitute in <code>Option&lt;T&gt;</code>, <code>Either&lt;E,A&gt;</code>, <code>Future&lt;T&gt;</code>, <code>List&lt;T&gt;</code> etc.). There are lots of useful functions that work with non-widget types, and we would like them to work with <code>Widget</code> values without having to re-write them.</p>
+
+<pre><code class="fsharp">// Some useful, non-widget functions:
+(+) : Int -&gt; Int -&gt; Int
+(::) : 'a -&gt; ['a] -&gt; ['a]
+createThingoe :: Pop -&gt; Blah -&gt; Zap -&gt; Thingoe
+
+// Widget compatible versions:
+widgetPlus : Widget&lt;Int&gt; -&gt; Widget&lt;Int&gt; -&gt; Widget&lt;Int&gt;
+widgetCons : Widget&lt;'a&gt;  -&gt; Widget&lt;'a&gt;  -&gt; Widget&lt;'a&gt;
+widgetThingoe : Widget&lt;Pop&gt;  -&gt; Widget&lt;Blah&gt;  -&gt; Widget&lt;Zap&gt; -&gt; Widget&lt;Thingoe&gt;
+</code></pre>
+
+<h2>Prerequisites</h2>
+
+<p>We can achieve this aim if the generic type has a <code>map</code> (or <code>Select</code> in C# terminology) and an <code>apply</code> function. Continuing our <code>Widget</code> example:</p>
+
+<pre><code class="fsharp">module Widget =
+    let map   :    ('a-&gt;'b)    -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt; = ...
+    let apply : Widget&lt;'a-&gt;'b&gt; -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt; = ...
+</code></pre>
+
+<p>If the type does not have these functions provided we may still be able to write them. We'll look at this <a href="#when-a-generic-type-does-not-meet-the-prequisites">later</a>.</p>
+
+<h2>Apply pattern</h2>
+
+<p>We can use any non-widget function with widget values using <code>map</code> for the first argument, and <code>apply</code> for subsequent arguments.</p>
+
+<pre><code class="fsharp">let (&lt;^&gt;) = Widget.map
+let (&lt;*&gt;) = Widget.apply
+
+// Use non-widget function with non-widgets:
+let normalResult =
+  nonWidgetFn firstArg secondArg thirdArg ... finalArg
+
+// Use non-widget function with widgets. It's just like non-widget function
+// application, only with more punctuation. :)
+let widgetResult =
+  nonWidgetFn &lt;^&gt; firstWidget &lt;*&gt; secondWidget &lt;*&gt; thirdWidget &lt;*&gt; ... &lt;*&gt; finalWidget
+
+// Convert any 2 argument function, (a -&gt; b -&gt; c) -&gt; (Widget a -&gt; Widget b -&gt; Widget c)
+let lift2 f a b     = f &lt;^&gt; a &lt;*&gt; b
+
+// Convert any 3 argument function:
+let lift3 f a b c   = f &lt;^&gt; a &lt;*&gt; b &lt;*&gt; c
+
+// Convert any 4 argument function:
+let lift4 f a b c d = f &lt;^&gt; a &lt;*&gt; b &lt;*&gt; c &lt;*&gt; d
+
+// Widget-compatible plus and cons:
+widgetPlus a b = (+) &lt;^&gt; a &lt;*&gt; b
+widgetCons a b = 
+    let cons a b = a :: b
+    cons &lt;^&gt; a &lt;*&gt; b
+</code></pre>
+
+<h2>Example</h2>
+
+<p>Say we are using a library with a <code>Result&lt;'Error, 'T&gt;</code> type that represents operations that can fail with a value of type <code>'Error</code>, or succeed with a value of type <code>'T</code>. The library also supplies <code>map</code> and <code>apply</code> functions for this type. We want to use this type to try to parse a <code>Person</code> value from a UI form with <code>name</code>, <code>email</code> and <code>age</code> text fields:</p>
+
+<pre><code class="fsharp">let nonEmpty   (s : string) : Result&lt;AppError, string&gt; = ...
+let validEmail (s : string) : Result&lt;AppError, string&gt; = ...
+let parseInt   (s : string) : Result&lt;AppError, int&gt; = ...
+
+type Person = { name : string; email : string; age : int }
+    with
+    static member create a b c = { name=a; email=b; age=c }
+
+// We want to use Person.create which takes strings and ints, but we need to try to
+// parse values from text fields which will give us Result&lt;AppError, string&gt;
+// and Result&lt;AppError, int&gt; values.
+let (&lt;^&gt;) = Result.map
+let (&lt;*&gt;) = Result.apply
+
+Person.create &lt;^&gt; nonEmpty (name.text) &lt;*&gt; validEmail (email.text) &lt;*&gt; parseInt (age.text)
+    |&gt; printfn "%A"
+(*
+When all fields are valid:
+&gt; Success {name = "Abc"; email = "abc@example.com"; age = 42;}
+
+When firstName.text is empty:
+&gt; Failed UnexpectedEmptyString
+
+When age.text is invalid:
+&gt; Failed (CouldNotParseInt "12jf")
+*)
+</code></pre>
+
+<h2>When a generic type does not meet the prequisites</h2>
+
+<p>Sometimes a type will not have an <code>apply</code> function provided, but will have <code>map</code>, and also a <code>flatMap</code>/<code>bind</code> function provided with the following type:</p>
+
+<pre><code class="fsharp">// Also called "bind"
+let flatMap : ('a-&gt; Widget&lt;'b&gt;) -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt; = ...
+</code></pre>
+
+<p>This is the case with the <a href="https://msdn.microsoft.com/en-us/library/ee370544.aspx">F# Option module</a>, which provides <code>map</code> and <code>bind</code> with the required signatures. In these cases we can implement <code>apply</code> in terms of the these other functions:</p>
+
+<pre><code class="fsharp">module Option =
+    let apply ff a = Option.bind (fun f -&gt; Option.map f a) ff
+
+// General case:
+module SomeOtherType =
+    let apply ff a = SomeOtherType.bind (fun f -&gt; SomeOtherType.map f a) ff
+</code></pre>
+
+<p>We can now use the pattern with optionals (and any type with <code>map</code> and <code>flatMap</code>/<code>bind</code>):</p>
+
+<pre><code class="fsharp">let (&lt;^&gt;) = Option.map
+let (&lt;*&gt;) = Option.apply
+
+let result : Option&lt;int&gt; = (+) &lt;^&gt; tryParseInt (first.text) &lt;*&gt; tryParseInt (second.text)
+//&gt; val result : Option&lt;int&gt; = Some 42
+</code></pre>
+
+<h2>Mixing widget and non-widget arguments</h2>
+
+<p>In cases where we have a mix of arguments, some using our generic type and others not, we can still apply^[Sorry.] the pattern by converting the values to our generic type. For our <code>Person.create</code> example, we could already have the person's email as a valid <code>string</code> value from earlier in the sign-up process:</p>
+
+<pre><code class="fsharp">let email : string = "abc@example.com"
+Person.create &lt;^&gt; nonEmpty (name.text) &lt;*&gt; Success email &lt;*&gt; parseInt (age.text)
+    |&gt; ...
+</code></pre>
+
+<p>Here we convert <code>email</code> from a <code>string</code> to a <code>Result&lt;AppError,string&gt;</code> value first using the <code>Success</code> constructor. Then we have our three <code>Result&lt;AppError,'T&gt;</code> values to use with the apply pattern.</p>
+
+<h2>Summary</h2>
+
+<p>This pattern is useful for being able reuse all our existing functions in the context of another type, like <code>Future&lt;T&gt;</code>, <code>Option&lt;T&gt;</code>, <code>Result&lt;E,A&gt;</code> and lots, lots more. To do this for some generic type <code>Widget&lt;T&gt;</code> we need:</p>
+
+<pre><code class="fsharp">let map : ('a -&gt; 'b) -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt;
+let apply : Widget&lt;'a -&gt; 'b&gt; -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt;
+
+// Alternatively, can also use bind/flatMap to get an apply function
+let flatMap : ('a -&gt; Widget&lt;'b&gt;) -&gt; Widget&lt;'a&gt; -&gt; Widget&lt;'b&gt;
+</code></pre>
+
+<p>We then apply the non-widget function to the first argument using <code>map</code>, and use <code>apply</code> for subsequent applications.</p>
+
+<pre><code class="fsharp">let (&lt;^&gt;) = Widget.map
+let (&lt;*&gt;) = Widget.apply
+let result : Widget&lt;A&gt; =
+    nonWidgetFn &lt;^&gt; firstWidgetArg &lt;*&gt; secondWidgetArg &lt;*&gt; ... &lt;*&gt; lastWidgetArg
+</code></pre>
+
+<p>Calls look similar to regular function application, with the additional operators taking care of conversion into our <code>Widget&lt;T&gt;</code> context.</p>
+
+<p>We can mix widget and non-widget arguments by converting non-widgets:</p>
+
+<pre><code class="fsharp">let result : Widget&lt;A&gt; =
+    nonWidgetFn &lt;^&gt; firstWidgetArg &lt;*&gt; toWidget secondArg &lt;*&gt; ... &lt;*&gt; lastWidgetArg
+</code></pre>
+
+<p>I wrote a bit more about <a href="/2012/05/fp-newbie-learns-applicatives.html">how this works</a> a while back, or search around for "applicative functor" if you are interested in the theory behind the practice. We can effectively use this pattern without delving into the details though - so we can apply now and ask questions later. :)</p>
+]]></content>
+  </entry>
+  
+</feed>

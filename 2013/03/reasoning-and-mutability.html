@@ -1,0 +1,513 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Reasoning and mutability - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="One thing I often hear about functional programming is that its requirement for immutability makes programs easier to reason about. To me this seems &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2013/03/reasoning-and-mutability.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Reasoning and mutability</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2013-03-11T23:49:00+11:00" pubdate data-updated="true">11 Mar 2013</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>One thing I often hear about functional programming is that its requirement for immutability makes programs easier to reason about. To me this seems intuitively true – it’s got to be easier to work out what a program does without having to keep track of changing state while evaluating programs, right?</p>
+<p>I wanted to challenge my assumptions about this. Could I convince myself that one is unambiguously easier to reason about? And if so, what is it about the other that makes it more difficult to reason about?</p>
+<p>To do this I tried tracing through some examples of mutable and immutable data structures. I tried to use similar, “object” styles for both, so that the characteristic difference between them was the mutability of their internal data (rather than getting thrown off by differences between functional and OO styles).</p>
+<p>I’d love to get your thoughts for and against these ideas. I am especially likely to be the victim of confirmation bias on this one, so I’m counting on you to keep me honest. Leave comments or send me email please! :)</p>
+<!-- more -->
+<h2 id="counter-example">Counter example</h2>
+<p>Let’s start by looking at a simple example of a counter that has an <code>inc()</code> method to increment the counter, and a <code>value()</code> method to return its value. One counter will be a mutable data structure, where calling <code>inc()</code> will modify a field within the counter. The other will be immutable – calling <code>inc()</code> will return a new immutable counter containing the incremented value.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="nx">value</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">i</span><span class="p">;</span> <span class="p">},</span>
+            <span class="nx">inc</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="nx">i</span><span class="o">=</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span> <span class="k">return</span> <span class="k">this</span><span class="p">;</span> <span class="p">}</span>
+        <span class="p">};</span>
+    <span class="p">})();</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">counterI</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">ctor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="nx">value</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">i</span><span class="p">;</span> <span class="p">},</span>
+            <span class="nx">inc</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="k">new</span> <span class="nx">ctor</span><span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span> <span class="p">}</span>
+        <span class="p">};</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">ctor</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="equational-reasoning">Equational reasoning</h2>
+<p>In FP names are given to specific, immutable expressions. The idea is whenever we see a name, we can replace it with the expression it refers to without affecting the program’s behaviour (this is known as <a href="http://en.wikipedia.org/wiki/Referential_transparency_(computer_science)">referential transparency</a>). We can use this fact to treat programs as mathematical equations – if we see an <code>x</code> in an expression, we can replace it with whatever expression <code>x</code> equals.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">var</span> <span class="nx">f</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">c</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Let’s reason through how <code>f</code> works when given an immutable <code>counterI</code>, by substituting in the meanings of each expression in the function.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="c1">// let c{i} = an immutable counter with a value i</span>
+
+<span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">{</span><span class="nx">i</span><span class="p">})</span>
+    <span class="o">=</span> <span class="nx">c</span><span class="p">{</span><span class="nx">i</span><span class="p">}.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">{</span><span class="nx">i</span><span class="p">}.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span>
+    <span class="o">=</span> <span class="nx">c</span><span class="p">{</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">}.</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">{</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">}.</span><span class="nx">value</span><span class="p">()</span>           <span class="c1">// by counterI.inc()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>                             <span class="c1">// by counterI.value()</span>
+    <span class="o">=</span> <span class="mi">0</span>                                         <span class="c1">// by (+), (-)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Here we’ve taken a fairly mechanical approach to evaluating this expression, but we can also apply mathematical/logical principles:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">let</span> <span class="nx">x</span> <span class="o">=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span>
+<span class="k">in</span> <span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span>
+    <span class="o">=</span> <span class="nx">x</span> <span class="o">-</span> <span class="nx">x</span>                 <span class="c1">// by defn of x</span>
+    <span class="o">=</span> <span class="mi">0</span>                     <span class="c1">// by (-)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>And sure enough:</p>
+<pre><code>&gt; f(new counterI().inc().inc())
+0</code></pre>
+<p>So by substituting in values for names and vice versa, we can solve our equation to work out the program result, just as we would for any algebraic equation.</p>
+<h2 id="reasoning-about-evaluation-and-state">Reasoning about evaluation and state</h2>
+<p>We can’t use the same equality of terms with mutable data, as the meaning of an expression can vary based on when it is called. One <code>c.inc().value()</code> expression does not necessarily equal another <code>c.inc().value()</code> expression.</p>
+<pre><code>&gt; f(new counter().inc().inc())
+-1</code></pre>
+<p>While mutability means we’ve lost referential transparency and equational reasoning, we can still reason about the code by keeping track of the state as we evaluate each expression. We’ll treat this as a pair of values – the evaluation on the left, and the state on the right.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="p">(</span><span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>         <span class="c1">// by counter.inc()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>               <span class="c1">// by counter.value()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                     <span class="c1">// by counter.inc()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                         <span class="c1">// by counter.value()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                                  <span class="c1">// by (+), (-)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>So we can still reason about our code, we just have to keep track of the evaluation and the state separately. Not a big deal, and something we are very familiar with (and are probably quite adept at).</p>
+<h2 id="the-story-so-far">The story so far</h2>
+<p>We’ve found a few distinctions between reasoning about mutable and immutable code.</p>
+<p>We managed to trace through our immutable example in 2 or 3 steps, while our mutable example took 5. This was because we replaced both occurrences of <code>c.inc()</code> at once in the immutable case, which we could do because the expressions are equal and referentially transparent. In the mutable case we had to do each step separately, as <code>c.inc().value()</code> does not necessarily mean the same thing as another <code>c.inc().value()</code>. So mutability is making reasoning more difficult for us by forcing us to evaluate more steps to understand our program.</p>
+<p>Immutability also lets us apply algebraic laws and the properties of our code to gain an understanding about its result. We can use properties like <code>x - x = 0</code> for subtraction to help us understand the behaviour of our program, without ever needing to evaluate the <code>c.inc().value()</code> expression. So we can understand <code>f</code> without knowing anything about the counter instance other than its immutability.</p>
+<p>In other words, immutability is enabling us to reason about our program independently from its execution. We can think logically about the code and only step through the parts we need. Mutability on the other hand inextricably links the meaning of the program with its method of execution, forcing us to go through the same execution steps at the computer will in order to understand it.</p>
+<h2 id="order-in-the-court">Order in the court</h2>
+<p>To further illustrate this coupling between program meaning and execution, let’s try re-evaluating our mutable example in different orders.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="c1">// Left-hand side first (from above):</span>
+<span class="p">(</span><span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="c1">// Right-hand side first:</span>
+<span class="p">(</span><span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>        <span class="c1">// RHS inc()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>            <span class="c1">// by value()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                  <span class="c1">// LHS inc()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                        <span class="c1">// by counter.value()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                                  <span class="c1">// by (+), (-)</span>
+
+<span class="c1">// inc() calls, then value() calls:</span>
+<span class="p">(</span><span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="p">)</span>
+    <span class="o">=</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">(),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>              <span class="c1">// both inc() calls</span>
+    <span class="o">=</span> <span class="p">((</span><span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">),</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>                      <span class="c1">// by value()</span>
+    <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">c</span><span class="o">:</span> <span class="nx">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>                                  <span class="c1">// by (+), (-)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Here we have three different results from three equally valid evaluations of the program. It is insufficient to understand what each piece of the program does, we also need to know exactly what way our target language and platform will execute it. The immutable version we can reason about independently of evaluation order.</p>
+<p>We tend to work around this source of ordering confusion in the presence of mutability using imperative-style code. This makes ordering obvious (from top to bottom), and makes it easy for us to understand our program by stepping through it an instruction at a time:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">function</span> <span class="nx">f</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span> <span class="p">{</span>                 <span class="c1">// let c have initial state i</span>
+    <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">();</span>                    <span class="c1">// c: i+1</span>
+    <span class="nx">c</span><span class="p">.</span><span class="nx">inc</span><span class="p">();</span>                    <span class="c1">// c: i+2</span>
+    <span class="kd">var</span> <span class="nx">lhs</span> <span class="o">=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">();</span>        <span class="c1">// lhs: i+2</span>
+    <span class="kd">var</span> <span class="nx">rhs</span> <span class="o">=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">value</span><span class="p">();</span>        <span class="c1">// rhs: i+2</span>
+    <span class="k">return</span> <span class="nx">lhs</span> <span class="o">-</span> <span class="nx">rhs</span><span class="p">;</span>           <span class="c1">// lhs - rhs = i+2-i-2 = 0</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>While this does make our program easy to understand, it still means we have to evaluate every line, and still doesn’t make it apparent when we can use properties like <code>x-x=0</code> to help us understand the code.</p>
+<h2 id="aliasing">Aliasing</h2>
+<p>What does this program return if <code>a</code> and <code>b</code> are mutable, and both have an initial counter state of <code>0</code>?</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">function</span> <span class="nx">g</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>                  <span class="c1">// let a: x, b: y</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">inc</span><span class="p">();</span>                        <span class="c1">// a: x+1</span>
+    <span class="nx">a</span><span class="p">.</span><span class="nx">inc</span><span class="p">();</span>                        <span class="c1">// a: x+2</span>
+    <span class="nx">b</span><span class="p">.</span><span class="nx">inc</span><span class="p">();</span>                        <span class="c1">// b: y+1</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="p">.</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">b</span><span class="p">.</span><span class="nx">value</span><span class="p">();</span>   <span class="c1">// x+2-y-1 = x-y+1</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We increment <code>a</code> twice and <code>b</code> once, then return the difference between the counters, so we should end up with <code>1</code>. Unless, of course, we get <code>0</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">counter</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+<span class="nx">g</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="mi">0</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Here <code>a</code> and <code>b</code> are <a href="http://en.wikipedia.org/wiki/Aliasing_(computing)">aliased</a> to the same instance<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. If <code>a</code> and <code>b</code> were different instances we’d get <code>1</code>. The problem is we can not correctly reason about what this code will do without knowing what <code>a</code> and <code>b</code> refer to.</p>
+<p>In the immutable case, our output will always follow the formula we arrived at regardless of aliasing, as calls to <code>inc()</code> return new instances rather than mutating existing ones.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='javascript'><span></span><span class="kd">function</span> <span class="nx">g2</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">a</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">()</span> <span class="o">-</span> <span class="nx">b</span><span class="p">.</span><span class="nx">inc</span><span class="p">().</span><span class="nx">value</span><span class="p">();</span> <span class="c1">// = x-y+1</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">counterI</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">b</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+<span class="nx">g2</span><span class="p">(</span><span class="nx">a</span><span class="p">,</span><span class="nx">b</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="mi">1</span>
+
+<span class="kd">var</span> <span class="nx">c</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">counterI</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">d</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">counterI</span><span class="p">();</span>
+<span class="nx">g2</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span><span class="nx">d</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="mi">1</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="mutability-in-a-larger-context">Mutability in a larger context</h2>
+<p>So far we have been dealing with code in a very limited scope. Within that scope we’ve seen that immutability lets us reason about a program independently of its execution, so we can understand it without having evaluate each term and can use algebraic substitution to simplify how we think about it.</p>
+<p>In contrast mutability forces us to evaluate each step of a program to understand it, tracking of state in parallel with execution, requires call ordering to be specified explicitly, and also is subject to non-obvious behaviour due to potential aliasing of references.</p>
+<p>Extrapolating to larger contexts, mutability means we now potentially need to evaluate every step of a program, keeping careful track of each piece of data’s state for the duration of its scope, as well as tracking state updates via aliased references, in order understand what any single piece of the program is doing.</p>
+<p>Due to a lack of side-effects, immutable code seems like it should always be understandable in isolation; its output depends purely on its input.</p>
+<p>Based on this, it seems a clear-cut case of immutability leading to code that is easier to reason about, as promised by FP proponents.</p>
+<h2 id="mutability-strikes-back">Mutability strikes back</h2>
+<p>Perhaps mutability has other advantages that compensate for making it harder to reason about pieces of code in isolation.</p>
+<p>One advantage is familiarity. Most of us learn programming in an imperative manner with mutable data, and this matches our intuition of how the von Neumann machine works<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>. I don’t think it is fair to understate this point – programming with pure functions and immutable data requires different approaches than those many of us have been applying for the entirety of our careers. My current feeling is that this knowledge is well worth pursuing for the benefits it brings.</p>
+<p>There is also a question of time and space performance<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>, or more specifically, reasoning about this performance. If our understanding of a program with immutable data is independent of its execution, then we need to reason about certain aspects of its performance separately again.<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a></p>
+<p>Another thing to consider is that programming by analogy may be easier to understand than logical reasoning. If we consider a counter as an analogy to an object we interact with in the physical world, then telling it to increase its value <a href="http://davesquared.net/2012/09/imperative-world.html">seems like a mutable operation</a>, with time and order of execution being an implicit part of the context we are in. If all our mutable objects behave in a way that keeps their state valid, and we control the order and scope of their mutations, then perhaps we can build systems that react reasonably as a whole. Although this does seem to imply we’d end up spending most of our time sorting out threading, scope and context, rather than expressing the solution to the problem unambiguously with immutable data and pure functions.</p>
+<p>There are techniques to help us with keeping these mutations in check and for reasoning more logically about mutable code, such as <a href="http://en.wikipedia.org/wiki/Design_by_contract">design by contract</a> (DbC), which involves specifying pre- and post-conditions and invariants for mutable objects. If we can tell none of these conditions are violated by a program then we may be able to get some confidence that pieces work in isolation and that a system will work correctly as the sum of its parts.</p>
+<p>As a side note, there may be other ways of getting benefits from message-passing analogies, while still maintaining the advantages of immutability and code we can reason about. Perhaps an approach like Erlang’s, where we have components implemented in functional style communicating via message passing, gives us the best of both worlds.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>When I first started experimenting with this topic I honestly imagined I would find more grey area between reasoning about mutable and immutable programs. Despite the simplistic example (and completely invalid sample size of the experiment ;)), I think we’ve identified some specific properties of immutable programs that make them easier to reason about than their mutable counterparts.</p>
+<p>We can think about immutable programs independently from their execution, meaning we can understand them by evaluating less expressions, and in the context of various algebraic properties using equational reasoning. Mutable programs require us to track state at the same time as evaluating each step of the program, and are affected by ordering and aliasing ambiguities.</p>
+<p>To leave myself a small paling of fence to sit on, it is worth noting that the last twenty-odd years of software development has been primarily taught in the context of mutable objects, and we have learned to reason about program execution and time and space use in this context.</p>
+<p>Whether this gives rise to more intuitive behaviour in large systems compared to being able to apply sound logic to understand each part of a program is something I just don’t know. My experiences programming using mutable objects have been less than stellar, which has led me to look much more closely at functional programming, but I just don’t yet have enough experience with the latter in large projects to adequately judge the two.</p>
+<p>Based on the properties outlined in this post, I definitely feel it is worth getting this experience. To me there is more than enough evidence to suggest a switch to immutable data is worth the potential risk and learning curve for the benefits of more understandable programs. If it turns out I’m wrong then I’m going to be very interested in identifying the characteristics of mutable data I have missed that do in fact make it easier to reason about.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Thanks to <a href="https://twitter.com/inkytonik">Tony Sloane</a> for pointing out some problems caused by aliasing to me. Please attribute mistakes in my interpretation to me because, unlike me, Tony knows what he’s talking about. :)<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>See “Can Programming Be Liberated from von Neumann Style?” by John Backus for an excellent discussion of this topic. <a href="http://www.thocp.net/biographies/papers/backus_turingaward_lecture.pdf">PDF link</a><a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p>See <a href="http://blogs.msdn.com/b/bclteam/archive/2012/12/18/preview-of-immutable-collections-released-on-nuget.aspx">Preview of immutable collections released on NuGet</a><a href="#fnref3" class="footnote-back">↩</a></p></li>
+<li id="fn4"><p>A counter-argument to this that the prevalence of multi-core machines (even mobile phones have 4 as of 2012) makes reasoning about evaluation difficult even with mutable, imperative code. Linear reasoning is no longer reliable, especially if we want to take advantage of multiple threads.<a href="#fnref4" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2013-03-12T00:25:00+11:00" class="updated">Updated 12 Mar 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2013/03/reasoning-and-mutability.html" data-via="" data-counturl="http://davesquared.net/2013/03/reasoning-and-mutability.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2013/03/hello-world-testing-in-fsharp.html" title="Previous Post: A 'Hello World' introduction to testing in F#">&laquo; A 'Hello World' introduction to testing in F#</a>
+      
+      
+        <a class="basic-alignment right" href="/2013/04/side-effect-free-csharp.html" title="next Post: Side-effect free programming in C#">Side-effect free programming in C# &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2013/03/reasoning-and-mutability.html';
+        var disqus_url = 'http://davesquared.net/2013/03/reasoning-and-mutability.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>New Year's resolution - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I don&#8217;t generally go in for the whole New Year&#8217;s resolution thing. I&#8217;m constantly looking for ways to improve (and have a lot of &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2011/01/new-years-resolution.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">New Year's resolution</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2011-01-01T20:46:00+11:00" pubdate data-updated="true">01 Jan 2011</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I don&#8217;t generally go in for the whole New Year&#8217;s resolution thing. I&#8217;m constantly looking for ways to improve (and have a lot of flaws to choose from ;)), and I&#8217;m not going to wait for a specific date to start trying to fix things. In this case though, the timing has coincided quite nicely. So here it is:</p>
+
+<blockquote>
+I will not knowingly contribute, or condone the contribution of, bad code to a project.
+</blockquote>
+
+<p>Let me tell you a story.</p>
+
+<h2>A tale of two projects</h2>
+
+<p>Before I start, let me assure you that we are talking about <em>internal code quality</em> here. DRY, SOLID code. The scenarios discussed below are all uncompromising about product quality. The final products go through strict verification protocols to ensure quality. This is obviously completely independent of the internal code design, which is more to do with how easy the code is to change in light of new requirements etc. </p>
+
+<p>So, towards the end of 2010 my team had several quick projects to get through. All had unachievable deadlines, all had a small scope and small domain, and all were of relatively low importance (more research experiments than shippable products).</p>
+
+<p>For the first of these we had 6 weeks. We used an Agile project approach with one week iterations, did TDD, wrote acceptance tests, etc. Clean code all the way. The software that shipped at the end of the third iteration was good enough to fulfil all the major requirements and everyone was really pleased. We added some extra polish and features in the remaining weeks.</p>
+
+<p>The last of these went quite differently. We were given three days. We estimated we&#8217;d need three weeks. We communicated that the deadline could not possibly be met, but resolved to do everything we could to get it working as quickly as possible.</p>
+
+<p>After a bit of debate, <a href="http://davesquared.net/2010/08/there-is-no-u-in-collective-ownership.html">we decided</a> to ditch any attempt at clean code and just do whatever it took to ship it as quickly as possible. It was a small project with next to no maintenance requirements, so we figured write-only code would be ok. No SOLID, DRY code meant no slaving over the IDE extracting interfaces, or driving out a nice design using rapid feedback from TDD. We wouldn&#8217;t use acceptance tests, but would manually test as required, and only automate any testing that was easy. We had a continuous build, but skipped the full deployment build to ship at the end of an iteration; probably because we didn&#8217;t have iterations. The scope was small, so we decided to use only very broad, coarse-grained stories and just work until they were done. We still had our rigorous verification protocol to pass, but it was a small project, how hard could it be?</p>
+
+<p>As I said, we were meant to have it done in 3 days. We figured it would take three weeks. It <em>should</em> have taken three weeks.</p>
+
+<p>It ended up taking three months.</p>
+
+<h2>The way to go fast is to go well</h2>
+
+<p>Our decision to abandon any pretence of working towards clean code was our undoing. Not making much of an effort at design or removal of duplication resulted in tight coupling and obfuscated code. It was effectively a write-only code base; the simplest of changes became all but impossible, including fixing what should be simple bugs or catering for clarifications to requirements. It was very difficult to find seams for testing bits in isolation, and changes would frequently ripple through the code. Our lack of rigour around project planning and story breakdown made it impossible to track our progress. Time saved by not automating repetitive tasks was re-spent ten-fold on mindless, error-prone tasks when we should have been writing code to finish the project.</p>
+
+<p>Let me make this very clear: anyone that tells you working toward clean code is a waste of time and will slow you down is completely wrong.</p>
+
+<p>You cannot <a href="http://davesquared.net/2010/08/quality-vs-shipping.html">trade internal quality for speed</a>. I give you about 30 minutes of coding before you need to change something where an automated test would have made you faster. As you can read from the <a href="http://davesquared.net/2010/08/quality-vs-shipping.html">earlier post</a>, I was pretty convinced of this already, but experiencing such a dramatic illustration by far surpassed my expectations in terms of the return on investment in clean code. Previously I would have guessed we&#8217;d start feeling pain after about a week of hacking, but it started almost immediately. I am now adamant it is impossible to have anything but an illusion of productivity without writing clean code.</p>
+
+<p>As <a href="http://twitter.com/unclebobmartin">Uncle Bob</a> puts it, the way to go fast is to go well.</p>
+
+<h2>Clean code is a journey, not a destination</h2>
+
+<p>None of the above means gold plating your code. Your code need not be a shining beacon of architectural and OO greatness, gazed upon with awe by artisans for centuries to come. Your code is never completely clean; clean code is not an end state, it is about the process of reducing coupling, reducing duplication, simplifying, and clarifying intention whenever you work with your code.</p>
+
+<p>This does not mean you must practice TDD. It does not mean you need to use a particular language or framework. It does not mandate a project methodology. It doesn&#8217;t mean you can&#8217;t spike. It doesn&#8217;t mean you can&#8217;t knowingly take on manageable technical debt. It doesn&#8217;t even mean you must unit test. It means that you need to do what it takes to ensure your code is maintainable. That your code has the qualities we associate with clean code: it works, it is maintainable, it is correct. It is not about trading quality for speed, because that is an illusion. It is about doing what it takes to produce what&#8217;s required as quickly as possible, and that means you can&#8217;t afford to write cruddy code.</p>
+
+<p>In short, <a href="http://www.artima.com/weblogs/viewpost.jsp?thread=7588">don&#8217;t ship $#*!</a>.</p>
+
+<h2>Conclusion</h2>
+
+<p>And so back to my resolution, which was always a high-priority goal of mine but never an unwavering commitment, never before a line I simply will not cross. I will never deliberately contribute or support the contribution of bad code to a project. I will always strive to write clean code, not in pursuit of some programming utopia, but in the sincere belief that it is the only way to quickly and effectively deliver a project.</p>
+
+<p>I wish you all the best of health, happiness, and clean code for 2011. :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2011-01-06T14:17:43+11:00" class="updated">Updated 06 Jan 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2011/01/new-years-resolution.html" data-via="" data-counturl="http://davesquared.net/2011/01/new-years-resolution.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/12/revisting-replacing-ruby-instance.html" title="Previous Post: Revisting replacing a Ruby instance method with a closure">&laquo; Revisting replacing a Ruby instance method with a closure</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/01/finding-functional-neatness-with.html" title="next Post: Finding functional neatness with Haskell">Finding functional neatness with Haskell &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2011/01/new-years-resolution.html';
+        var disqus_url = 'http://davesquared.net/2011/01/new-years-resolution.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

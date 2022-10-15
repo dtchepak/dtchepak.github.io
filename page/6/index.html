@@ -1,0 +1,592 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="A software development blog by some bloke called Dave.">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/page/6/index.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <header role="banner"><hgroup>
+  <h1><a href="/">dave^2 = -1</a></h1>
+  
+    <h2>A software development blog by some bloke called Dave</h2>
+  
+</hgroup>
+
+</header>
+<div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/05/fp-newbie-learns-functors.html">FP newbie learns a little about functors</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-05-03T23:40:00+10:00" pubdate data-updated="true">03 May 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>As you may have noticed I’m a little obsessed with <a href="/categories/functional-programming/">functional programming</a> at the moment. I’ve recently been reading up on bizarre-sounding terms like <a href="http://learnyouahaskell.com/functors-applicative-functors-and-monoids">functors, applicatives and monoids in Learn You A Haskell</a>, only to discover they’re not nearly as incomprehensible as they sound. This post outlines some of the information on functors that this newbie has been able to pick up so far.</p>
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/05/fp-newbie-learns-functors.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/05/design-via-minimum-code.html">Design via minimum code</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-05-01T22:10:00+10:00" pubdate data-updated="true">01 May 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>Being a bit of a <a href="http://en.wikipedia.org/wiki/Pessimism">realist</a> (;)), I find it much easier to find problems with my design ideas than I do finding designs I’m really happy with. I am always cognisant of this and make sure to balance the needs of doing a good job and getting the job done. One technique I find useful for this is thinking about the minimum amount of code required.</p>
+<p>Whenever I find myself evaluating different design patterns or counting responsibilities to work out where the feature should go or which areas I should refactor, I stop and work out the minimum amount of code I’d need to write to solve the problem, ignoring design considerations. Once I’ve starting thinking about the problem in that light, working out where to put that code becomes a bit easier. If the code violates my sense of design aesthetics, it could just be because it is a messy problem, and no matter how hard I try to abstract or design my way out, the fundamental messiness still remains.</p>
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/05/design-via-minimum-code.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/04/map-map.html">Working out function types: map map</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-04-16T18:25:00+10:00" pubdate data-updated="true">16 Apr 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>One of the exercises in <a href="http://www.amazon.com/Introduction-Functional-Programming-International-Computing/dp/0134841972/">Introduction to Functional Programming</a> by Richard Bird and Philip Wadler is to work out the type signature of <code>map map</code> (i.e. calling <code>map</code> with <code>map</code> as its first argument). I’ve generally struggled to deal with all but the simplest of partial function application, but I found a great thread on the <a href="http://lambda-the-ultimate.org/node/2948">Lambda the Ultimate forums</a> that really helped me out with this. Two commenters suggested different approaches: <a href="http://lambda-the-ultimate.org/node/2948#comment-43448">going through the maths</a>, and <a href="http://lambda-the-ultimate.org/node/2948#comment-43437">understanding the abstraction</a>.</p>
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/04/map-map.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/04/associativity.html">Associativity</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-04-16T18:20:00+10:00" pubdate data-updated="true">16 Apr 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>One of the nice things about pure functional programming is that we can use mathematical properties and axioms to reason about, simplify and derive functions. A property that I’ve seen crop up a few times is <a href="http://en.wikipedia.org/wiki/Associativity">associativity</a>.</p>
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/04/associativity.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/03/function-strictness.html">Function strictness</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-03-30T23:10:00+11:00" pubdate data-updated="true">30 Mar 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>I&#8217;m currently reading <a href="http://www.amazon.com/Introduction-Functional-Programming-International-Computing/dp/0134841972/">Introduction to Functional Programming</a> by Richard Bird and Philip Wadler, and it contains a really nice explanation of function strictness, a topic that came up in my <a href="/2012/03/folds-pt3-left-fold-right.html">last post</a>.</p>
+
+<p>Bird and Wadler describe a strict function as one that is undefined when its input is undefined. The <code>⊥</code> symbol, or <a href="http://en.wikipedia.org/wiki/Bottom_type">bottom</a>, is used to represent &#8216;undefined&#8217;, so <code>f</code> is strict if <code>f ⊥ = ⊥</code>, otherwise it is non-strict.</p>
+
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/03/function-strictness.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/03/folds-pt3-left-fold-right.html">Folds Pt 3: Left fold, right?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-03-24T01:33:00+11:00" pubdate data-updated="true">24 Mar 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>This post is part 3 of a <a href="/categories/-folds">series on folds</a>, which is my attempt to understand the topic. The examples are in Haskell, but hopefully you can follow along even if you&#8217;re not familiar with the language. If you find yourself getting lost in the syntax, I&#8217;ve written a <a href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quick start</a> that goes through all the bits we&#8217;ll use.</p>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we found that a fold is a way of abstracting recursive operations over lists. In <a href="/2012/02/folds-pt2-from-loops-to-folds.html">part 2</a> we saw that we could also express loops using recursion, which we could extract into a different type of fold. We learned that the loop-like fold is called a <em>left fold</em> (it accumulates its values on the left of the expression), and that our original fold was called a <em>right fold</em> (which accumulates to the right).</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">foldLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">foldLeft</span> <span class="n">f</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">foldLeft</span> <span class="n">f</span> <span class="p">(</span><span class="n">f</span> <span class="n">acc</span> <span class="n">head</span><span class="p">)</span> <span class="n">tail</span>
+<span class="nf">foldLeft</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+
+<span class="nf">foldRight</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+<span class="nf">foldRight</span> <span class="n">f</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">head</span> <span class="p">(</span><span class="n">foldRight</span> <span class="n">f</span> <span class="n">acc</span> <span class="n">tail</span><span class="p">)</span>
+<span class="nf">foldRight</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+</code></pre></div></figure>
+
+
+<p>We saw we could implement several functions using both left and right folds (like <code>sum</code>, <code>length</code>, and <code>mapFn</code>). As both folds abstract away explicit recursion, they seem capable of producing the same results, just with different orders of evaluation. It turns out these differences in evaluation have some important implications, so in this post we&#8217;ll take a closer look at them.</p>
+
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/03/folds-pt3-left-fold-right.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/02/folds-pt2-from-loops-to-folds.html">Folds Pt 2: From loops to folds</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-02-25T15:35:00+11:00" pubdate data-updated="true">25 Feb 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>This post is part 2 of a <a href="/categories/-folds">series on folds</a>. Folds seem to crop up quite often in functional programing, and this series is my attempt to learn a little about the topic.</p>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we found that a fold is a way of abstracting recursive operations over lists. In this post we&#8217;ll look at a different way of folding; one that traverses lists in a similar way to a <code>for</code>/<code>foreach</code> loop.</p>
+
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/02/folds-pt2-from-loops-to-folds.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/02/goals-for-devs.html">Goals for software developers</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-02-19T23:07:00+11:00" pubdate data-updated="true">19 Feb 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>Most software developers I know are really keen to improve their skills. But how do we know we&#8217;re improving? How can we tell if our efforts are effective? Without feedback on our progress, it is easy to feel swamped and demoralised by the rate at which stuff we want to learn piles up, compared with the rate at which we feel we&#8217;re improving. Setting and working towards goals can help address this.</p>
+
+<p>Yet when I&#8217;ve asked other devs, most have great personal, work and non-tech goals, but have something to the effect of &#8220;become a better developer&#8221; thrown in as well. I&#8217;ve been thinking about this a bit recently, so thought I&#8217;d jot down a couple of thoughts about goals specifically related to software development.</p>
+
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/02/goals-for-devs.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell newbie attempts a Haskell quick start guide</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-02-09T12:02:00+11:00" pubdate data-updated="true">09 Feb 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>I recently posted an <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">attempt to explain folds using Haskell</a>, and I got some feedback that the code samples were quite hard to follow for people that hadn&#8217;t played with Haskell before. Now the best way that I know of to quickly get started with Haskell is to go through the excellent <a href="http://learnyouahaskell.com/">Learn You a Haskell for Great Good</a> guide. I heartily recommend leaving this post right now and reading it. The whole guide is available free online, but you can also buy print copies of the fantastic reference. Here&#8217;s <a href="http://learnyouahaskell.com/">the link</a> again in case you missed it the first time.</p>
+
+<p>Are you still here? Oh. Well, seeing as you don&#8217;t seem to want to listen to my advice, you deserve the rest of this post. It features a complete Haskell-n00b sharing his ignorance and misinformation with a reckless disregard for your quest to understand the basics of Haskell in a way that may permanently impair your ability to learn Haskell, understand functional programming, operate heavy machinery, socialise with other humans or be trusted with the weighty responsibility of goldfish ownership.</p>
+
+<p>The aim of this post, despite your reticence to go through an <a href="http://learnyouahaskell.com/">extraordinarily helpful Haskell tutorial</a>, is to get going with the very basics of Haskell insanely quickly and with a minimum of understanding about what&#8217;s actually going on. Because that&#8217;s just the way I roll. And let&#8217;s face it, you deserve it for not taking my advice. ;) (<a href="http://learnyouahaskell.com/">Last chance</a> for redemption.)</p>
+
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/2012/02/folds-pt1-from-recursion-to-folds.html">Folds Pt 1: From recursion to folds</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-02-05T00:08:00+11:00" pubdate data-updated="true">05 Feb 2012</time> 
+      </p>
+    
+  </header>
+
+
+  
+  
+    <div class="entry-content"><p>I&#8217;ve recently been trying to <a href="http://learnyouahaskell.com/">learn some functional programming</a>, and one of the first things to trip me up was the idea of <em>folds</em>. Folds crop up all over the place in both functional and imperative languages, so they&#8217;re worth understanding. At their simplest, folds seem to be a short-hand for defining recursions over lists, but I find I start getting lost somewhere between fold types and optimising for languages with lazy evaluation.</p>
+
+<p>This <a href="/categories/-folds">series on folds</a> is my attempt to pull together the little bits and pieces I&#8217;ve managed to pick up into a form I can understand. If you&#8217;re not familiar with folds, hopefully it will help get you started. If you already know about folds then you probably won&#8217;t get much out of this, but if you do read through it I&#8217;d love to get corrections via the comments or via email so I can update the post.</p>
+
+<p>In this first post of the series we will try to work out what folds are. We&#8217;ll start by looking at some problems we can solve using recursion over lists. We&#8217;ll then try and work out what these solutions have in common, and factor that out. Finally we&#8217;ll see how this relates to folds, and how we can use folds to solve these problems more succinctly.</p>
+
+</div>
+    <footer>
+      <a rel="full-article" href="/2012/02/folds-pt1-from-recursion-to-folds.html">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/page/7/">&larr; Older</a>
+    
+    <a href="/archives">Blog Archives</a>
+    
+    <a class="next" href="/page/5/">Newer &rarr;</a>
+    
+  </div>
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

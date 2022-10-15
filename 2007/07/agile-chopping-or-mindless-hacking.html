@@ -1,0 +1,255 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Agile chopping or mindless hacking? - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Hacknot has an interesting article about planning vs. hacking. The article tells the story of two would-be carpenter&#8217;s apprentices, George and &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/07/agile-chopping-or-mindless-hacking.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Agile chopping or mindless hacking?</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-07-09T21:24:00+10:00" pubdate data-updated="true">09 Jul 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Hacknot has an <a href="http://www.hacknot.info/hacknot/action/showEntry?eid=96">interesting article about planning vs. hacking</a>. The article tells the story of two would-be carpenter&#8217;s apprentices, George and Abe, who are given the task of bring the carpenter back a tree without flaws or knots before sunset. Not having much time, George rushes to the shed, finds a small, rusty axe, and charges deep into the forest. Abe sets a brisk but steady pace, takes time to find and sharpen a decent axe, and plans his path through the forest to make sure he gets a good tree. Do I need a spoiler warning here? ;-) Unsurprisingly, since the article is about the dangers of unplanned hacking, Abe&#8217;s approach results in him finding the best tree and he becomes the carpenter&#8217;s apprentice.</p>
+
+<p>As the article presents this as an analogy for software development, the first thing I thought was &#8220;Wow, Abe has a good Agile approach&#8221;. I also recalled the many experiences of working on George-like projects. Reading on, I discovered the article was actually describing George&#8217;s approach as Agile. Well, more specifically, it is suggesting some people use Agilist propaganda as an excuse for George&#8217;s approach.</p>
+
+<blockquote>Since the advent of Agile Methods, [George&#8217;s] approach seems to be frequently euphemized as &#8220;being agile&#8221;. Fearing the bogeyman of BDUF (Big Design Up Front) as espoused by the AM proponents, the George decides to opt for no design at all. They just start hacking&#8230;</blockquote>
+
+<p>So why the disparity between my view and the Hacknot view? Well, Hacknot actually has an audience, unlike me, so the obvious answer is that I&#8217;m wrong. However, the benefit of not having an audience is I can write whatever I like without fear of being pulled up on it! So here is my view.</p>
+
+<p>Let&#8217;s look at some of the ways Abe is being agile. He sets a <b>sustainable pace</b>. He breaks the task down into <b>manageable and essential steps or iterations</b>, which he ensures are completed with <b>high quality</b>. If the carpenter changed his requirements (ok, now I need three trees), Abe would be <b>well placed to adapt</b> as he has a good foundation (sharp axe) to build from. Abe also <b>invests in tests</b> &#8211; he tests the axe he sharpened to make sure it was sharp enough. Yeh, it&#8217;s not test first, but this is similar to investing in a good test suite, or even creating a spike or prototype. </p>
+
+<p>George&#8217;s approach is to blindly follow his plan: find axe, find tree, chop like crazy, drag it home. He does not have time for testing. He doesn&#8217;t even have time to make sure he is doing a decent job as he is so busy trying to do everything in the plan. Its not really Big Design Up Front either, but it is definitely hacky. This is a pet peeve of mine (et al.) &#8211; when people say &#8221;<a href="http://davesquared.net/2007/06/ivory-tower-of-effective-development.html">we don&#8217;t have time to do it right because we are too busy doing it wrong</a>&#8221;.</p>
+
+<p>That said, I agree with the article that the term &#8220;Agile&#8221; is probably used as an excuse to hack in some places. The worst aspect of the Agile movement is the associated zealotry that is occasionally used as a supplement for rational thought. One of the fundamental parts of Agile methodologies, at least to my reading, is doing what works for you and your team. People over process. Pragmatism. An Agile team should not simply be hacking without planning and design, but rather concentrate on doing the &#8220;right amount&#8221;, and doing all work at high quality so the plan and design can be adapted as work progresses.</p>
+
+<p>Of course, as this was only a story it could have ended very differently to make a completely different point. George could have found a semi-decent tree while Abe was still busy sharpening his axe, effectively demonstrating how evil a utopian approach to planning and design is. Or Abe could have been stuck gathering satellite data of the forest, getting management approval to purchase a GPS for the tree finding activity and filling out a tree requirements specification document. That&#8217;s one of the problems with analogies I guess. :-)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-01-08T14:01:08+11:00" class="updated">Updated 08 Jan 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/agile/'>agile</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/07/agile-chopping-or-mindless-hacking.html" data-via="" data-counturl="http://davesquared.net/2007/07/agile-chopping-or-mindless-hacking.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/07/joy-of-pessimism.html" title="Previous Post: The joy of pessimism">&laquo; The joy of pessimism</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/07/sharepoint-aware-workflow-activities.html" title="next Post: SharePoint aware workflow activities">SharePoint aware workflow activities &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/07/agile-chopping-or-mindless-hacking.html';
+        var disqus_url = 'http://davesquared.net/2007/07/agile-chopping-or-mindless-hacking.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

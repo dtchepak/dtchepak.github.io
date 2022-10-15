@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: ruby | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/ruby/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Revisting replacing a Ruby instance method with a closure]]></title>
+    <link href="http://davesquared.net/2010/12/revisting-replacing-ruby-instance.html"/>
+    <updated>2010-12-18T01:29:00+11:00</updated>
+    <id>http://davesquared.net/2010/12/revisting-replacing-ruby-instance</id>
+    <content type="html"><![CDATA[<p>Last month I looked at <a href="http://davesquared.net/2010/11/replacing-ruby-instance-method-with.html">how to replace a Ruby method of a single object instance with a closure</a>, before <a href="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html">defining a module that could make this easier</a>. Since then I've learnt another option which I thought I'd share as it helped me get a greater appreciation for Ruby modules.</p>
+
+
+
+
+<div class="note"><b>Note:</b> I am a Ruby n00bie, so take all this with a suitable amount of salt. If this (or the previous posts) violate Ruby conventions, or there is an idiomatic way of solving this, please let me know.</div>
+
+
+
+
+<h2>Quick recap</h2>
+
+
+<p>The problem is fully described in the <a href="http://davesquared.net/2010/11/replacing-ruby-instance-method-with.html">original post</a>, but it basically starts with this class:</p>
+
+
+
+
+<pre class="brush:ruby">
+class Greeter
+    def say_hello
+        puts "Hello World!"
+    end
+end
+greeter = Greeter.new
+greeter.say_hello
+#=&gt; Hello World!
+</pre>
+
+
+
+
+<p>I then wanted to replace <code>say_hello</code> on that single <code>greeter</code> instance with a method that would close over a local variable, like this:</p>
+
+
+
+
+<pre class="brush:ruby">
+name = "Anonymous Dave"
+# replace say_hello on greeter so it puts "G'day #{name}"
+
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+
+name = "Clarence"
+greeter.say_hello
+#=&gt; G'day Clarence
+</pre>
+
+
+
+
+<p>Standard reopening of the instance (or even the <code>Greeter</code> class) and redefining the method won't work here, all because we have the pesky requirement of closing over our local <code>name</code> variable, which means we need to use a block (basically a lambda function for C# people). We can use <code>Class.send</code> to call the private <code>define_method</code> which takes a block, but that will add it to every instance of <code>Greeter</code>, not a single instance.</p>
+
+
+
+
+<h2>Modules to the rescue</h2>
+
+
+
+
+<p>We solved this in the original post by referencing the instance's <i>metaclass</i> (aka <i>eigenclass</i>), but there is another way:</p>
+
+
+
+
+<pre class="brush:ruby">
+name = "Anonymous Dave"
+new_say_hello = Module.new do
+    self.send(:define_method, :say_hello) do
+       puts "G'day #{name}"
+    end
+end
+</pre>
+
+
+
+
+<p>Here we've created a new anonymous module that sends <code>define_method</code> to create a <code>say_hello</code> method using a block, in the same way as we could have reopened the <code>Greeter</code> class and added it to every instance. The difference here is that this module has not been mixed in anywhere yet; we can choose exactly where we want to apply it. In this case, to our single instance:</p>
+
+
+
+
+<pre class="brush:ruby">
+# Mixin module to greeter instance to add our new say_hello method
+greeter.extend new_say_hello
+
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+
+name = "Clarence"
+greeter.say_hello
+#=&gt; G'day Clarence
+
+# Other instances are unaffected by this:
+another_greeter = Greeter.new
+another_greeter.say_hello
+#=&gt; Hello World!
+</pre>
+
+
+
+
+<p>I think I still prefer the <a href="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html"><code>Meta</code> module approach</a>, but this way has the advantage of sticking closely to standard Ruby constructs and manages to avoid metaclasses.</p>
+
+
+
+
+<p>What was most helpful to me out of this as a Ruby n00bie is the understanding that we can work using class scope within a module (avoiding metaclass shenanigans), then apply that scope selectively by including the module in a class, or by extending an instance with the module.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Continuing adventures in adding methods to Ruby instances]]></title>
+    <link href="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html"/>
+    <updated>2010-11-13T23:55:00+11:00</updated>
+    <id>http://davesquared.net/2010/11/continuing-adventures-in-adding-methods</id>
+    <content type="html"><![CDATA[<p>In the <a href="http://davesquared.net/2010/11/replacing-ruby-instance-method-with.html">last post</a> we looked at the hoops we had to go through to redefine a method on a single instance using a closure. In this post we'll look at ways to make this easier on ourselves.</p>
+
+
+
+
+<p>I should stress that I'm a Ruby n00bie, so take this all with a grain of salt. Please let me know if I've got it wrong.</p>
+
+
+
+
+<h2>First attempt</h2>
+
+
+<p>We found out last time that to add an instance method to a single object using a closure we had to obtain a reference to that instance's <i>metaclass</i> (or <i>eigenclass</i> as it is also known) using the <code>class &lt;&lt; instance</code> syntax. We could then use the metaclass's private <code>define_method</code> via the <code>send</code> method.</p>
+
+
+<pre class="brush: ruby">
+class Greeter
+    def say_hello
+        puts "Hello World!"
+    end
+end
+greeters_metaclass = class &lt;&lt; greeter; self; end
+greeters_metaclass.send(:define_method, :say_hello) do
+    puts "G'day #{name}"
+end
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+</pre>
+
+
+
+
+<p>We can make this a bit easier by extracting this into a method. If we put it in a Ruby <i>module</i>, we can open up any class or instance and import this code as required.</p>
+
+
+
+
+<pre class="brush: ruby">
+module Meta
+    def define(name, &block)
+        meta = class &lt;&lt; self; self; end
+        meta.send(:define_method, name, block)
+    end
+end
+</pre>
+
+
+
+
+<p>And this works the same way as the previous code, just a bit neater:</p>
+
+
+
+
+<pre class="brush: ruby">
+# Open up Greeter class and import the Meta module:
+class Greeter
+    include Meta
+end
+
+# Our greeter gains the new syntax:
+name = "Anonymous Dave"
+greeter.define(:say_hello) do
+    puts "G'day #{name}"
+end
+
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+</pre>
+
+
+<p>We can do better.</p>
+
+
+
+
+<h2>Second attempt</h2>
+
+
+<p>It would be really nice to be able to just write <code>greeter.define.say_hello { puts "blah" }</code>. Let's make it work. We'll need to make a <code>define</code> method that returns some sort of object that responds to any method, whether it exists or not. Ruby has a handy <code>method_missing</code> method we can define which will be invoked in the event it cannot resolve a particular method. We can just move the method creation into there:</p>
+
+
+
+
+<pre class="brush: ruby">
+module Meta
+    def define
+        meta = class &lt;&lt; self; self; end
+        Creator.new(meta)
+    end
+    class Creator
+        def initialize(meta)
+            @meta = meta
+        end
+        def method_missing(symbol, *args, &block)
+            @meta.send(:define_method, symbol, block)
+        end
+    end
+end
+</pre>
+
+
+
+
+<p>This then gives us a nicer syntax whenever we import the module:</p>
+
+
+
+
+<pre class="brush: ruby">
+name = "Anonymous Dave"
+greeter.define.say_hello do
+    puts "G'day #{name}"
+end
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+
+
+greeter.define.say_hello do
+    puts "Howdy!"
+end
+greeter.say_hello
+#=&gt; Howdy!
+</pre>
+
+
+
+
+<h2>Parting thoughts</h2>
+
+
+<p>Like I said, I'm new to this stuff and have absolutely no idea if this is completely terrible. I do know that I'm really impressed with how easily even a newbie like me could add the syntax I wanted to absolutely everywhere in Ruby I could possibly need it, in a fairly neat and reusable way.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Replacing a Ruby instance method with a closure]]></title>
+    <link href="http://davesquared.net/2010/11/replacing-ruby-instance-method-with.html"/>
+    <updated>2010-11-13T23:53:00+11:00</updated>
+    <id>http://davesquared.net/2010/11/replacing-ruby-instance-method-with</id>
+    <content type="html"><![CDATA[<p>I was recently playing around with replacing methods on specific Ruby instances. Everything is open for change in Ruby so I thought it would be a piece of cake. And in a way it was. The catch was that I wanted the method definition to close over some local variables I had declared (the same way <code>() =&gt; localVar;</code> will close over <code>localVar</code> for .NET lambdas), and this proved to be a little trickier than I expected.</p>
+
+
+
+
+<h2>Basic instance method replacement</h2>
+
+
+
+
+<p>Say we have an incredibly exciting <code>Greeter</code> class that says hello:</p>
+
+
+
+
+<pre class="brush: ruby">
+class Greeter
+    def say_hello
+        puts "Hello World!"
+    end
+end
+
+greeter = Greeter.new
+greeter.say_hello
+
+#=&gt; Hello World!
+</pre>
+
+
+
+
+<p>We can easily re-define this method on a specific instance like this:</p>
+
+
+
+
+<pre class="brush: ruby">
+def greeter.say_hello
+    puts "Howdy World!"
+end
+greeter.say_hello
+#=&gt; Howdy World!
+</pre>
+
+
+
+
+<div class="note"><b>Note: </b> It is just as easy to redefine this method on all instances of <code>Greeter</code> by opening up the class as <a href="http://davesquared.net/2010/11/replacing-ruby-instance-method-with.html?showComment=1289659978198#c4877835427233880947">Derick points out in the comments</a>. In this case I just want to replace the method on the specific <code>greeter</code> instance, not on all instances of the <code>Greeter</code> class.</div>
+
+
+
+
+<p>Now say that rather than hard-coding a greeting in our re-defined method, we want to reference a local variable instead (useful for replacing methods for unit tests).</p>
+
+
+
+
+<pre class="brush: ruby">
+name = "Anonymous Dave"
+def greeter.say_hello
+    puts "Hello #{name}"
+end
+
+#This won't work:
+#  greeter.say_hello
+#It gives this exception:
+# in `say_hello': undefined local variable or method `name' for #&lt;Greeter:0x337e1e0&gt; (NameError)
+</pre>
+
+
+
+
+<p>This doesn't work because when we get to <code>def greeter.say_hello</code> we've changed the current scope to the <code>greeter</code> instance, and <code>greeter</code> knows nothing about <code>name</code>; it does not exist in the scope <code>say_hello</code> is running in. What we really want is to capture the <code>name</code> variable via a closure when we define the method, and in Ruby, we can do this with blocks and Procs.</p>
+
+
+
+
+<h2>A detour into Ruby internals and other stuff I don't understand</h2>
+
+
+<p>I'm completely out of my depth here, but here is my Ruby n00bie interpretation of some Ruby mumbo jumbo. First, everything in Ruby is an object, and every object has a class (as near as I can tell). Even <code>nil</code> (Ruby's <code>null</code>):</p>
+
+
+
+
+<pre class="brush: ruby">
+puts nil.class
+#=&gt; NilClass
+puts nil.methods.count
+#=&gt; 71
+</pre>
+
+
+
+
+<p>If you're from a .NET background, we've just called <code>null.GetType().GetMethods().Length</code> and lived to tell the tale (and been told 71 apparently :)).</p>
+
+
+
+
+<p>Anyway, the point is that everything is an object and they all have classes. Our <code>greeter</code> object is an instance of the <code>Greeter</code> class we defined earlier. Ruby has all kinds of interesting ways of interacting with instances and classes, including <code>instance_eval</code> and <code>class_eval</code> which let us run code within the context, or scope, of both instances and classes. Unfortunately none of these seem to work the scope in a way that will let us add an instance method to a specific instance using a closure (please let me know if I'm wrong).</p>
+
+
+
+
+<p>There is another option: Ruby <i>metaclasses</i> (a.k.a. <i>eigenclasses</i>). It turns out that when I said that <code>greeter</code>'s class is <code>Greeter</code>, I sort of lied. In fact, Ruby itself will dissemble slightly when you run <code>greeter.class</code> and it says <code>Greeter</code>. Every object has a class, but also a <i>metaclass</i>. And a <i>metaclass'</i> class has <i>Class</i>, as well as it's own <i>metaclass</i>, which I guess is a <i>meta-metaclass</i>. And so on into madness.</p>
+
+
+
+
+<p>In a valiant attempt to get back on topic, the idea is that you can add a method to a <i>metaclass</i> that will only be available on the instance. If you modify a method on the <i>class</i> then it will appear on all instances.</p>
+
+
+
+
+<p>The next thing we need to know is that everything that inherits from <code>Class</code> has a very useful method called <code>define_method</code> which defines a method from a block. Unfortunately this method is private. But luckily you can invoke private methods in Ruby using the <code>send</code> method. The send method is also cursed and contains potassium benzoate... kidding.</p>
+
+
+
+
+<p>Believe it or not, we can now solve the original problem.</p>
+
+
+
+
+<h2>Instance method replacement with closures</h2>
+
+
+
+
+<p>So what we need to do is get access to the <code>greeter</code> instance metaclass, and <code>send</code> a <code>define_method</code> call with a block that closes over our local variable. We can access an instance's metaclass by using the <i>class &lt;&lt; instance</i> syntax, which will change the current scope to <code>instance</code>'s metaclass (so <code>self</code> will refer to the metaclass. This is confusing; see <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">Yehuda's article</a> for a great explanation). And the rest is fairly straight forward:</p>
+
+
+
+
+<pre class="brush: ruby">
+greeters_metaclass = class &lt;&lt; greeter; self; end
+greeters_metaclass.send(:define_method, :say_hello) do
+    puts "G'day #{name}"
+end
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+
+name = "closure"
+greeter.say_hello
+#=&gt; G'day closure
+</pre>
+
+
+
+
+<p>We now have all the pieces put together. We've got our paws on a reference to the instance's metaclass, and we've defined a class using a block (<code>do..end</code>) which will close over our local variable using the metaclass' private <code>define_method</code> via <code>send</code>. Piece of cake, right? :)</p>
+
+
+
+
+<h2>Parting thoughts</h2>
+
+
+<p>This tripped me up for a while, and this post is my attempt to try and decipher what is happening. It's not quite as bad as I make it sound, it just requires some understanding about Ruby's class system and closures. Along the way I found these absolutely essential references that will hopefully clear things up a bit for you:</p>
+
+
+
+
+<ul>
+    <li>Yehuda Katz has an <a href="http://yehudakatz.com/2009/11/15/metaprogramming-in-ruby-its-all-about-the-self/">absolutely fantastic post on scope changing during metaprogramming</a>, including explaining metaclasses and what <code>self</code> means.</li>
+    <li>Dhananjay Nene's <a href="http://codeblog.dhananjaynene.com/2010/01/dynamically-adding-methods-with-metaprogramming-ruby-and-python/">examples of metaprogramming for both Ruby and Python</a></li>
+</ul>
+
+
+
+
+<p><a href="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html">Next post</a> we'll look at a hack to make this a bit easier.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Continually running a script with Ruby and Watchr]]></title>
+    <link href="http://davesquared.net/2010/08/continually-running-script-with-ruby.html"/>
+    <updated>2010-08-23T19:22:00+10:00</updated>
+    <id>http://davesquared.net/2010/08/continually-running-script-with-ruby</id>
+    <content type="html"><![CDATA[<p>I'm currently working through <a href="http://www.rubykoans.com/">Ruby Koans</a>, which involves editing some <code>.rb</code> files, running a build and watching the output for hints on what change to make next. It's quite a fun mix of TDD and puzzle solving. I did start to find constantly rebuilding after each change a bit laborious though, so I thought I'd look at automating it (<a href="http://ph7spot.com/musings/getting-started-with-autotest">Autotest</a> style).</p>
+
+
+
+
+<p>After floundering around Google for a while I asked Twitter and <a href="http://twitter.com/joshnesbitt/statuses/21895968920">@joshnesbitt helped me out</a>, suggesting I try <a href="http://github.com/mynyml/watchr">Watchr</a>. After installing the gem, I ending up putting the following <code>auto_enlighten.rb</code> script in the koans directory:</p>
+
+
+<p></p>
+
+<pre class="brush:ruby">
+require 'rubygems'
+require 'watchr'
+
+all_rb = Dir['*.rb'].join('|')
+script = Watchr::Script.new
+script.watch( all_rb ) { |file| system("rake") }
+controller = Watchr::Controller.new(script, Watchr.handler.new)
+controller.run
+</pre>
+
+
+
+
+<p>This script selects all <code>.rb</code> files in the current directory and tells the Watchr script to run <code>rake</code> (to build the koans and get the next hint) whenever one of those files changes. I then can run <code>ruby auto_enlighten.rb</code> from my terminal and hack away happily in vim, and each time I save a file I get near-instant feedback on how my change affected my progress through the koans. I've found this a very nice way to work through the koans.</p>
+
+
+
+
+<p>Watchr also has some scripts for common tasks like running tests and specs, can be run from the command line, or can be used programmatically as we're doing here. Definitely worth <a href="http://github.com/mynyml/watchr">checking out</a>. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Building native extensions for Ruby Gems on Windows]]></title>
+    <link href="http://davesquared.net/2010/08/building-native-extensions-for-ruby.html"/>
+    <updated>2010-08-20T22:11:00+10:00</updated>
+    <id>http://davesquared.net/2010/08/building-native-extensions-for-ruby</id>
+    <content type="html"><![CDATA[<p>This tripped me up for a little while, so I thought I'd post it in the hope that it will save someone else some head-scratching.</p>
+
+
+
+
+<p>If you're running Ruby on Windows and trying to install a gem that uses native extensions, you may get an error like this (depending on how you got Ruby on to your machine):</p>
+
+
+
+
+<pre>
+$ gem install jekyll
+Building native extensions.  This could take a while...
+ERROR:  Error installing jekyll:
+        ERROR: Failed to build gem native extension.
+
+c:/Ruby191/bin/ruby.exe extconf.rb
+creating Makefile
+
+make
+'make' is not recognized as an internal or external command,
+operable program or batch file.
+</pre>
+
+
+
+
+<p>Turns out the answer is quite simple: <a href="http://wiki.github.com/oneclick/rubyinstaller/development-kit">RubyInstaller DevKit</a>.</p>
+
+
+
+
+<p>The site has the full instructions, but to give you a quick summary it is just a matter of downloading DevKit, extracting it somewhere, then running <code>ruby dk.rb init</code> followed by <code>ruby dk.rb install</code>. I was very impressed with how easy it was to get working.</p>
+
+
+
+
+<p>Hope this helps.</p>
+
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,287 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Specifying FAKE targets - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="FAKE is an F#-based build tool along similar lines to Make, Rake, etc. The FAKE documentation describes one way of setting up dependencies between &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2017/02/fake-targets.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Specifying FAKE targets</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2017-02-05T08:45:00+11:00" pubdate data-updated="true">05 Feb 2017</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><!-- more -->
+<p><a href="http://fsharp.github.io/FAKE/">FAKE</a> is an F#-based build tool along similar lines to Make, Rake, etc. The <a href="http://fsharp.github.io/FAKE/gettingstarted.html">FAKE documentation</a> describes one way of setting up dependencies between targets using the <code>==&gt;</code> operator. For example:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="s">&quot;Clean&quot;</span> <span class="o">==&gt;</span> <span class="s">&quot;Version&quot;</span> <span class="o">==&gt;</span> <span class="s">&quot;Build&quot;</span> <span class="o">==&gt;</span> <span class="s">&quot;Test&quot;</span> <span class="o">==&gt;</span> <span class="s">&quot;Package&quot;</span> <span class="o">==&gt;</span> <span class="s">&quot;Full&quot;</span><span class="o">`</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This declaration means that to run the <code>Test</code> target, <code>Build</code> must be run beforehand, which in turn requires <code>Version</code>, which in turn requires <code>Clean</code> to be run.</p>
+<p>This approach limits us to a linear build order. I’d prefer to specify these dependencies less prescriptively, and have FAKE calculate the ordering based on whatever target or targets I need.</p>
+<p>Continuing the above example, I’d like to quickly build and run the tests during development, but for that case I don’t really need to version the assemblies. I’d also like to avoid running <code>Clean</code> in this case to take advantage of incremental compilation. But if I’m running the <code>Package</code> task to package everything for NuGet then it is essential to run <code>Version</code> before <code>Build</code> to make sure the packaged assemblies have the right version numbers. And I want to make sure I <code>Clean</code> before a full build to avoid any old artefacts making it into a package.</p>
+<p>I fairly recently found out that FAKE does support this flexibility, using <a href="http://fsharp.github.io/FAKE/soft-dependencies.html">soft dependencies</a> and the ability to specify multiple dependencies using the <a href="http://fsharp.github.io/FAKE/apidocs/fake-targethelper.html"><code>&lt;==</code></a> operator.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='fsharp'><span></span><span class="c1">// ... target definitions elided ... </span>
+<span class="n">Target</span> <span class="s">&quot;Full&quot;</span> <span class="n">DoNothing</span>
+
+<span class="c1">// Dependencies</span>
+<span class="s">&quot;Clean&quot;</span>   <span class="o">?=&gt;</span> <span class="s">&quot;Build&quot;</span>
+<span class="s">&quot;Version&quot;</span> <span class="o">?=&gt;</span> <span class="s">&quot;Build&quot;</span>
+<span class="s">&quot;Test&quot;</span>    <span class="o">&lt;==</span> <span class="o">[</span> <span class="s">&quot;Build&quot;</span> <span class="o">]</span>
+<span class="s">&quot;Package&quot;</span> <span class="o">&lt;==</span> <span class="o">[</span> <span class="s">&quot;Build&quot;</span><span class="o">;</span> <span class="s">&quot;Version&quot;</span> <span class="o">]</span>
+<span class="s">&quot;Full&quot;</span>    <span class="o">&lt;==</span> <span class="o">[</span> <span class="s">&quot;Clean&quot;</span><span class="o">;</span> <span class="s">&quot;Version&quot;</span><span class="o">;</span> <span class="s">&quot;Build&quot;</span><span class="o">;</span> <span class="s">&quot;Test&quot;</span><span class="o">;</span> <span class="s">&quot;Package&quot;</span> <span class="o">]</span>
+
+<span class="n">RunTargetOrDefault</span> <span class="s">&quot;Full&quot;</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The <code>"Clean" ?=&gt; "Build"</code> line tells FAKE “if <code>Clean</code> needs to run, it must run before <code>Build</code>”. We also tell FAKE that if we are <code>Version</code>ing, that has to be done before build as well. Unlike the linear definition we are not saying we <em>have</em> to run <code>Clean</code> or <code>Version</code>, just that <em>if</em> they need to run, they must go before <code>Build</code>.</p>
+<p>The <code>&lt;==</code> operator lets us make a target depend on multiple other targets. So <code>"Package" &lt;== [ "Build"; "Version" ]</code> tells FAKE that to run <code>Package</code>, we have to run <code>Build</code> and <code>Version</code>. When we <a href="http://fsharp.github.io/FAKE/commandline.html">run</a> <code>fake Package</code> FAKE knows it has to run both tasks, and it also knows that if it runs <code>Version</code> it must do so before <code>Build</code>. So the final build order for that case is: <code>Version</code>, then <code>Build</code>, then <code>Package</code>.<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
+<p>This gives me exactly the behaviour I was after. I can run the <code>Test</code> target which will force a build, but won’t run a clean or version the assemblies. I can generate a NuGet package with versioned assemblies (I should probably make that depend on <code>Test</code> as well). Or I can run a <code>Full</code> build which will clean, version, build, test and create the package.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>I’d normally specify the task in the expected final order where possible, so <code>"Package" &lt;== [ "Verison"; "Build" ]</code>, but I just wanted to illustrate that FAKE is working out the required order, it isn’t a side-effect of the order dependencies are specified.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2017-02-05T08:45:00+11:00" pubdate data-updated="true">05 Feb 2017</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/fsharp/'>fsharp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2017/02/fake-targets.html" data-via="" data-counturl="http://davesquared.net/2017/02/fake-targets.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2016/02/pattern-matching.html" title="Previous Post: Pondering a prescription for pattern matching prevalance">&laquo; Pondering a prescription for pattern matching prevalance</a>
+      
+      
+        <a class="basic-alignment right" href="/2017/11/aggregation.html" title="next Post: Aggregation">Aggregation &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2017/02/fake-targets.html';
+        var disqus_url = 'http://davesquared.net/2017/02/fake-targets.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

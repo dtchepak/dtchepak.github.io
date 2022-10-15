@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Associativity - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="One of the nice things about pure functional programming is that we can use mathematical properties and axioms to reason about, simplify and derive &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/04/associativity.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Associativity</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-04-16T18:20:00+10:00" pubdate data-updated="true">16 Apr 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>One of the nice things about pure functional programming is that we can use mathematical properties and axioms to reason about, simplify and derive functions. A property that I’ve seen crop up a few times is <a href="http://en.wikipedia.org/wiki/Associativity">associativity</a>.</p>
+<!-- more -->
+<h2 id="associativity-property">Associativity property</h2>
+<p>Associativity is a property of some binary operators that means the order operators are evaluated does not matter. An operator <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>⊕</mo><annotation encoding="application/x-tex">\oplus</annotation></semantics></math> is associative if:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>⊕</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>⊕</mo><mi>z</mi><mo>=</mo><mi>x</mi><mo>⊕</mo><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>⊕</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x \oplus y) \oplus z = x \oplus (y \oplus z)</annotation></semantics></math></p>
+<p>A familiar example is addition. We can safely write <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>+</mo><mn>2</mn><mo>+</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">1 + 2 + 3</annotation></semantics></math> and know we’ll get the correct answer irrespective of the order in which it is evaluated, as <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>+</mo><mn>2</mn><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mn>3</mn><mo>=</mo><mn>1</mn><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mn>2</mn><mo>+</mo><mn>3</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1 + 2) + 3 = 1 + (2 + 3)</annotation></semantics></math>. An example of a non-associative operator is subtraction, as <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mn>2</mn><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mn>3</mn><mo>≠</mo><mn>1</mn><mo>−</mo><mo stretchy="false" form="prefix">(</mo><mn>2</mn><mo>−</mo><mn>3</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1-2)-3 \neq 1-(2-3)</annotation></semantics></math>.</p>
+<p>Two operators are said to associate if they can be evaluated in any order:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>⊕</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>⊗</mo><mi>z</mi><mo>=</mo><mi>x</mi><mo>⊕</mo><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>⊗</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(x \oplus y) \otimes z = x \oplus (y \otimes z)</annotation></semantics></math></p>
+<h2 id="operator-associativity">Operator associativity</h2>
+<p>Related to this mathematical property is <a href="http://en.wikipedia.org/wiki/Operator_associativity">operator associativity</a> or <em>fixity</em>, which is essentially an exercise in parenthesis-saving. For non-associative operations where order of evaluation matters, we can define the operator as <em>left-associative</em> or <em>right-associative</em> depending on how we want it to evaluate in the absence of parentheses.</p>
+<p>For a left-associative operator:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>⊕</mo><mi>y</mi><mo>⊕</mo><mi>z</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>⊕</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>⊕</mo><mi>z</mi></mrow><annotation encoding="application/x-tex"> x \oplus y \oplus z = (x \oplus y) \oplus z </annotation></semantics></math></p>
+<p>For a right-associative operator:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>⊗</mo><mi>y</mi><mo>⊗</mo><mi>z</mi><mo>=</mo><mi>x</mi><mo>⊗</mo><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>⊗</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex"> x \otimes y \otimes z = x \otimes (y \otimes z) </annotation></semantics></math></p>
+<h2 id="applying-to-programming">Applying to programming</h2>
+<p>In terms of functional programming, a binary operator is a two argument function. We tend to refer to operators as functions used in <a href="http://en.wikipedia.org/wiki/Infix_notation">infix</a> position, or between arguments like <code>a `f` b</code>, as opposed to <em>function notation</em>, which is the more familiar <code>f a b</code> arrangement. A function can be associative regardless of the notation used. Our previous <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>+</mo><mn>2</mn><mo>+</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">1+2+3</annotation></semantics></math> example could be rewritten in function notation as <code>(+) ((+) 1 2) 3 = (+) 1 ((+) 2 3)</code>.</p>
+<h3 id="monoids">Monoids</h3>
+<p>Associative functions seem useful for reasoning about <a href="http://davesquared.net/2012/03/folds-pt3-left-fold-right.html">folds</a>, particularly when part of a <a href="http://en.wikipedia.org/wiki/Monoid">monoid</a>. A monoid is formed by an associative binary function and an <em>identity element</em> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math> that exists such that: <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right"><mi>x</mi><mo>⊕</mo><mi>a</mi><mo>=</mo><mi>x</mi><mo>=</mo><mi>a</mi><mo>⊕</mo><mi>x</mi></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align}
+x \oplus a = x = a \oplus x
+\end{align}</annotation></semantics></math></p>
+<p>Addition is a monoid for integers, as it is associative and has <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>0</mn><annotation encoding="application/x-tex">0</annotation></semantics></math> as an identity value.</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo>+</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>z</mi><mo>=</mo><mi>x</mi><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo>+</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex"> (x + y) + z = x + (y + z) </annotation></semantics></math> <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>+</mo><mn>0</mn><mo>=</mo><mi>x</mi><mo>=</mo><mn>0</mn><mo>+</mo><mi>x</mi></mrow><annotation encoding="application/x-tex"> x + 0 = x = 0 + x </annotation></semantics></math></p>
+<p>When an operator <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>⊕</mo><annotation encoding="application/x-tex">\oplus</annotation></semantics></math> and value <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>a</mi><annotation encoding="application/x-tex">a</annotation></semantics></math> form a monoid this can simplify how we think about folds, as:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mi>o</mi><mi>l</mi><mi>d</mi><mi>r</mi><mo>⊕</mo><mi>a</mi><mspace width="0.278em"></mspace><mo stretchy="false" form="prefix">[</mo><mo stretchy="false" form="postfix">]</mo><mo>=</mo><mi>a</mi></mrow><annotation encoding="application/x-tex"> foldr \oplus a \; [] = a </annotation></semantics></math> <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mi>o</mi><mi>l</mi><mi>d</mi><mi>r</mi><mo>⊕</mo><mi>a</mi><mspace width="0.278em"></mspace><mo stretchy="false" form="prefix">[</mo><msub><mi>x</mi><mn>0</mn></msub><mo>,</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>,</mo><msub><mi>x</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">]</mo><mo>=</mo><msub><mi>x</mi><mn>0</mn></msub><mo>⊕</mo><msub><mi>x</mi><mn>1</mn></msub><mo>⊕</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>⊕</mo><msub><mi>x</mi><mi>n</mi></msub></mrow><annotation encoding="application/x-tex"> foldr \oplus a \; [x_0, x_1, ..., x_n] = x_0 \oplus x_1 \oplus ... \oplus x_n </annotation></semantics></math></p>
+<p>Monoids also give us the <em>first duality theorem</em>: for monoids and a finite list <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">xs</annotation></semantics></math>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mi>o</mi><mi>l</mi><mi>d</mi><mi>r</mi><mo>⊕</mo><mi>a</mi><mspace width="0.278em"></mspace><mi>x</mi><mi>s</mi><mo>=</mo><mi>f</mi><mi>o</mi><mi>l</mi><mi>d</mi><mi>l</mi><mo>⊕</mo><mi>a</mi><mspace width="0.278em"></mspace><mi>x</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">foldr \oplus a \; xs = foldl \oplus a \; xs</annotation></semantics></math>. This equivalency means we can decide on which fold to use based purely on efficiency when working with monoids and finite lists.</p>
+<p>There seems to be much <a href="http://blog.sigfpe.com/2009/01/haskell-monoids-and-their-uses.html">more to monoids in Haskell</a>, but the point I’m trying to make is that associativity forms the basis for some more advanced and quite useful concepts (functors being another example).</p>
+<h3 id="reducing-noise">Reducing noise</h3>
+<p>For maths and programming I’ve always erred on the side of over-specifying parentheses, but as I get more into functional programming I’ve found learning operator associativity starts to really reduce the noise. One example is <em>function composition</em> using the <code>(.)</code> operator. Because this is an associative operation, we can compose a string of functions without the noise of parentheses: <code>f . g . h</code>.</p>
+<h3 id="currying">Currying</h3>
+<p>Another important example of noise-reduction is the behaviour of type-mapping operator <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math>. Type-mapping is right-associative, which means that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mo>:</mo><mo>:</mo><mi>a</mi><mo>→</mo><mi>b</mi><mo>→</mo><mi>c</mi></mrow><annotation encoding="application/x-tex">f :: a \to b \to c</annotation></semantics></math> is actually equivalent to <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mo>:</mo><mo>:</mo><mi>a</mi><mo>→</mo><mo stretchy="false" form="prefix">(</mo><mi>b</mi><mo>→</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">f :: a \to (b \to c)</annotation></semantics></math>. This is also known as <a href="http://en.wikipedia.org/wiki/Currying">currying</a>. Let’s take good old integer addition as an example again. Its type is:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>+</mo><mo>:</mo><mo>:</mo><mi>I</mi><mi>n</mi><mi>t</mi><mi>e</mi><mi>g</mi><mi>e</mi><mi>r</mi><mo>→</mo><mi>I</mi><mi>n</mi><mi>t</mi><mi>e</mi><mi>g</mi><mi>e</mi><mi>r</mi><mo>→</mo><mi>I</mi><mi>n</mi><mi>t</mi><mi>e</mi><mi>g</mi><mi>e</mi><mi>r</mi></mrow><annotation encoding="application/x-tex"> + :: Integer \to Integer \to Integer </annotation></semantics></math></p>
+<p>Normally we’d call this with two arguments such as <code>1+2</code> and get an integer <code>3</code> back. But <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>+</mo><annotation encoding="application/x-tex">+</annotation></semantics></math>’s type signature can also be expressed as:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>+</mo><mo>:</mo><mo>:</mo><mi>I</mi><mi>n</mi><mi>t</mi><mi>e</mi><mi>g</mi><mi>e</mi><mi>r</mi><mo>→</mo><mo stretchy="false" form="prefix">(</mo><mi>I</mi><mi>n</mi><mi>t</mi><mi>e</mi><mi>g</mi><mi>e</mi><mi>r</mi><mo>→</mo><mi>I</mi><mi>n</mi><mi>t</mi><mi>e</mi><mi>g</mi><mi>e</mi><mi>r</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">+ :: Integer \to (Integer \to Integer)</annotation></semantics></math></p>
+<p>This means <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>+</mo><annotation encoding="application/x-tex">+</annotation></semantics></math> can take an integer, and return a function which takes an integer and returns the final result. So in Haskell we can do things like this:</p>
+<pre><code>*Main&gt; :type (+)
+(+) :: Num a =&gt; a -&gt; a -&gt; a
+*Main&gt; let addOne = (1+)
+*Main&gt; :type addOne
+addOne :: Integer -&gt; Integer
+*Main&gt; addOne 2
+3</code></pre>
+<p>Here we’ve given <code>(+)</code> just one argument, and the result is an <code>addOne</code> function that will take a single integer and add one to it. The right-associativity of type mapping, combined with the left-associativity of function application, gives us standard calling semantics for the type declaration <code>a -&gt; a -&gt; a</code>, while also letting us partially apply functions as <code>a -&gt; (a -&gt; a)</code>. In fact, all Haskell functions are curried (they only take one argument, and return a function to handle the rest), but thanks to operator associativity we can call them in whichever way makes sense for each situation.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-04-16T18:20:00+10:00" pubdate data-updated="true">16 Apr 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/04/associativity.html" data-via="" data-counturl="http://davesquared.net/2012/04/associativity.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/03/function-strictness.html" title="Previous Post: Function strictness">&laquo; Function strictness</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/04/map-map.html" title="next Post: Working out function types: map map">Working out function types: map map &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/04/associativity.html';
+        var disqus_url = 'http://davesquared.net/2012/04/associativity.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

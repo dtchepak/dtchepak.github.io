@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: for-future-dave | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/for-future-dave/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Quick, hacky truth tables in Haskell]]></title>
+    <link href="http://davesquared.net/2018/12/haskell-truth-tables.html"/>
+    <updated>2018-12-05T16:20:00+11:00</updated>
+    <id>http://davesquared.net/2018/12/haskell-truth-tables</id>
+    <content type="html"><![CDATA[<p>Today I wanted to test a few boolean expressions, and ended up with some quick truth table generation hackery in Haskell which I thought I'd note down for next time. I'm sure there are many better ways of doing this, but this way was mine.</p>
+
+<!-- more -->
+
+
+<p>Here's a list of all booleans in GHCi:</p>
+
+<pre><code class="haskell">λ&gt; let bools = [False, True]
+</code></pre>
+
+<p>We can use the default <a href="https://davesquared.net/2015/07/apply-pattern.html">applicative</a> instance for lists to run all combinations of <code>bools</code> through a function. If we use a tuple constructor, we'll get truth table inputs (shown below for 2 and 3 argument expressions).</p>
+
+<pre><code class="haskell">λ&gt; (,) &lt;$&gt; bools &lt;*&gt; bools
+[(False,False),(False,True),(True,False),(True,True)]
+λ&gt; (,,) &lt;$&gt; bools &lt;*&gt; bools &lt;*&gt; bools
+[(False,False,False),(False,False,True),(False,True,False),(False,True,True),(True,False,False),(True,False,True),(True,True,False),(True,True,True)]
+</code></pre>
+
+<p>Let's check a basic expression <code>p</code>, and its equivalent using <a href="https://en.wikipedia.org/wiki/De_Morgan%27s_laws">De Morgan's laws</a>. Writing <code>x &lt;$&gt; bools &lt;*&gt; bools</code> gets repetitive, so we'll start off by defining <code>tt2</code> to get truth-tableish output values for a 2 input function <code>Bool -&gt; Bool -&gt; Bool</code>.</p>
+
+<pre><code class="haskell">λ&gt; let tt2 f = f &lt;$&gt; bools &lt;*&gt; bools
+tt2 :: (Bool -&gt; Bool -&gt; b) -&gt; [b]
+λ&gt; let p  a b = not (a &amp;&amp; not b)
+λ&gt; let p' a b = not a || b
+λ&gt; tt2 p
+[True,True,False,True]
+λ&gt; tt2 p'
+[True,True,False,True]
+λ&gt; tt2 p == tt2 p'
+True
+</code></pre>
+
+<p>We can then <code>zipWith</code> to get truth table inputs with the corresponding truth table output (using a bit of <code>uncurry</code> trickery):</p>
+
+<pre><code class="haskell">λ&gt; :t uncurry (,,)
+uncurry (,,) :: (a, b) -&gt; c -&gt; (a, b, c)
+λ&gt; zipWith (uncurry (,,)) (tt2 (,)) (tt2 p)
+[(False,False,True),(False,True,True),(True,False,False),(True,True,True)]
+</code></pre>
+
+<p>Or for more arguments:</p>
+
+<pre><code class="haskell">λ&gt; let tt3 f = f &lt;$&gt; bools &lt;*&gt; bools &lt;*&gt; bools
+tt3 :: (Bool -&gt; Bool -&gt; Bool -&gt; b) -&gt; [b]
+λ&gt; zipWith (\(a,b,c) d -&gt; (a,b,c,d)) (tt3 (,,)) (tt3 (\a b c -&gt; a &amp;&amp; b || c))
+[(False,False,False,False),(False,False,True,True),(False,True,False,False),(False,True,True,True),(True,False,False,False),(True,False,True,True),(True,True,False,True),(True,True,True,True)]
+</code></pre>
+
+<p>We can write something to format these nicely, but this was enough for me to get the information I wanted about a few expressions.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[StandaloneDeriving to fix forgetfulness in GHCi]]></title>
+    <link href="http://davesquared.net/2018/07/standalone-deriving-in-ghci.html"/>
+    <updated>2018-07-03T15:09:00+10:00</updated>
+    <id>http://davesquared.net/2018/07/standalone-deriving-in-ghci</id>
+    <content type="html"><![CDATA[<p>Quick reminder to Future Dave, as I'm going to assume he'll keep making the same mistake Past and Present Daves make.</p>
+
+<p>When switching between my editor and GHCi REPL to test stuff out I often forget to add a <code>deriving (Show, Eq)</code> or similar line to my data types. This normally occurs after I've just set up a bit of test data in the REPL, so if I just fix the data declaration and <code>:reload</code> GHCi then my setup will be lost. We can use the <a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#stand-alone-deriving-declarations">StandaloneDeriving</a> GHC extension to help here.</p>
+
+<!-- more -->
+
+
+<p>The following example is me playing around with some parsing stuff and forgetting to make <code>ParseError</code> an instance of <code>Show</code> (so it won't print in the REPL), then using <code>:set -XStandaloneDeriving</code> to fix this:</p>
+
+<pre><code class="haskell">λ&gt; :set -XOverloadedStrings
+λ&gt; let kv = M.fromList [ ("hi" :: T.Text, "2011-01-02" :: T.Text), ("world" :: T.Text, "2014-05-07" :: T.Text) ]
+λ&gt; kv
+fromList [("hi","2011-01-02"),("world","2014-05-07")]
+λ&gt; let lookup k = (`tag` (KeyNotFound k)) . M.lookup k
+λ&gt; lookup "hi" kv
+
+&lt;interactive&gt;:94:1: error:
+    • No instance for (Show ParseError) arising from a use of ‘print’
+    • In a stmt of an interactive GHCi command: print it
+
+λ&gt; :set -XStandaloneDeriving
+λ&gt; deriving instance Show ParseError
+
+&lt;interactive&gt;:1:1: warning: [-Worphans]
+    Orphan instance: instance Show ParseError ...
+
+λ&gt; lookup "hi" kv
+Right "2011-01-02"
+</code></pre>
+
+<p>I've trimmed the orphan instance warning. In this case it should not be a problem as I'm just working around my forgetfulness. :)</p>
+
+<p>We can also use this in real <code>.hs</code> files if necessary via a language pragma (<code>{-# LANGUAGE StandaloneDeriving #-}</code>) as described <a href="https://stackoverflow.com/a/12852367/906">here</a>.</p>
+]]></content>
+  </entry>
+  
+</feed>

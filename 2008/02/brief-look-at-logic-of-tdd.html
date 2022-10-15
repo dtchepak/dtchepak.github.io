@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>A brief look at the logic of TDD - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="[Test] public void Should_do_tdd() { Assert.That(me.ShouldTdd, Is.EqualTo("Not sure?"));
+}
+Jacob Proffitt has a post questioning whether TDD provides &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2008/02/brief-look-at-logic-of-tdd.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">A brief look at the logic of TDD</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-02-06T11:58:00+11:00" pubdate data-updated="true">06 Feb 2008</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><pre>[Test] 
+public void Should_do_tdd() { 
+  Assert.That(me.ShouldTdd, Is.EqualTo(<i>"Not sure?"</i>));
+}</pre>
+<p>Jacob Proffitt has a post questioning <a href="http://scruffylookingcatherder.com/archive/2008/01/31/tdd-or-pout.aspx">whether TDD provides any benefits over Plain Old Unit Testing (POUT)</a>. POUT itself has many benefits, many of which became apparent to me reading Michael Feather&#8217;s <a href="http://www.amazon.com/Working-Effectively-Legacy-Robert-Martin/dp/0131177052/">Working Effectively with Legacy Code</a>. In the comments on Jacob&#8217;s post I said I thought it unlikely that TDD would be <b>proved</b> better than POUT, due to problems measuring, and even defining, software quality. Jacob replied that he wasn&#8217;t interested in a proof, but was simply after the reasons why TDD might help. So I thought I would have a quick run through the logic of why TDD <b>might</b> help you write better software. I&#8217;m going to steer away from benefits of TDD that you can also get from POUT (like low coupling/high cohesion etc), and focus on the my interpretation of the rationale behind TDD.</p>
+<p>Please note: I am not trying to convert anyone. I firmly believe that you should use what works for you. If a particular tool doesn&#8217;t help you, don&#8217;t use it. If you can&#8217;t see any value from an approach and feel it is a waste of time to examine further, don&#8217;t try it. I&#8217;m also far from an expert on TDD. But seeing as Jacob took the time to reply to my comment, I thought I should at least return the favour :-)</p>
+
+<h2>Quick TDD review</h2>
+<p>TDD is design tool/process. You write a test first that describes some behaviour that your production code should exhibit. You run the test and it fails because you haven&#8217;t implemented that behaviour yet. You then write some minimal code that makes the test pass. Finally, you refactor the code to remove duplication and improve the design, re-running the tests to make sure you haven&#8217;t broken the behaviour. This process leads to the TDD slogan: &#8220;Red, Green, Refactor&#8221;, red and green being the colours of the status bar in most xUnit test frameworks to show failure and success.</p>
+<h2>So what?</h2>
+<p>What is the logic of that? Testing code that doesn&#8217;t even exist yet? Crazy!</p>
+<p>Well let&#8217;s start with the obvious stuff. First up, you get unit tests. Unit tests are good, and let you refactor safely. POUT/test last obviously does this too. You get quick feedback on whether the code you have just written breaks anything. You can do this with a POUT approach as well, depending on how quickly you write your tests, or whether you use manual testing for feedback. TDD provides a bit more assurance that you will get the quickest possible feedback and will always have a decent amount of code coverage, but with sufficient discipline a POUT approach can accomplish all of this. And we trust our development team right? We don&#8217;t need some process to force them to do the right thing.</p>
+<h2>TDD as a design tool</h2>
+<p>TDD is a tool for incrementally improving the design of your code. The unit testing side of it is simply a nice side effect, to the point where <a href="http://behaviour-driven.org/">BDD</a> has been proposed as an alternate presentation of the technique to eliminate the apparent confusion caused by the word &#8220;test&#8221;. So how can TDD be used to improve design?</p>
+<p>Well, first up you are specifying the exact behaviour you want to implement before writing the code to do it. This has several effects. You are writing the logical interface to your class before the class itself (interface, not <code>public interface IInterface{}</code>). This takes some of the guesswork out of determining how your code is going to be called. You have to deal with the interface to your class in order to test it, so if it is painful to use you can immediately tell and do something about it. According to my pseudo-logic, this can help ensure production code that needs to talk to your object should have a well designed interface through which to do so easily.</p>
+<p>Specifying the behaviour you want first also helps focus you on one piece of code at a time. You are just trying to pass the test, not immediately trying to solve every problem the class will ever face. This can help reduce feature creep in your design. If you find that a &#8220;divide and conquer&#8221; approach can make problem-solving easier, then isolating the one thing you want to achieve in this way can also make coding easier.</p>
+<p>If you have never written a class that exposes an interface that turns out to be fairly unusable in Real Life<sup>TM</sup>, or if you have never worked for a while getting your class to handle a situation that will never actually occur (e.g. &#8220;What if this class needs to take a DateTime as an input instead of just ints?&#8221;, followed by a large effort to produce a generic version of your class that is only ever called as MyClass&lt;int&gt;) then you are a much better developer than I (probably a given), and you may not get any benefit from TDD. TDD doesn&#8217;t prevent these problems, but it can help make these problems immediately apparent and therefore potentially avoidable.</p>
+<p>The refactoring step is an essential part of the design aspect of TDD. The idea is that you have just gotten your test to pass, so your class&#8217; behaviour for that specific test is correct. The very next step is to improve the design. Remove any duplication, extract any methods or rename variables as required to make the code more readable and understandable. Sprout any new classes that are required to better encapsulate the data or behaviour. Refactoring is not unique to TDD, but TDD helps you to perform these design improvements in small, hopefully easy, increments. If your test is difficult to write or implement, this feedback tells you your design might need tweaking, or that you initial specification needs more clarity. Your design is evolving based on continuous feedback from your immediate requirements and your actual code. This can help avoid large, difficult refactorings and <a href="http://www.codesqueeze.com/refactorbation/">unnecessary refactoring</a>.</p>
+<p>By improving the design at each step, in theory you make the next step easy to perform. The goal is having code that is always easy to change, making your more responsive to changes in business needs and requirements, and making bugs easier to fix (that&#8217;s right! <a href="http://davesquared.net/2007/05/tdd-and-unit-testing-misconceptions.html">You still get bugs doing TDD</a>! :-P).</p>
+<h2>Useless point on the &#8220;magic&#8221; of TDD</h2>
+<p>Aside from my convoluted version of the theory behind TDD, I feel TDD has the potential to change the way you think about coding. For me TDD had a profound effect on how I think about software design, to the point where even when not doing TDD I still find myself thinking in terms of passing tests and getting feedback from incremental coding steps. I feel this has made me a better developer, providing me with another way of thinking about problem. The extra perspective may not help you in every situation, or ever, but it does give you another avenue to pursue when you are stuck.</p>
+<p>I also find I come up with much cleaner designs using this different perspective. The Robert Martin&#8217;s <a href="http://www.objectmentor.com/resources/articles/CoffeeMaker.pdf">Coffee Maker example [PDF]</a> illustrates some OO design traps. In my experience the incremental design encouraged by TDD helps avoid some of those traps. Of course, this is all anecdotal hand-waving, hence this section&#8217;s title :-)</p>
+<h2>Clarifications and conclusions</h2>
+<p>Refactoring, incrementally improving design, isolating behaviour, writing testable code, etc can all be achieved without TDD. TDD is just a tool to help you do all these things. If you do them fine without TDD, then TDD is probably not going to help you. If the technique sounds interesting to you, then your best bet is to give it a try and see if you see any benefits over and above POUT (I first got into TDD following <a href="http://www.xp123.com/xplor/xp0201/index.shtml">this example</a>. I converted it to C# and NUnit, commented out all but one test, and started coding).</p>
+<p>I have not listed anything that is a dramatic, inspiring benefit of TDD. That is because TDD is simply a tool to help achieve what we are all trying to do anyway: writing good, well designed software. If you do that already then TDD may just seem like more work. This is probably why people that feel passionately about TDD can have a hard time selling it to people that are skeptical of it. It isn&#8217;t dramatic. There is no &#8220;if you do this you will become almost as popular as <a href="http://graysmatter.codivation.com/">Justice Gray</a>&#8221; aspect to it.</p> 
+<p>I should also be clear that, for me at least, TDD did not come easy. I am definitely still learning, but my confidence and my results improve the more I use it. I feel it has been worthwhile. YMMV. If you have a mentor or a colleague to learn with this process may be easier.</p>
+<p>As a closing aside, I think everyone will agree that at least people are debating the merits or TDD vs. a simple, good bank of units tests, rather than trying to justify the practice of unit testing itself. :-) Hopefully that means I won&#8217;t ever have to face the &#8220;We don&#8217;t have time to unit test&#8221; discussion again ;-)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-01T08:56:29+10:00" class="updated">Updated 01 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/featured/'>featured</a>, <a class='category' href='/categories/imho/'>imho</a>, <a class='category' href='/categories/tdd/'>tdd</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2008/02/brief-look-at-logic-of-tdd.html" data-via="" data-counturl="http://davesquared.net/2008/02/brief-look-at-logic-of-tdd.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2008/02/linq-to-xml-and-migrating-blog-posts.html" title="Previous Post: Using LINQ to XML to migrate blog posts">&laquo; Using LINQ to XML to migrate blog posts</a>
+      
+      
+        <a class="basic-alignment right" href="/2008/02/emacs-key-bindings-everywhere.html" title="next Post: Emacs key bindings everywhere">Emacs key bindings everywhere &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2008/02/brief-look-at-logic-of-tdd.html';
+        var disqus_url = 'http://davesquared.net/2008/02/brief-look-at-logic-of-tdd.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

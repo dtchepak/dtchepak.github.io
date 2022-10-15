@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: +mad haskeller | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/-mad-haskeller/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[A mad Haskeller runs the same input through a list of functions]]></title>
+    <link href="http://davesquared.net/2013/04/same-input-through-function-list.html"/>
+    <updated>2013-04-10T22:25:00+10:00</updated>
+    <id>http://davesquared.net/2013/04/same-input-through-function-list</id>
+    <content type="html"><![CDATA[<p>Last time I donned my <a href="http://davesquared.net/2013/02/from-two-functions-to-tuples.html">mad Haskeller lab coat</a> we ended up using arrows to pipe the output of two functions into a tuple. This time I'm going to look at piping a single input through a list of functions to get a list of output.</p>
+
+<p>The motivation for this experiment was a small section of a code snippet I found in Chris Wilson's <a href="http://bendyworks.com/geekville/articles/2013/4/from-ruby-to-haskell-part-2-similarity-refactoring-and-patterns">From Ruby to Haskell, Part 2: Similarity, Refactoring, and Patterns</a> post:</p>
+
+<pre><code class="haskell">... [eventDescription e, eventName e, eventLocation e, eventType e] ...
+</code></pre>
+
+<p>As far as I can tell there's nothing at all wrong with this. It is creating a list of values by passing <code>e</code> to several functions. It did get me thinking though -- do we have to explicitly pass in that <code>e</code> argument to every function? To the laboratory!</p>
+
+<p><img src="/images/2013/standbacktryhaskell.png" title="Stand back, I'm going to try Haskell" alt="With apologies to Randall. Original: [xkcd store](http://store-xkcd-com.myshopify.com/products/try-science)" /></p>
+
+<!-- more -->
+
+
+<h2>Our example</h2>
+
+<p>Let's capture the most important information about a person in a <code>Person</code> type, and provide a function to return a list of these properties (in order of relevance):</p>
+
+<pre><code class="haskell">data Person = Person { firstName :: String
+                     , lastName :: String
+                     , twitterHandle :: String
+                     } deriving (Show, Eq)
+details :: Person -&gt; [String]
+details p = [ twitterHandle p, firstName p, lastName p ]
+
+-- ghci&gt; let dave = Person "Dave" "Squared" "@davetchepak"
+-- ghci&gt; details dave
+-- ["@davetchepak","Dave","Squared"]
+-}
+</code></pre>
+
+<p>Now say we're a normal, happy developer person. Hooray, we're done!</p>
+
+<p>However I'm wearing a lab coat, coding Haskell, and writing a post about it, so I don't qualify as normal^[... and just quietly, as you seem to be reading it, I have my concerns about you too], and all those explicit references to <code>p</code> in <code>details</code> are bugging me more than they should. Maybe if I hadn't had so much tea before writing this post? Well, the damage is done, let's fix it.</p>
+
+<h2>The boring way</h2>
+
+<p>Whenever I see a list of something, I think <code>map</code>. We can use that to apply <code>p</code> to every function in a list of functions:</p>
+
+<pre><code class="haskell">details :: Person -&gt; [String]
+details p = map (\f -&gt; f p) [ twitterHandle, firstName, lastName ]
+
+-- or:
+details p = map ($ p) [ twitterHandle, firstName, lastName ]
+</code></pre>
+
+<p>Well, we got rid of the repeated <code>p</code>s. But <code>\f -&gt; f p</code> and <code>($ p)</code> are a bit yucky. And it's not <a href="http://davesquared.net/2012/05/towards-point-free-redux.html">point free</a>, that's bad right? Back to the drawing board.</p>
+
+<h2>Applying a small measure of pure madness^[So many puns! Well, two.]</h2>
+
+<p>We have <code>[ twitterHandle, firstName, lastName ]</code>, a list of functions of type <code>[Person -&gt; String]</code>, and we want to give it a <code>Person</code> and return a <code>[String]</code>. This reminds me of <a href="http://davesquared.net/2012/05/towards-point-free-redux.html">applicative functors</a>.</p>
+
+<pre><code class="haskell">(&lt;*&gt;) :: Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+-- when f = list
+      :: [a -&gt; b] -&gt; [a] -&gt; [b]
+-- let a = Person, b = String
+      :: [Person -&gt; String] -&gt; [Person] -&gt; [String]
+-- We want:
+      :: [Person -&gt; String] -&gt; Person -&gt; [String]
+</code></pre>
+
+<p>Now we have the first argument, and the output type matches. We just need a list of <code>Person</code> rather than the single one we have. The <code>pure :: Applicative f =&gt; a -&gt; f a</code> function can do this for us, putting a single person into a singleton list:</p>
+
+<pre><code class="haskell">details :: Person -&gt; [String]
+details p = [ twitterHandle, firstName, lastName ] &lt;*&gt; pure p
+
+-- or pointfree:
+details = (&lt;*&gt;) [ twitterHandle, firstName, lastName ] . pure
+</code></pre>
+
+<p>So we got to point free, and the mix of <code>&lt;*&gt;</code> and composition makes it almost hard enough to decipher for us to call it a day.</p>
+
+<h2>Sequencing reader</h2>
+
+<p>No, with enough work someone may be able to understand this! We demand <em>complete incomprehensibility</em>!^[When do we want it? asdfqwerv!]</p>
+
+<pre><code class="haskell">details :: Person -&gt; [String]
+details = sequence [ twitterHandle, firstName, lastName ]
+</code></pre>
+
+<p>Yes, this works. I was thinking about the problem by emphasising the <em>list</em> of functions, but we can actually get further by thinking in terms of the type of <em>function</em> that takes a <code>Person</code>, of which we just happen to have a list.^[Thanks again to <a href="https://twitter.com/dibblego">Tony</a> for pointing this out on #haskell.au IRC]</p>
+
+<pre><code class="haskell">sequence :: Monad m =&gt; [m a] -&gt; m [a]
+-- Our monad is Reader, or (t -&gt;). So let m = (t -&gt;):
+         :: [t -&gt; a] -&gt; (t -&gt; [a])
+-- let t = Person, a= String
+         :: [Person -&gt; String] -&gt; (Person -&gt; [String])
+         :: [Person -&gt; String] -&gt; Person -&gt; [String]
+</code></pre>
+
+<p>So rather than using the fact list is an applicative functor, we can use the fact the functions we're dealing with all take the same argument, which we can work with using the <a href="http://davesquared.net/2012/08/reader-monad.html">Reader monad</a>. And <code>sequence</code> works with all monads.</p>
+
+<h2>Salvaging some small shred of practical value</h2>
+
+<p>I like to finish these posts with some kind of practical application of whatever we've found. Here's the best I could do for this case: an if-you-squint-it-kinda-looks-like-a DSL for formatting our <code>Person</code>:</p>
+
+<pre><code class="haskell">display :: [a -&gt; String] -&gt; a -&gt; String
+display format = mconcat . sequence format
+
+displayPerson :: Person -&gt; String
+displayPerson = display
+                    [ firstName
+                    , const " "
+                    , lastName
+                    , const " ("
+                    , twitterHandle
+                    , const ")"
+                    ]
+
+-- ghci&gt; displayPerson dave
+-- "Dave Squared (@davetchepak)"
+</code></pre>
+
+<p>The <code>display</code> function takes a list of formatter functions, and uses <a href="http://bendyworks.com/geekville/articles/2013/4/from-ruby-to-haskell-part-2-similarity-refactoring-and-patterns">Chris' monoid tip</a> to concatenate the result of sequencing all these functions. <code>displayPerson</code> is our semi-DSL for formatting a person. It selects the first name from the person, a constant space for any person (<code>const " " person</code> will return <code>" "</code>), the last name, and the twitter handle surrounded by parentheses.<a href="Yes,">^yesiknow</a></p>
+
+<pre><code>```haskell
+display' p = firstName p ++ " " ++ lastName p ++ 
+             " (" ++ twitterHandle p ++ ")"
+``` 
+
+I thank you for your discretion in not mentioning this.
+</code></pre>
+
+<p>I actually quite like this, but as you have undoubtedly figured out by now, I am slightly mad. Hope you enjoyed the post, and I hope you'll be back for the next time I venture down to the lab for the sweet solace of a mad Haskell experiment. :)</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[From two functions to tuples with a mad Haskeller]]></title>
+    <link href="http://davesquared.net/2013/02/from-two-functions-to-tuples.html"/>
+    <updated>2013-02-26T23:58:00+11:00</updated>
+    <id>http://davesquared.net/2013/02/from-two-functions-to-tuples</id>
+    <content type="html"><![CDATA[<p>I love finding neat little bits of Haskell that do things in ways I haven't really thought of before. This usually happens when I come across a simple yet slightly clumsy way of doing something, and embark on some mad experiments to find alternative approaches (usually ending in a trip to #haskell.au on Freenode). These alternatives may not result in anything usable, but they often prove to be fun learning experiences for me.</p>
+
+<p>A recent example of this was the following adventure in passing the same input to two functions, and getting the output as a tuple.</p>
+
+<p><img src="/images/2013/beaker_and_bunsen_lambda.png" alt="&quot;Stand back… I'm going to try Haskelling!&quot;  
+Original image source: [Muppet Wiki](http://muppet.wikia.com/wiki/Bunsen_Honeydew)" /></p>
+
+<!-- more -->
+
+
+<h2>The boring way</h2>
+
+<pre><code class="haskell">boring :: Int -&gt; (Int, String)
+boring x = (x+1, show x)
+
+--    ghci&gt; boring 9
+--    (10,"9")
+</code></pre>
+
+<p>Here we've piped the input through the <code>+1</code> function to get the first part of the tuple, and through the <code>show</code> function for the second. We can generalise this to work with any two functions:</p>
+
+<pre><code class="haskell">stillBoring :: (b -&gt; c) -&gt; (b -&gt; d) -&gt; b -&gt; (c, d)
+stillBoring f g x = (f x, g x)
+
+--    ghci&gt; stillBoring (+1) show 9 
+--    (10,"9")
+</code></pre>
+
+<h2>Combining arrows</h2>
+
+<p>It turns out <code>stillBoring</code> is already provided in Haskell, albeit in a an awesomely unboring way. This is the type of the <code>&amp;&amp;&amp;</code> operator from <code>Control.Arrow</code>:</p>
+
+<pre><code>(&amp;&amp;&amp;) :: Arrow a =&gt; a b c -&gt; a b c' -&gt; a b (c, c')
+</code></pre>
+
+<p>I struggled to see the connection between this and the <code>stillBoring</code> type signature, until it was pointed out that the <code>a</code> in this particular case is function application <code>(-&gt;)</code>. If we substitute this in it begins to look more like what I'm used to seeing:</p>
+
+<pre><code class="haskell">    (&amp;&amp;&amp;)       :: Arrow a =&gt; a b c -&gt; a b c' -&gt; a b (c, c')
+
+-- let a = (-&gt;):
+    (&amp;&amp;&amp;)       :: ((-&gt;) b c) -&gt; ((-&gt;) b c') -&gt; ((-&gt;) b (c, c'))
+
+-- re-write with (-&gt;) in infix position:
+    (&amp;&amp;&amp;)       :: (b -&gt; c) -&gt; (b -&gt; c') -&gt; b -&gt; (c, c')
+
+-- for comparison:
+    stillBoring :: (b -&gt; c) -&gt; (b -&gt; d)  -&gt; b -&gt; (c, d)
+</code></pre>
+
+<p>This is what we needed, to take two functions that both take the same type, and turn it into a function that takes a single input and returns each function's output as a tuple (<code>b -&gt; (c, c')</code>).</p>
+
+<pre><code class="haskell">ghci&gt; ((+1) &amp;&amp;&amp; show) 9 
+(10,"9")
+</code></pre>
+
+<h2>Super-unboring two argument functions</h2>
+
+<p>We've been dealing with single argument functions <code>a -&gt; b</code> so far. What if we have functions that take two arguments, <code>a -&gt; b -&gt; c</code>, and we want to get a tuple from those?^[This <code>liftA2 (&amp;&amp;&amp;)</code> solution provided courtesy of <a href="https://twitter.com/dibblego">Tony Morris</a> on #haskell.au on Freenode.]</p>
+
+<pre><code class="haskell">    liftA2 :: Applicative f =&gt; (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c
+
+    liftA2 (&amp;&amp;&amp;)
+      :: (Applicative f, Arrow a) =&gt;
+         f (a b c) -&gt; f (a b c') -&gt; f (a b (c, c'))
+
+-- let a = (-&gt;) as before:
+    liftA2 (&amp;&amp;&amp;)
+      :: (Applicative f, Arrow a) =&gt;
+         f (b -&gt; c) -&gt; f (b -&gt; c') -&gt; f (b -&gt; (c, c'))
+
+-- let f = ((-&gt;) t), a.k.a. Reader
+    liftA2 (&amp;&amp;&amp;)
+      :: (Applicative f, Arrow a) =&gt;
+         ((-&gt;) t) (b -&gt; c) -&gt; ((-&gt;) t) (b -&gt; c') -&gt; ((-&gt;) t) (b -&gt; (c, c'))
+
+-- re-write with (-&gt;) in infix position:
+    liftA2 (&amp;&amp;&amp;)
+      :: (Applicative f, Arrow a) =&gt;
+         (t -&gt; b -&gt; c) -&gt; (t -&gt; b -&gt; c') -&gt; t -&gt; b -&gt; (c, c')
+</code></pre>
+
+<p>So now, given two two-argument functions, we get a new function that takes two arguments, feeds each of those to the original functions, and puts the output from one in the first tuple position, and the output from the other in the second position.</p>
+
+<pre><code class="haskell">-- boring:
+ghci&gt; (40+2, 40*2) 
+(42,80)
+
+-- not boring:
+ghci&gt; liftA2 (&amp;&amp;&amp;) (+) (*) 40 2 
+(42,80)
+</code></pre>
+
+<h2>Mad Haskell meets practical application</h2>
+
+<p>This experiment actually started while writing a function to find list duplicates for <a href="https://github.com/tonymorris/course/blob/master/src/L03/State.hs">Tony Morris' State exercise</a> (feel free to <a href="https://groups.google.com/group/haskell-exercises">join in</a>).</p>
+
+<p>Given an item <code>x</code> from a list, we had to produce a <code>State</code> that calculated whether the item was a member of the <code>Data.Set</code> from the previous state, and the new state with <code>x</code> added to the <code>Data.Set</code>. The <a href="https://github.com/dtchepak/course/blob/872ab3ce3d36f44bc07b6139d2645d7bff4c5725/src/L03/State.hs#L106">full context is on GitHub</a>, but the relevant snippets are below:</p>
+
+<pre><code class="haskell">--Creating tuple by passing `x` and `s` to `S.member` and `S.insert`:
+meh :: Ord a =&gt; a -&gt; State (S.Set a) Bool
+meh x = state (\s -&gt; (x `S.member` s, x `S.insert` s))
+
+--Applying first &amp;&amp;&amp; trick:
+hmm :: Ord a =&gt; a -&gt; State (S.Set a) Bool
+hmm x = state $ S.member x &amp;&amp;&amp; S.insert x
+
+--Applying multi-arg trick for fun and profit:
+woah :: Ord a =&gt; a -&gt; State (S.Set a) Bool
+woah = state . (liftA2 (&amp;&amp;&amp;) S.member S.insert)
+</code></pre>
+
+<p><code>State</code> is just one common case where we need to produce tuples, and now we have a few (possibly slightly mad) ways to compose functions to get us them.</p>
+]]></content>
+  </entry>
+  
+</feed>

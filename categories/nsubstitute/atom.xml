@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: nsubstitute | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/nsubstitute/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Interesting documentation]]></title>
+    <link href="http://davesquared.net/2010/10/interesting-documentation.html"/>
+    <updated>2010-10-24T23:34:00+11:00</updated>
+    <id>http://davesquared.net/2010/10/interesting-documentation</id>
+    <content type="html"><![CDATA[<p>Now those are two words you don't often hear put together, but I think what we came up with for <a href="http://nsubstitute.github.com">NSubstitute's documentation</a> is actually pretty interesting, and so I thought I'd share it. I'm not talking about the documentation itself, but about ways to write documentation that is maintainable and helps out your project as well as your users. In our case our docs ended up fairly easy to write, automatically tested for correctness and generated as HTML as part of the build. And this makes me happy, and so I blog. :)</p>
+
+
+
+
+<h2>Creating a monster of a website with Jekyll</h2>
+
+
+
+
+<p>We wanted to publish the NSubstitute docs to the website. We were pretty keen to be able to write the docs in <a href="http://daringfireball.net/projects/markdown/">Markdown</a> or similar, as writing large wads of HTML can be quite annoying; especially the hassle of escaping code samples. It turns out there are a number of <i>static website generators</i> that support this kind of approach (the site for one of these generators, <a href="http://nanoc.stoneship.org/docs/1-introduction/">nanoc</a>, has a good list of a number of these, mostly Ruby, but also some done in Python, Haskell and others).</p>
+
+
+
+
+<p>For NSubstitute we ended up choosing <a href="http://jekyllrb.com/">Jekyll</a>, a generator done in Ruby that is really optimised for blogs (and is also used for GitHub Pages). We tried a few other options that were very good too, but Jekyll seemed to fit in closest with what we wanted without too much effort.</p>
+
+
+
+
+<p>Jekyll works mainly from conventions with directory and file names. The root of the docs site includes a <code>_config.yml</code> file to include information like permalink format; layout templates go in <code>_layouts</code>; and posts typically go in <code>_posts</code> with the filename in the form <code>yyyy-mm-dd-title.markdown</code>. In NSubstitute we're not too worried about the date itself, but Jekyll insists on it (it is designed for blogs remember), and it does provide an easy way of ordering posts. You can also put posts/documents under different categories, and include normal HTML pages and content. </p>
+
+
+
+
+<p>After running the <code>jekyll</code> command on your docs directory, out pops a static site. For rapidly testing changes you can also run <code>jekyll --server --auto</code> to serve up and automatically-regenerate the site every change on <code>http://localhost:4000</code>. It is hard to capture how awesome this is in a post, but compared to other attempts I've had at getting quick sites up and running I found this amazing.</p>
+
+
+
+
+<p></p>
+
+
+
+
+<h2>Liquid templates</h2>
+
+
+
+
+<p>Jekyll uses <a href="http://www.liquidmarkup.org/">Liquid</a> (and <a href="http://github.com/mojombo/jekyll/wiki/liquid-extensions">Liquid Extensions</a>) for templates. In the Jekyll <code>_layouts</code> files you can put in markup like <code>&#123;&#123; page.content &#125;&#125;</code> and <code>&#123;% for post in site.categories.help reversed %&#125;, &#123;% endfor %&#125;</code> and these will be expanded as required in the generated site.</p>
+
+
+
+
+<p>What's really neat is that, in addition to the <a href="http://github.com/tobi/liquid/wiki/liquid-for-designers">large range of built in tags and templates</a>, it is also frightfully easy to create your own in Ruby. You just put them into a <code>_plugins</code> directory and Jekyll will automatically pick them up and apply them when generating your site.</p>
+
+
+
+
+<p>For NSubstitute we wanted to easily include code samples formated using <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>, so we created an <code>&#123;% examplecode %&#125;</code> tag:</p>
+
+
+
+
+<pre class="brush: ruby">
+module Jekyll
+ class ExampleCodeBlock &lt; Liquid::Block
+        include Liquid::StandardFilters
+  def render(context)
+            code = super.join
+            &lt;&lt;-HTML
+&lt;div class="highlight"&gt;
+    &lt;pre class="brush: csharp"&gt;#{h(code).strip}&lt;/pre&gt;
+&lt;/div&gt;
+            HTML
+  end
+ end
+end
+Liquid::Template.register_tag('examplecode', Jekyll::ExampleCodeBlock)
+</pre>
+
+
+
+
+<p>Any code samples wrapped in <code>&#123;% examplecode %&#125;, &#123;% endexamplecode %&#125;</code> tags will be automatically escaped (<code>h(code)</code> is built in to Liquid to do this) and will be wrapped in an element that includes the <code>class="brush: csharp"</code> that SyntaxHighlighter needs to do its job.</p>
+
+
+
+
+<div class="note"><b>Note:</b> Jekyll has built in support for syntax-highlighting using <a href="http://pygments.org/">Pygments</a>. Pygments is awesome too, but for a number of reasons (mainly ease of setup) we chose to use SyntaxHighlighter instead.</div>
+
+
+
+
+<h2>Docs with teeth</h2>
+
+
+
+
+<p>We wanted to make sure the NSubstitute code examples worked, and kept working even with future versions. It's pretty frustrating to plug in an example from somewhere and have it not work. To use <a href="http://twitter.com/guywithbeard">Anthony's</a> expression, we wanted "documents with teeth"; docs that would bite us if we did the wrong thing.</p>
+
+
+
+
+<h3>Writing runnable code samples</h3>
+
+
+
+
+<p>I've already mentioned we included code samples, written in Markdown, and designated with <code>&#123;% examplecode %&#125;</code> Liquid blocks. This would make it pretty easy to parse out these blocks and get them into a C# file so we could compile them, as we could just grab the text between the blocks without HTML decoding. The idea was we'd wrap each example in an NUnit test and make sure they both compile and any assertions passed.</p>
+
+
+
+
+<p>But what about supporting code that may be required, but that we didn't necessarily want the reader to be bothered with? We may not want to repeat setup code for every example on a page, that would just add a lot of noise to the examples. So just as for our <code>&#123;% examplecode %&#125;</code> tag, we created a <code>&#123;% requiredcode %&#125;</code> tag that wouldn't render its contents to the final page, but could still be parsed out into our C# files.</p>
+
+
+
+
+<p>The last hurdle was how to handle code-blocks that included class or interface definitions. These couldn't just go into an NUnit test method as the C# compiler isn't too fond of class definitions going into a method body. So we needed our parser to check if <code>&#123;% examplecode %&#125;</code> contained a class or interface definition, and it it did, then just dump it in the C# file without wrapping it in a <code>[Test]</code> method.</p>
+
+
+
+
+<h3>Code samples to code files to tested DLL</h3>
+
+
+
+
+<p>Now we had code samples in our documents, we needed to get them into C# files we could compile. This we ended up driving out in my own particular brand of n00bie Ruby, the <a href="http://github.com/nsubstitute/NSubstitute/tree/4852fb62a395b3a401bd2a4151d97b4a3371c81d/Build/rakelib/lib">results of which you can see on Github</a> (with tests in <code>../specs</code>). The <code>ExamplesToCode</code> class takes a documentation input path and an output path for our class files, extracts all the code blocks found in the input, then shoves each block into a template for a C# file either as a declaration or as a test and writes it to the output path.</p>
+
+
+
+
+<p>This is then called from our <a href="http://rake.rubyforge.org/">rake</a> script like this:</p>
+
+
+
+
+<pre class="brush: ruby">
+task :generate_code_examples do
+    examples_to_code = ExamplesToCode.create
+    examples_to_code.convert("../Source/Docs/", "#{OUTPUT_PATH}/CodeFromDocs")
+    examples_to_code.convert("../Source/Docs/help/_posts/", "#{OUTPUT_PATH}/CodeFromDocs")
+    examples_to_code.convert("../", "#{OUTPUT_PATH}/CodeFromDocs")
+end
+</pre>
+
+
+
+
+<p>We compile these using <code>csc.exe</code>, and run the tests in the resulting DLL using NUnit:</p>
+
+
+
+
+<pre class="brush: ruby">
+task :compile_code_examples =&gt; [:generate_code_examples] do
+    #Copy references to documentation directory
+    output_base_path = "#{OUTPUT_PATH}/#{CONFIG}"
+    output_doc_path = "#{OUTPUT_PATH}/CodeFromDocs"
+    references = %w(NSubstitute.dll nunit.framework.dll).map do |x|
+        "#{output_base_path}/NSubstitute.Specs/#{x}"
+    end
+    FileUtils.cp references, output_doc_path
+
+    #Compile
+    FileUtils.cd output_doc_path do
+        sh "#{DOT_NET_PATH}/csc.exe /target:library /out:\"NSubstitute.Samples.dll\" /reference:\"nunit.framework.dll\" /reference:\"NSubstitute.dll\" *.cs"
+    end
+end
+</pre>
+
+
+
+
+<p>Ok, so it's not pretty, but it works a treat.</p>
+
+
+
+
+<h2>Generating the site</h2>
+
+
+
+
+<p>The last step was to automate all of this: generating code samples, testing them, then generating the final site for publishing.</p>
+
+
+
+
+<pre class="brush: ruby">
+desc "Generates documentation for the website"
+task :generate_docs =&gt; [:all, :check_examples] do
+    output = File.expand_path("#{OUTPUT_PATH}/nsubstitute.github.com", File.dirname(__FILE__))
+    FileUtils.cd "../Source/Docs" do
+        sh "jekyll \"#{output}\""
+    end
+end
+</pre>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>This has been a whirlwind tour around NSubstitute's documentation systemy thang; mentioning things like Jekyll, Liquid, Markdown, some custom Ruby libraries and a couple of rake tasks.  What this gives us (and devs using NSubstitue) is fairly high confidence that any code samples on the site are going to work exactly as advertised.</p>
+
+
+
+
+<p>This has been an incredibly worthwhile experience, not only for making the documentation useful, but also in discovering great tools like Jekyll (which I am so tempted to migrate this blog to :)).</p>
+
+
+
+
+<p>As parting words for an excessively rambling post (even for me! :)), if you need to write some documentation for anything involving code, try and get some value out of it. Make it living documentation that will bite you when you make a mistake, and will help itself stay up-to-date by failing a build if it is neglected. Approached this way, documentation is even kind of fun. So go forth, all ye developers, and document! :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[NSubstitute on Talking Shop Down Under]]></title>
+    <link href="http://davesquared.net/2010/09/nsubstitute-on-talking-shop-down-under.html"/>
+    <updated>2010-09-02T17:38:00+10:00</updated>
+    <id>http://davesquared.net/2010/09/nsubstitute-on-talking-shop-down-under</id>
+    <content type="html"><![CDATA[<p><a href="http://nsubstitute.github.com/">NSubstitute</a> is the subject of <a href="http://www.talkingshopdownunder.com/2010/08/episode-26-nsubstitute.html">Talking Shop Down Under's latest episode</a>.</p>
+
+
+
+
+<p>If you'd like to hear Readify Principal Consultant and MVP <a href="http://www.richard-banks.org/">Richard Banks</a> interview the brilliant and beardly <a href="http://twitter.com/guywithbeard">Anthony Egerton</a> (with occasional nonsensical comments from a <a href="http://twitter.com/davetchepak">raving lunatic</a>*) then <a href="http://www.talkingshopdownunder.com/2010/08/episode-26-nsubstitute.html">give it a listen</a>.</p>
+
+
+
+
+<p>In case you're wondering, all the &quot;anonymous&quot; comments are just an inside joke that you pretty much had to be at <a href="http://sydney.ozalt.net/">Sydney ALT.NET</a> for the NSubstitute launch to get. Rest assured they are intended purely at my expense. :)</p>
+
+
+
+
+<p>I should also point out that there is lots of talk about <a href="http://www.ayende.com/projects/rhino-mocks.aspx">Rhino Mocks</a> in the discussion, but a lot of the inspiration for NSubstitute should also be credited to <a href="http://moq.me/">Moq</a> for blazing a trail towards <a href="http://davesquared.net/2008/10/very-basics-of-aaa-with-rhino-mocks-35.html">Arrange-Act-Assert (AAA)</a> and getting rid of the distinction between mocks and stubs. Unfortunately we only talked about this after recording stopped, but it's important to acknowledge the awesomeness of both Rhino Mocks and Moq and the invaluable contributions they've made to .NET testing.</p>
+
+
+
+
+<p>Even if you're not from Oz I'd really recommend the <a href="http://www.talkingshopdownunder.com/">Talking Shop Down Under podcast</a>. It's .NET focused, done in typically laid-back Aussie style, and takes a fairly quick (~30 min) run through whatever happens to be the topic of that week.</p>
+
+
+
+
+<p style="font-size: xx-small"><i>* <a href="http://twitter.com/davetchepak/status/22527546688">Apologies</a> for the &quot;Um... (pause)... um... um...&quot;. Some people should be read and not heard. ;)</i></p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Announcing NSubstitute]]></title>
+    <link href="http://davesquared.net/2010/06/announcing-nsubstitute.html"/>
+    <updated>2010-06-30T01:01:00+10:00</updated>
+    <id>http://davesquared.net/2010/06/announcing-nsubstitute</id>
+    <content type="html"><![CDATA[<p>Tonight at Sydney ALT.NET <a href="http://twitter.com/guywithbeard">Anthony Egerton</a> announced <a href="http://nsubstitute.github.com">NSubstitute</a>, his mocking framework for .NET 3.5+. I've been contributing some code to NSubstitute and I like to blog, so I thought I'd take it upon myself to do the written version of the announcement. :)</p>
+
+
+
+
+<p>This all started a few months ago during some pair programming where we started discussing how we would ideally like our mocking code to read. Anthony came up with some neat syntax ideas and we decided to start working on it as a hobby project in our spare time, the aim being to play around with a simple, succinct syntax for mocking, as well as to try out some different testing techiques and to learn a bit about DynamicProxy.</p>
+
+
+<p></p>
+
+<p>We liked the syntax so much we've started using it on work projects, and so we thought we'd <a href="http://github.com/nsubstitute/NSubstitute">put it out there</a> in case anyone else was interested or has some ideas on how to improve it. It's still a little rough around the edges (the exception message formatting needs lots of work, and it doesn't support Mono or Silverlight yet), but it's pretty usable in its current state and should be enough to give people an idea of what we're aiming for.</p>
+
+
+
+
+<h2>NSubstitute examples</h2>
+
+
+
+
+<p>Say we have an <code>ICalculator</code> interface:</p>
+
+
+
+
+<pre class="brush:csharp">
+public interface ICalculator {
+  int Add(int a, int b);
+  string Mode { get; set; }
+  event Action PoweringUp;
+}
+</pre>
+
+
+
+
+<p>We can ask NSubstitute to create a substitute instance for this type. We could ask for a stub, mock, fake, spy, test double etc., but why bother when we just want to substitute an instance we have some control over?</p>
+
+
+
+
+<pre class="brush:csharp">
+var calculator = Substitute.For&lt;ICalculator&gt;();
+</pre>
+
+
+
+
+<p>
+ Now we can tell our substitute to return a value for a call:
+</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Add(1, 2).Returns(3);
+Assert.That(calculator.Add(1, 2), Is.EqualTo(3));
+</pre>
+
+
+
+
+<p>
+We can check that our substitute received a call, and did not receive others:
+</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Add(1, 2);
+calculator.Received().Add(1, 2);     
+calculator.DidNotReceive().Add(5, 7);
+</pre>
+
+
+
+
+<p>If our <code>Received()</code> assertion fails, NSubstitute tries to give us some help as to what the problem might be:</p>
+
+
+
+
+<pre>
+NSubstitute.Exceptions.CallNotReceivedException : Expected to receive call:
+    Add(1, 2)
+Actually received:
+    Add(4, 5)
+    Add(3, 4)
+</pre>
+
+
+
+
+<p>We can also work with properties using the <code>Returns</code> syntax we use for methods, or just stick with plain old property setters (for read/write properties):</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Mode.Returns("DEC");
+Assert.That(calculator.Mode, Is.EqualTo("DEC"));
+
+calculator.Mode = "HEX";
+Assert.That(calculator.Mode, Is.EqualTo("HEX"));
+</pre>
+
+
+
+
+<p>NSubstitute supports argument matching for setting return values and asserting a call was received:</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Add(10, -5);
+calculator.Received().Add(10, Arg.Any&lt;int&gt;());
+calculator.Received().Add(10, Arg.Is&lt;int&gt;(x =&gt; x &lt; 0));
+</pre>
+
+
+
+
+<p>We can use argument matching as well as passing a function to <code>Returns()</code> to get some more behaviour out of our substitute (possibly too much, but that's your call):</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator
+  .Add(Arg.Any&lt;int&gt;(), Arg.Any&lt;int&gt;())
+  .Returns(x =&gt; (int)x[0] + (int)x[1]);
+Assert.That(calculator.Add(5, 10), Is.EqualTo(15));
+</pre>
+
+
+
+
+<p><code>Returns()</code> can also be called with multiple arguments to set up a sequence of return values.</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Mode.Returns("HEX", "DEC", "BIN");
+Assert.That(calculator.Mode, Is.EqualTo("HEX")); 
+Assert.That(calculator.Mode, Is.EqualTo("DEC")); 
+Assert.That(calculator.Mode, Is.EqualTo("BIN")); 
+</pre>
+
+
+
+
+<p>Finally, we can raise events on our substitutes (unfortunately C# dramatically restricts the extent to which this syntax can be cleaned up):</p>
+
+
+
+
+<pre class="brush:csharp">
+bool eventWasRaised = false;
+calculator.PoweringUp += () =&gt; eventWasRaised = true;
+
+calculator.PoweringUp += Raise.Action();
+Assert.That(eventWasRaised);
+</pre>
+
+
+
+
+<h2>How can I try this out?</h2>
+
+
+<p>Easy, just head on over to <a href="http://nsubstitute.github.com">nsubstitute.github.com</a> and download the binary. Then add the <code>NSubstitute.dll</code> as a project reference, add <code>using NSubstitute;</code> to your CS file and start substituting. Or grab the source from the <a href="http://github.com/nsubstitute/NSubstitute">project site on GitHub</a> and start tinkering.</p>
+
+
+
+
+<p>If you try it out I'd love to hear how you go!</p>
+
+
+
+
+<h2>Some quick acknowledgements</h2>
+
+
+<p>It doesn't seem right to plug this and not give kudos to some of the people that made it possible, both directly and indirectly.</p>
+
+
+
+
+<p>First, <a href="http://twitter.com/guywithbeard">Anthony</a> deserves the credit for the awesome syntax ideas in NSub. I take full credit for all the implementation bugs, as well as for some of the ridiculous abstractions in the code (including a really dodgy, mini-IoC container for wiring up routes and handlers. Yuck. :)). <a href="http://troyhunt.com">Troy Hunt</a> did a great job of knocking out a logo for us. <a href="http://twitter.com/xerxesb">Xerxes</a> and <a href="http://twitter.com/shannoncornish">Shannon</a> also helped out with some code and suggestions respectively. <a href="http://kozmic.pl/">Krzysztof</a> also provided some much needed help over email and twitter on how to dynamically create delegates using .NET 3.5 expressions.</p>
+
+
+
+
+<p>There are also a few people and projects that NSubstitute owes its existence to. <a href="http://ayende.com">Ayende</a> and the awesome <a href="http://ayende.com/projects/rhino-mocks.aspx">Rhino Mocks</a> project really started us mocking in the first place, and did a great job making mocking viable on the .NET platform. Also thanks to <a href="http://www.clariusconsulting.net/blogs/kzu/">Daniel Cazzulino</a> and <a href="http://code.google.com/p/moq/">moq</a> for bringing Arrange Act Assert-style mocking  to .NET (to the world?). NSubstitute relies entirely on <a href="http://davesquared.net/2008/10/very-basics-of-aaa-with-rhino-mocks-35.html">AAA mocking</a> for its syntax, intentionally providing no support for strict mocks or record/replay. And finally to <a href="http://www.castleproject.org/">Castle Project's DynamicProxy</a> which we rely on (like almost everyone else) to generate our proxies.</p>
+
+
+
+
+<p>&nbsp;</p>
+
+
+<p>Happy substituting! :)</p>
+
+]]></content>
+  </entry>
+  
+</feed>

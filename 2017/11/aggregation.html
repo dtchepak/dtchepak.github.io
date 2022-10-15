@@ -1,0 +1,500 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Aggregation - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Today I wanted to look at an approach for producing aggregate data from multiple measurements over a source. I’m learning Kotlin at the moment so I’ &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2017/11/aggregation.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Aggregation</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2017-11-04T17:30:00+11:00" pubdate data-updated="true">04 Nov 2017</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Today I wanted to look at an approach for producing aggregate data from multiple measurements over a source. I’m learning <a href="https://kotlinlang.org/">Kotlin</a> at the moment so I’ll use that for the examples in this post, but we can apply the same idea to pretty much any language (I’ve used similar approaches in F#, and it would work with C# albeit with a bit more code noise). <!-- more --> Any feedback on the approach in general and on my Kotlin-ing attempts is appreciated.</p>
+<h2 id="motivating-example">Motivating example</h2>
+<p>For this post we’ll consider the example of a list of <code>Sample</code> values we want aggregate information for. A <code>Sample</code> includes the month and year it was collected, and an integer representing the value sampled. For each set of samples we are required to show the following information:</p>
+<ul>
+<li>The total value sampled for each month and year</li>
+<li>The earliest sample date in this data set</li>
+<li>The largest individual sample collected</li>
+<li>A count of how many samples where within a specific range.</li>
+</ul>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="k">data</span> <span class="k">class</span> <span class="nc">MonthYear</span><span class="p">(</span><span class="k">val</span> <span class="py">year</span><span class="p">:</span> <span class="n">Int</span><span class="p">,</span> <span class="k">val</span> <span class="py">month</span><span class="p">:</span> <span class="n">Int</span><span class="p">)</span> <span class="p">:</span> <span class="n">Comparable</span><span class="p">&lt;</span><span class="n">MonthYear</span><span class="p">&gt;</span> <span class="p">{</span> <span class="cm">/* ... */</span> <span class="p">}</span>
+<span class="k">data</span> <span class="k">class</span> <span class="nc">Sample</span><span class="p">(</span><span class="k">val</span> <span class="py">date</span><span class="p">:</span> <span class="n">MonthYear</span><span class="p">,</span> <span class="k">val</span> <span class="py">value</span><span class="p">:</span> <span class="n">Int</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="initial-attempts">Initial attempts</h2>
+<p>We could neatly get each individual bit of information by using multiple queries<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, but requiring multiple iterations seems quite wasteful, especially for larger data sets. Instead we could use multiple variables, or an aggregate type containing those variables, and update each as we loop or fold over the data set:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="k">data</span> <span class="k">class</span> <span class="nc">CandidateAggregate</span><span class="p">(</span><span class="k">var</span> <span class="py">data</span><span class="p">:</span> <span class="n">Map</span><span class="p">&lt;</span><span class="n">MonthYear</span><span class="p">,</span> <span class="n">Int</span><span class="p">&gt;,</span>
+                              <span class="k">var</span> <span class="py">earliestSampleDate</span><span class="p">:</span> <span class="n">MonthYear</span><span class="p">?,</span>
+                              <span class="k">var</span> <span class="py">largestSample</span><span class="p">:</span> <span class="n">Int</span><span class="p">,</span>
+                              <span class="k">var</span> <span class="py">inRangeCount</span><span class="p">:</span> <span class="n">Int</span><span class="p">)</span>
+
+<span class="k">val</span> <span class="py">result</span> <span class="p">=</span> <span class="n">samples</span><span class="p">.</span><span class="n">fold</span><span class="p">(</span>
+        <span class="n">CandidateAggregate</span><span class="p">(</span><span class="n">emptyMap</span><span class="p">(),</span> <span class="k">null</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">),</span> <span class="c1">// empty case</span>
+        <span class="p">{</span> <span class="n">acc</span><span class="p">,</span> <span class="n">s</span> <span class="p">-&gt;</span>
+            <span class="n">CandidateAggregate</span><span class="p">(</span>
+                <span class="n">acc</span><span class="p">.</span><span class="k">data</span><span class="p">.</span><span class="n">insertOrUpdate</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">date</span><span class="p">)</span> <span class="p">{</span> <span class="k">if</span> <span class="p">(</span><span class="n">it</span><span class="p">==</span><span class="k">null</span><span class="p">)</span> <span class="n">s</span><span class="p">.</span><span class="n">value</span> <span class="k">else</span> <span class="n">it</span> <span class="p">+</span> <span class="n">s</span><span class="p">.</span><span class="n">value</span> <span class="p">},</span>
+                <span class="n">minOf</span><span class="p">(</span><span class="n">acc</span><span class="p">.</span><span class="n">earliestSampleDate</span> <span class="o">?:</span> <span class="n">s</span><span class="p">.</span><span class="n">date</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">date</span><span class="p">),</span>
+                <span class="n">maxOf</span><span class="p">(</span><span class="n">acc</span><span class="p">.</span><span class="n">largestSample</span><span class="p">,</span> <span class="n">s</span><span class="p">.</span><span class="n">value</span><span class="p">),</span>
+                <span class="n">acc</span><span class="p">.</span><span class="n">inRangeCount</span> <span class="p">+</span> <span class="k">if</span> <span class="p">((</span><span class="m">100.</span><span class="p">.</span><span class="m">200</span><span class="p">).</span><span class="n">contains</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="n">value</span><span class="p">))</span> <span class="m">1</span> <span class="k">else</span> <span class="m">0</span>
+            <span class="p">)</span>
+        <span class="p">})</span>
+
+<span class="cm">/** Helper for updating the value for a key in a map, or inserting it if it does not exist. */</span>
+<span class="k">private</span> <span class="k">fun</span> <span class="err">&lt;</span><span class="nf">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;</span> <span class="n">Map</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;.</span><span class="n">insertOrUpdate</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">K</span><span class="p">,</span> <span class="n">transform</span><span class="p">:</span> <span class="p">(</span><span class="n">V</span><span class="p">?)</span> <span class="p">-&gt;</span> <span class="n">V</span><span class="p">):</span> <span class="n">Map</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;</span> <span class="p">=</span>
+        <span class="n">plus</span><span class="p">(</span><span class="n">key</span> <span class="n">to</span> <span class="n">transform</span><span class="p">(</span><span class="k">get</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This seems a reasonable approach to me, and we’ll take this and adapt it in an attempt to get a few additional benefits:</p>
+<ul>
+<li>Include more information about the type of calculation used for each field in the aggregate</li>
+<li>Enable reuse of specific calculations in other aggregates</li>
+<li>Enable independent testing of each calculation type</li>
+<li>Make it fairly simple to change existing aggregates, and to create new ones.</li>
+</ul>
+<h2 id="representing-aggregate-calculations">Representing aggregate calculations</h2>
+<p>First we’ll create a type to represent values that can be combined. We’ll use Kotlin’s <code>plus</code> operator for this purpose.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="cm">/** A type [T] with an associative binary operation. Must satisfy the associative property:  `a + (b + c) == (a + b) + c` */</span>
+<span class="k">interface</span> <span class="nc">Semigroup</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="p">{</span>
+    <span class="k">operator</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">T</span><span class="p">):</span> <span class="n">T</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We’ll steal the term “<a href="https://en.wikipedia.org/wiki/Semigroup">semigroup</a>” from mathematics as its definition includes the constraints our <code>plus</code> operation needs<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>, although we could also call it <code>Combinable</code> or <code>Addable</code> or something else if we prefer.</p>
+<p>If you haven’t used Kotlin before, defining a <code>plus</code> operator function lets us also use the <code>+</code> symbol, so <code>a + b</code> will get translated to <code>a.plus(b)</code>. Whenever you see two semigroups being added using <code>+</code> for the remainder of this post, keep in mind it will be calling the <code>plus</code> function defined by that semigroup instance. (If you don’t like co-opting <code>+</code> in this way feel free to change the interface to declare <code>fun combine(other: T): T)</code> or similar.)</p>
+<p>Next, we’ll define instances that represent sum, max, and min aggregation:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="k">data</span> <span class="k">class</span> <span class="nc">Sum</span><span class="p">(</span><span class="k">val</span> <span class="py">value</span><span class="p">:</span> <span class="n">Int</span><span class="p">)</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">Sum</span><span class="p">&gt;</span> <span class="p">{</span>
+    <span class="k">override</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">Sum</span><span class="p">):</span> <span class="n">Sum</span> <span class="p">=</span> <span class="n">Sum</span><span class="p">(</span><span class="n">value</span> <span class="p">+</span> <span class="n">other</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">data</span> <span class="k">class</span> <span class="nc">Max</span><span class="p">&lt;</span><span class="n">T</span> <span class="p">:</span> <span class="n">Comparable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;(</span><span class="k">val</span> <span class="py">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">Max</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;</span> <span class="p">{</span>
+    <span class="k">override</span> <span class="k">operator</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">Max</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;)</span> <span class="p">=</span> <span class="n">Max</span><span class="p">(</span><span class="n">maxOf</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">other</span><span class="p">.</span><span class="n">value</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="k">data</span> <span class="k">class</span> <span class="nc">Min</span><span class="p">&lt;</span><span class="n">T</span> <span class="p">:</span> <span class="n">Comparable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;(</span><span class="k">val</span> <span class="py">value</span><span class="p">:</span> <span class="n">T</span><span class="p">)</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">Min</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;</span> <span class="p">{</span>
+    <span class="k">override</span> <span class="k">operator</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">Min</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;)</span> <span class="p">=</span> <span class="n">Min</span><span class="p">(</span><span class="n">minOf</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">other</span><span class="p">.</span><span class="n">value</span><span class="p">))</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Looking at our <code>CandidateAggregate</code> from earlier, we also need to handle nullable values (<code>earliestSampleDate: MonthYear?</code>), as well as combining <code>Map&lt;MonthYear, Int&gt;</code> values. Rather than building these specifically for this case, we can express these concepts more generally in terms of other semigroups, so they can be reused for different cases:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="cm">/**</span>
+<span class="cm"> * Combine nullable values. Use the semigroup instance to combine if both have values, or if only</span>
+<span class="cm"> * one value is present use that.</span>
+<span class="cm"> */</span>
+<span class="k">data</span> <span class="k">class</span> <span class="nc">Nullable</span><span class="p">&lt;</span><span class="n">T</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;(</span><span class="k">val</span> <span class="py">value</span><span class="p">:</span> <span class="n">T</span><span class="p">?)</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">Nullable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;</span> <span class="p">{</span>
+    <span class="k">override</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">Nullable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;):</span> <span class="n">Nullable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="p">=</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">value</span> <span class="p">!=</span> <span class="k">null</span> <span class="p">&amp;&amp;</span> <span class="n">other</span><span class="p">.</span><span class="n">value</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">Nullable</span><span class="p">(</span><span class="n">value</span> <span class="p">+</span> <span class="n">other</span><span class="p">.</span><span class="n">value</span><span class="p">)</span> <span class="c1">// Reminder: `+` here will call T.plus defined for the Semigroup&lt;T&gt;.</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="n">Nullable</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="n">value</span> <span class="o">?:</span> <span class="n">other</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Merge [Map]s where the values have a semigroup instance. If both maps have an entry for the same key, these</span>
+<span class="cm"> * will be combined using the semigroup operation.</span>
+<span class="cm"> */</span>
+<span class="k">data</span> <span class="k">class</span> <span class="nc">Mapped</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">V</span><span class="p">&gt;&gt;(</span><span class="k">val</span> <span class="py">value</span><span class="p">:</span> <span class="n">Map</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;)</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">Mapped</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;&gt;</span> <span class="p">{</span>
+    <span class="k">override</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">Mapped</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;):</span> <span class="n">Mapped</span><span class="p">&lt;</span><span class="n">K</span><span class="p">,</span> <span class="n">V</span><span class="p">&gt;</span> <span class="p">=</span>
+            <span class="n">value</span><span class="p">.</span><span class="n">entries</span><span class="p">.</span><span class="n">fold</span><span class="p">(</span><span class="n">other</span><span class="p">.</span><span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="n">acc</span><span class="p">,</span> <span class="n">entry</span> <span class="p">-&gt;</span>
+                <span class="n">acc</span><span class="p">.</span><span class="n">insertOrUpdate</span><span class="p">(</span><span class="n">entry</span><span class="p">.</span><span class="n">key</span><span class="p">)</span> <span class="p">{</span> <span class="k">if</span> <span class="p">(</span><span class="n">it</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="n">it</span> <span class="p">+</span> <span class="n">entry</span><span class="p">.</span><span class="n">value</span> <span class="k">else</span> <span class="n">entry</span><span class="p">.</span><span class="n">value</span> <span class="p">}</span>
+            <span class="p">}.</span><span class="n">let</span> <span class="p">{</span> <span class="n">Mapped</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Each of these operations is implemented quite similarly to the code we used for each field in <code>CandidateAggregate</code>, but now we can reuse them for different aggregates, as well as test each in isolation. The cost is we have now spread this code across more types.</p>
+<p>We can also write some general functions, <code>concat</code> and <code>concatMap</code>, to combine any list of <code>Semigroup&lt;T&gt;</code> values into a single <code>Semigroup&lt;T&gt;</code> value, effectively combining aggregates<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>. Here is an example of how to define and use these functions (as well as an example of testing <code>Sum</code> and <code>Max</code> in isolation):</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="cm">/** Reduce a list of `T` to a single `T` using a semigroup operation */</span>
+<span class="k">fun</span> <span class="err">&lt;</span><span class="nf">T</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;</span> <span class="n">concat</span><span class="p">(</span><span class="n">empty</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;)</span> <span class="p">=</span> <span class="n">items</span><span class="p">.</span><span class="n">fold</span><span class="p">(</span><span class="n">empty</span><span class="p">)</span> <span class="p">{</span> <span class="n">acc</span><span class="p">,</span> <span class="n">t</span> <span class="p">-&gt;</span> <span class="n">t</span> <span class="p">+</span> <span class="n">acc</span> <span class="p">}</span>
+
+<span class="cm">/** Reduce a list of [A] by converting each item to a [T] with a semigroup instance, then combining to a single value using [concat]. */</span>
+<span class="k">fun</span> <span class="err">&lt;</span><span class="nf">T</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;,</span> <span class="n">A</span><span class="p">&gt;</span> <span class="n">concatMap</span><span class="p">(</span><span class="n">empty</span><span class="p">:</span> <span class="n">T</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">&lt;</span><span class="n">A</span><span class="p">&gt;,</span> <span class="n">f</span><span class="p">:</span> <span class="p">(</span><span class="n">A</span><span class="p">)</span> <span class="p">-&gt;</span> <span class="n">T</span><span class="p">)</span> <span class="p">=</span>
+        <span class="n">items</span><span class="p">.</span><span class="n">fold</span><span class="p">(</span><span class="n">empty</span><span class="p">)</span> <span class="p">{</span> <span class="n">acc</span><span class="p">,</span> <span class="n">t</span> <span class="p">-&gt;</span> <span class="n">f</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="p">+</span> <span class="n">acc</span> <span class="p">}</span>
+        <span class="cm">/* Note: this is logically equivalent to the simpler:</span>
+<span class="cm">         *      concat(empty, items.map(f))</span>
+<span class="cm">         * But this would do two passes through the list.</span>
+<span class="cm">         */</span>
+
+<span class="n">@Test</span>
+<span class="k">fun</span> <span class="nf">examples</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">val</span> <span class="py">list</span> <span class="p">=</span> <span class="n">listOf</span><span class="p">(</span><span class="m">42</span><span class="p">,</span> <span class="m">123</span><span class="p">,</span> <span class="m">19</span><span class="p">,</span> <span class="m">73</span><span class="p">)</span>
+    <span class="n">assertEquals</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="m">257</span><span class="p">),</span> <span class="n">Semigroup</span><span class="p">.</span><span class="n">concatMap</span><span class="p">(</span><span class="n">Sum</span><span class="p">(</span><span class="m">0</span><span class="p">),</span> <span class="n">list</span><span class="p">)</span> <span class="p">{</span> <span class="n">Sum</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">})</span>
+    <span class="n">assertEquals</span><span class="p">(</span><span class="n">Max</span><span class="p">(</span><span class="m">123</span><span class="p">),</span> <span class="n">Semigroup</span><span class="p">.</span><span class="n">concatMap</span><span class="p">(</span><span class="n">Max</span><span class="p">(</span><span class="m">0</span><span class="p">),</span> <span class="n">list</span><span class="p">)</span> <span class="p">{</span> <span class="n">Max</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">})</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="using-our-aggregation-types">Using our aggregation types</h2>
+<p>Now we can rewrite <code>CandidateAggregate</code> using our aggregation types:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="k">data</span> <span class="k">class</span> <span class="nc">Aggregate</span><span class="p">(</span><span class="k">var</span> <span class="py">data</span><span class="p">:</span> <span class="n">Mapped</span><span class="p">&lt;</span><span class="n">MonthYear</span><span class="p">,</span> <span class="n">Sum</span><span class="p">&gt;,</span>
+                     <span class="k">var</span> <span class="py">earliestSampleDate</span><span class="p">:</span> <span class="n">Nullable</span><span class="p">&lt;</span><span class="n">Min</span><span class="p">&lt;</span><span class="n">MonthYear</span><span class="p">&gt;&gt;,</span>
+                     <span class="k">var</span> <span class="py">largestSample</span><span class="p">:</span> <span class="n">Max</span><span class="p">&lt;</span><span class="n">Int</span><span class="p">&gt;,</span>
+                     <span class="k">var</span> <span class="py">inRange</span><span class="p">:</span> <span class="n">Sum</span><span class="p">)</span> <span class="p">:</span> <span class="n">Semigroup</span><span class="p">&lt;</span><span class="n">Aggregate</span><span class="p">&gt;</span> <span class="p">{</span>
+    <span class="k">companion</span> <span class="k">object</span> <span class="err">{</span>
+        <span class="k">val</span> <span class="py">empty</span> <span class="p">=</span> <span class="n">Aggregate</span><span class="p">(</span><span class="n">Mapped</span><span class="p">(</span><span class="n">emptyMap</span><span class="p">()),</span> <span class="n">Nullable</span><span class="p">(</span><span class="k">null</span><span class="p">),</span> <span class="n">Max</span><span class="p">(</span><span class="m">0</span><span class="p">),</span> <span class="n">Sum</span><span class="p">(</span><span class="m">0</span><span class="p">))</span>
+    <span class="p">}</span>
+
+    <span class="k">override</span> <span class="k">fun</span> <span class="nf">plus</span><span class="p">(</span><span class="n">other</span><span class="p">:</span> <span class="n">Aggregate</span><span class="p">):</span> <span class="n">Aggregate</span> <span class="p">=</span>
+            <span class="n">Aggregate</span><span class="p">(</span><span class="k">data</span> <span class="p">+</span> <span class="n">other</span><span class="p">.</span><span class="k">data</span><span class="p">,</span>
+                    <span class="n">earliestSampleDate</span> <span class="p">+</span> <span class="n">other</span><span class="p">.</span><span class="n">earliestSampleDate</span><span class="p">,</span>
+                    <span class="n">largestSample</span> <span class="p">+</span> <span class="n">other</span><span class="p">.</span><span class="n">largestSample</span><span class="p">,</span>
+                    <span class="n">inRange</span> <span class="p">+</span> <span class="n">other</span><span class="p">.</span><span class="n">inRange</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The type of aggregation used appears explicitly for each field in <code>Aggregate</code>. For example <code>largestSample: Max&lt;Int&gt;</code> conveys both the type of the result (<code>Int</code>), as well as the process being used to calculated it (<code>Max</code>). In <code>CandidateAggregate</code> only the former was expressed. We also build some field types by composing semigroups, such as <code>Mapped&lt;MonthYear, Sum&gt;</code>, which specifies we will be adding values using <code>Sum</code> rather than some other approach. This also makes it very simple to update the method of aggregation (as illustrated <a href="#what-have-we-gained-for-the-price">below</a>).</p>
+<p>We have made <code>Aggregate</code> itself a semigroup to define how we combine these composite aggregates. We’ve also added an <code>empty</code> property to make it easier to call <code>concat</code> and <code>concatMap</code>.</p>
+<p>The last piece we need is to translate a single <code>Sample</code> into an <code>Aggregate</code>, then we can do the entire aggregation using <code>concatMap</code> as shown in the <code>aggregateSamples()</code> test. Each <code>Sample</code> gets transformed into an <code>Aggregate</code> representing that individual sample (an aggregate of 1), then each <code>Aggregate</code> in turn gets combined to calculate the required information across all the samples.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='kotlin'><span></span><span class="k">fun</span> <span class="nf">aggregateSample</span><span class="p">(</span><span class="n">sample</span><span class="p">:</span> <span class="n">Sample</span><span class="p">):</span> <span class="n">Aggregate</span> <span class="p">=</span>
+        <span class="n">Aggregate</span><span class="p">(</span><span class="n">Mapped</span><span class="p">(</span><span class="n">mapOf</span><span class="p">(</span><span class="n">sample</span><span class="p">.</span><span class="n">date</span> <span class="n">to</span> <span class="n">Sum</span><span class="p">(</span><span class="n">sample</span><span class="p">.</span><span class="n">value</span><span class="p">))),</span>
+                <span class="n">Nullable</span><span class="p">(</span><span class="n">Min</span><span class="p">(</span><span class="n">sample</span><span class="p">.</span><span class="n">date</span><span class="p">)),</span>
+                <span class="n">Max</span><span class="p">(</span><span class="n">sample</span><span class="p">.</span><span class="n">value</span><span class="p">),</span>
+                <span class="n">sample</span><span class="p">.</span><span class="n">value</span><span class="p">.</span><span class="n">countWithin</span><span class="p">(</span><span class="m">100.</span><span class="p">.</span><span class="m">200</span><span class="p">))</span>
+
+<span class="k">fun</span> <span class="err">&lt;</span><span class="nf">T</span> <span class="p">:</span> <span class="n">Comparable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;&gt;</span> <span class="n">T</span><span class="p">.</span><span class="n">countWithin</span><span class="p">(</span><span class="n">range</span><span class="p">:</span> <span class="n">ClosedRange</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;)</span> <span class="p">=</span>
+        <span class="n">Sum</span><span class="p">(</span><span class="k">if</span> <span class="p">(</span><span class="n">range</span><span class="p">.</span><span class="n">contains</span><span class="p">(</span><span class="k">this</span><span class="p">))</span> <span class="m">1</span> <span class="k">else</span> <span class="m">0</span><span class="p">)</span>
+
+<span class="n">@Test</span>
+<span class="k">fun</span> <span class="nf">aggregateSamples</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Aggregation</span>
+    <span class="k">val</span> <span class="py">result</span> <span class="p">=</span> <span class="n">Semigroup</span><span class="p">.</span><span class="n">concatMap</span><span class="p">(</span><span class="n">Aggregate</span><span class="p">.</span><span class="n">empty</span><span class="p">,</span> <span class="n">samples</span><span class="p">)</span> <span class="p">{</span> <span class="n">aggregateSample</span><span class="p">(</span><span class="n">it</span><span class="p">)</span> <span class="p">}</span>
+
+    <span class="c1">// Actual results are equivalent to the individual queries on the left:</span>
+    <span class="n">assertEquals</span><span class="p">(</span><span class="n">samples</span><span class="p">.</span><span class="n">minBy</span> <span class="p">{</span> <span class="n">it</span><span class="p">.</span><span class="n">date</span> <span class="p">}</span><span class="o">?.</span><span class="n">date</span><span class="p">,</span> <span class="n">result</span><span class="p">.</span><span class="n">earliestSampleDate</span><span class="p">.</span><span class="n">value</span><span class="o">?.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">assertEquals</span><span class="p">(</span><span class="n">samples</span><span class="p">.</span><span class="n">maxBy</span> <span class="p">{</span> <span class="n">it</span><span class="p">.</span><span class="n">value</span> <span class="p">}</span><span class="o">?.</span><span class="n">value</span><span class="p">,</span> <span class="n">result</span><span class="p">.</span><span class="n">largestSample</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">assertEquals</span><span class="p">(</span><span class="n">samples</span><span class="p">.</span><span class="n">count</span> <span class="p">{</span> <span class="p">(</span><span class="m">100.</span><span class="p">.</span><span class="m">200</span><span class="p">).</span><span class="n">contains</span><span class="p">(</span><span class="n">it</span><span class="p">.</span><span class="n">value</span><span class="p">)</span> <span class="p">},</span> <span class="n">result</span><span class="p">.</span><span class="n">inRange</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">val</span> <span class="py">june2017</span> <span class="p">=</span> <span class="n">MonthYear</span><span class="p">(</span><span class="m">2017</span><span class="p">,</span> <span class="m">6</span><span class="p">)</span>
+    <span class="n">assertEquals</span><span class="p">(</span><span class="n">samples</span><span class="p">.</span><span class="n">filter</span> <span class="p">{</span> <span class="n">x</span> <span class="p">-&gt;</span> <span class="n">june2017</span> <span class="p">==</span> <span class="n">x</span><span class="p">.</span><span class="n">date</span> <span class="p">}.</span><span class="n">sumBy</span> <span class="p">{</span> <span class="n">it</span><span class="p">.</span><span class="n">value</span> <span class="p">},</span> <span class="n">result</span><span class="p">.</span><span class="k">data</span><span class="p">.</span><span class="n">value</span><span class="p">[</span><span class="n">june2017</span><span class="p">]</span><span class="o">?.</span><span class="n">value</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="what-have-we-gained-for-the-price">What have we gained for the price?</h2>
+<p>This definitely has more pieces that the <code>CandidateAggregate</code> version (although the code for each piece has not changed much, it is now spread over multiple types). More pieces suggest a performance impact, but I have not measured this.</p>
+<p>We do get a few benefits for this price. Firstly, we now have some small, simple, genuinely reusable aggregation types (<code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Mapped</code> etc.). These can be combined into other aggregates, and they can be tested in isolation. Secondly, we explicitly define aggregate types in terms of the aggregates of which they are composed. We don’t have an aggregate that contains an <code>Int</code>, we have a <code>Sum</code> or a <code>Max&lt;Int&gt;</code> which conveys more information as to the aggregation process, as well as preventing errors (summing two <code>Int</code> values that should have been combined using <code>maxOf</code> for example).</p>
+<p>We also make it simpler to change our aggregation. For example, if we wanted to change from reporting the total value to the maximum value for each month, we can change <code>Mapped&lt;MonthYear, Sum&gt;</code> to <code>Mapped&lt;MonthYear, Max&lt;Int&gt;&gt;</code> and the aggregation process will adjust accordingly.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>We introduced a <code>Semigroup&lt;T&gt;</code> interface which represents values that can be combined with an associative, binary operation. We also introduced <code>concat</code> and <code>concatMap</code> operations that work for any instance of this interface. We created <code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Nullable</code> and <code>Mapped</code> instances of this interface to represent common methods of aggregation, then built a custom <code>Aggregate</code> semigroup composed of some of these instances.</p>
+<p>This is a bit more complex compared than manually aggregating a set of values over a loop or fold, but in return gives us reusable and testable aggregate types, more communicative types for our aggregate model, less opportunities for bugs in the aggregation process, as well as making the creation of new aggregates and modifications to existing aggregates simpler.</p>
+<h2 id="suggested-reading">Suggested reading</h2>
+<ul>
+<li><a href="https://fsharpforfunandprofit.com/series/understanding-monoids.html">Understanding monoids</a>, a three part series on monoids (a special case of semigroup) by Scott Wlaschin at the excellent <a href="https://fsharpforfunandprofit.com/">F# for fun and profit</a> site.</li>
+</ul>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Example of multiple queries:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode kotlin"><code class="sourceCode kotlin"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">val</span> <span class="va">minDate</span> = samples.map { it.date }.min()</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">val</span> <span class="va">maxSample</span> = samples.map { it.value }.max()</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw">val</span> <span class="va">inRangeCount</span> = samples.count { (<span class="dv">100</span>..<span class="dv">200</span>).contains(it.value) }</a></code></pre></div>
+<a href="#fnref1" class="footnote-back">↩</a></li>
+<li id="fn2"><p>A semigroup for a type <code>T</code> consists of a closed binary operation <code>T -&gt; T -&gt; T</code> that is also <a href="https://davesquared.net/2012/04/associativity.html">associative</a> (i.e. <code>a + (b + c) == (a + b) + c</code>). This associativity constraint means we can combine and compose these values fairly flexibly. For example, we can do <code>a + b + c</code>, without having to worry about wether <code>b</code> is itself a composite of <code>x + y</code>, as associativity guarantees <code>a + (x + y) + c</code> is the same as <code>((a + x) + y) + c</code>. We can’t do the same thing with non-associative operations like subtraction:</p>
+<pre><code>100 - (30 - 10) - 5 /= ((100 - 30) - 10) - 5
+75 /= 55</code></pre>
+<p>The end result is we can use associativity to combine values without having to also take evaluation order into account.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+<li id="fn3"><p>Both <code>concat</code> and <code>concatMap</code> take an <code>empty: T</code> value for cases where the <code>items</code> lists are empty. We could use a <code>Monoid</code> constraint instead of <code>Semigroup</code>, which adds the concept of an empty identity element, but I found this messy to implement in Kotlin.<a href="#fnref3" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2017-11-04T17:30:00+11:00" pubdate data-updated="true">04 Nov 2017</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/kotlin/'>kotlin</a>, <a class='category' href='/categories/patterns/'>patterns</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2017/11/aggregation.html" data-via="" data-counturl="http://davesquared.net/2017/11/aggregation.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2017/02/fake-targets.html" title="Previous Post: Specifying FAKE targets">&laquo; Specifying FAKE targets</a>
+      
+      
+        <a class="basic-alignment right" href="/2018/07/standalone-deriving-in-ghci.html" title="next Post: StandaloneDeriving to fix forgetfulness in GHCi">StandaloneDeriving to fix forgetfulness in GHCi &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2017/11/aggregation.html';
+        var disqus_url = 'http://davesquared.net/2017/11/aggregation.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

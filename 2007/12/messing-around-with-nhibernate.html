@@ -1,0 +1,383 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Messing around with NHibernate - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="This post is part of a small series on .NET ORM tools. You can find the rest of them here. After messing around with SubSonic, I thought I&#8217;d &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Messing around with NHibernate</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-12-21T12:06:00+11:00" pubdate data-updated="true">21 Dec 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>This post is part of a small series on .NET ORM tools. You can find the rest of them </em><a href="http://davesquared.net/2007/12/messing-around-with-various-orms.html"><em>here</em></a><em>.</em></p> <p>After <a href="http://davesquared.net/2007/12/messing-around-with-subsonic.html">messing around with SubSonic</a>, I thought I&#8217;d run through the same scenario with NHibernate. A quick disclaimer: both tools are very different, so comparing them is a bit like comparing apples and oranges. As an example, a large part of SubSonic is the generation of DAL classes. There are ways of generating relevant NHibernate artifacts, but they aren&#8217;t really an integral part of the tool. </p> <p>Still, I&#8217;m not going to let a simple thing like facts get in the way of proceeding. I was interested to see how to perform the same basic scenario as last time around using NHibernate. And as&nbsp;per last time, all of this is really quick and hacky, as it is just to get a little familiarity with the tool rather than to uncover any &#8220;best practices&#8221; or similar. So here goes&#8230;</p> <h2>Scene refresher</h2> <p>I have a table of suppliers, and a table of states (or provinces, territories, prefectures etc.). Both suppliers and states have names, which are stored as strings/varchars, and IDs, which are stored as Guids/uniqueidentifiers. Each supplier can service many states. So we have a simple many-to-many relationship between the two main entities. It looks a bit like this:</p> <p><a href="/images/fromblogger/s1600-h-SampleSupplierSchema.png"><img id="BLOGGER_PHOTO_ID_5145922358406504498" style="cursor: pointer" alt="" src="/images/fromblogger/s400-SampleSupplierSchema.png" border="0"> </a></p> <p>I am using Aussie states for my tests, so I have populated the State table with the following names: NSW, VIC, QLD, TAS, SA, WA, ACT, NT.</p> <h2>Setting up NHibernate</h2> <p>I created a new C# class library project and added a reference to <a href="http://www.hibernate.org/343.html">NHibernate</a>. I chucked in an app.config for NHibernate&#8217;s benefit that ended up like this:</p>
+
+<div class="note">Note: This syntax has <a href="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html">changed for NHibernate 2.0</a>.</div>
+
+<pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name="nhibernate"
+       type="System.Configuration.NameValueSectionHandler, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+    /&gt;
+  &lt;/configSections&gt;
+  &lt;nhibernate&gt;
+    &lt;add key="hibernate.connection.provider" value="NHibernate.Connection.DriverConnectionProvider" /&gt;
+    &lt;add key="hibernate.dialect" value="NHibernate.Dialect.MsSql2005Dialect" /&gt;
+    &lt;add key="hibernate.connection.driver_class" value="NHibernate.Driver.SqlClientDriver" /&gt;
+    &lt;add key="hibernate.connection.connection_string" value="Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=SubSonicWorkshop;Integrated Security=True" /&gt;
+  &lt;/nhibernate&gt;
+&lt;/configuration&gt;
+</pre>
+
+<p>Rather than using any NHibernate auto-mapping or code generation, I manually created the classes I wanted. I am using the automatic property accessors in C# 3.0, so if you&#8217;re still using 2.0 you&#8217;ll need to manually add a backing store for these.</p><pre>/* State.cs */
+public class State {
+  public Guid StateId { get; set; }
+  public String Name { get; set; }
+}
+/* Supplier.cs */
+public class Supplier {
+  public Guid SupplierId { get; set; }
+  public String Name { get; set; }
+  public IList&lt;State&gt; StatesServiced { get; set; }
+}
+</pre>
+<p>I then need to tell NHibernate how I want to map between these classes and my relational data. You can do this by creating Hibernate Mapping files (.hbm.xml), and setting them to be included as embedded resources in the compiled DLL. Again, I did this manually, but you specify use attributes on your classes to do this auto-magically, or generate the classes, database, and/or mapping files using a variety of tools.</p>
+<p>First let&#8217;s look at the mapping for states (State.hbm.xml): <pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" 
+                   assembly="NHibernateWorkshop.Tests" 
+                   namespace="NHibernateWorkshop.Tests"&gt;
+  &lt;class name="State" table="State" lazy="false"&gt;
+    &lt;id name="StateId" type="guid"&gt;
+      &lt;generator class="guid" /&gt;
+    &lt;/id&gt;
+    &lt;property name="Name" type="String" /&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+</pre>
+<p>Here I am telling NHibernate that a State has a StateId, which is the primary key. I am also telling NHibernate that it can generate this ID as a new Guid. I also let it know it can persist the Name property as a String. By default NHibernate will match the property name with the column name, but you can also specify that a property matches to a different column name if you like.</p>
+<p>Now for the more interesting entity mapping, Supplier.hbm.xml:</p><pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"
+                   assembly="NHibernateWorkshop.Tests"
+                   namespace="NHibernateWorkshop.Tests"&gt;
+  &lt;class name="Supplier" table="Supplier" lazy="false"&gt;
+    &lt;id name="SupplierId" type="guid"&gt;
+      &lt;generator class="guid" /&gt;
+    &lt;/id&gt;
+    &lt;property name="Name" type="String" /&gt;
+    &lt;bag name="StatesServiced" table="Supplier_StatesServiced"&gt;
+      &lt;key column="SupplierId" /&gt;
+      &lt;many-to-many column="StateId" class="State" /&gt;
+    &lt;/bag&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+</pre>
+<p>This is very similar to the last mapping, with the exception of the &lt;bag&gt; property. This tells NHibernate that I have a many-to-many relationship between State and Supplier, and that it can navigate this relationship using the Supplier_StatesServiced table and the SupplierId and StateId keys.</p>
+<h2>Creating a test fixture for messing around</h2>
+<p>As I mentioned last time, I like working in test fixtures, so I created a new test fixture to run the remainder of the code in this post. Before I start using NHibernate within the fixture, I want to get access to the NHibernate <code>ISession</code>. I guess you could think of <code>ISession</code> as a conversation between NHibernate and the database. I&#8217;ll do this by exposing a <code>ISessionFactory</code> property (note, there are optimal ways of doing this&#8230; this ain&#8217;t it):</p><pre>protected static readonly ISessionFactory <strong>SessionFactory</strong> = initialSessionFactory();
+private static ISessionFactory initialSessionFactory() {
+  Configuration config = new Configuration();
+  <strong>config.AddAssembly("NHibernateWorkshop.Tests")</strong>;
+  return config.BuildSessionFactory();
+}
+</pre>
+<p>I am going to use this property to create sessions as required. The <code>AddAssembly(...)</code> call gets NHibernate to load in all the .hbm.xml mapping files we created earlier, so the sessions we create know how to persist our entities.</p>
+<h2>Populating the database</h2>
+<p>Now we can get to work populating our database (I cleaned it out from last time). We are now on par with the SubSonic example. The steps and method signatures are going to be very similar from here on in. So like last time, I&#8217;ll write a method to encapsulate the process of creating a supplier and mapping the states it services:</p><pre>private static void createSupplier(String name, String[] statesServiced) {
+  using (ISession session = SessionFactory.OpenSession())
+  {
+    Supplier supplier = new Supplier();
+    supplier.Name = name;
+    IList&lt;State&gt; states = session
+      .CreateCriteria(typeof (State))
+      .Add(
+        Expression.In("Name", statesServiced)
+      )
+      .List&lt;State&gt;();
+    supplier.StatesServiced = states;
+    session.SaveOrUpdate(supplier);
+    session.Flush();
+    session.Close();
+  }
+}
+</pre>
+<p>Wow. To me all that additional setup now starts to seem worth it. I create a normal object and set the name property. I then create a criteria object that is going to query states, and add a restriction that the state&#8217;s name must be in the array of <code>statesServiced</code> we passed in. I then assign the results to the supplier object, and ask the NHibernate session to <code>SaveOrUpdate</code> the supplier. (<code>SaveOrUpdate</code> means NHibernate will automatically determine whether it needs to INSERT or UPDATE the relevant database record.) As ISession represents a chat with a database, the whole thing is wrapping in a <code>using (...) { }</code> to ensure any resources used are cleaned up nicely.</p>
+<p>I then used the following code to insert the same data as last time:</p><pre>createSupplier("Dave^2 Quality Tea", new string[] { "NSW", "VIC" });
+createSupplier("ORMs'R'Us", new string[] { "NSW" });
+createSupplier("Lousy Example", new string[] { "TAS", "VIC" });
+createSupplier("Bridge Sellers", new string[] { "QLD" });</pre>
+<h2>Querying the data</h2>
+<p>Let&#8217;s get a list of all the suppliers:</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers() {
+  using (ISession session = SessionFactory.OpenSession()) {
+    IList&lt;Supplier&gt; suppliers = session.CreateCriteria(typeof (Supplier)).List&lt;Supplier&gt;();
+    Assert.That(suppliers.Count, Is.EqualTo(4));
+  }
+}</pre>
+<p>That&#8217;s pretty much on a par with the SubSonic equivalent. The test passes. Now let&#8217;s get all the suppliers with an &#8220;s&#8221; in their name:</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers_with_s_in_their_name() {
+  using (ISession session = SessionFactory.OpenSession()) {
+    IList&lt;Supplier&gt; suppliers = session
+      .CreateCriteria(typeof (Supplier))
+      .Add(Expression.Like("Name", "%s%"))
+      .List&lt;Supplier&gt;();
+    Assert.That(suppliers.Count, Is.EqualTo(3));
+  }
+}</pre>
+<p>Again, pretty simple, and very similar to the SubSonic version. Now to the tricky example. We want to navigate over the supplier-state relationship and get all the suppliers that service NSW. This one wasn&#8217;t pretty in SubSonic.</p><pre>[Test]
+public void Should_be_able_get_all_suppliers_that_service_NSW() {
+  using (ISession session = SessionFactory.OpenSession()) {
+    IList&lt;Supplier&gt; suppliers = session
+      .CreateCriteria(typeof (Supplier))
+      .CreateCriteria("StatesServiced")
+        .Add(Expression.Eq("Name", "NSW"))
+      .List&lt;Supplier&gt;();
+    Assert.That(suppliers.Count, Is.EqualTo(2));
+  }
+}
+</pre>
+<p>Again, wow. That was too easy. First we create a criteria that is going to return Supplier data. Then we want a sub-criteria that is going to use the StatesServiced property of the Supplier entity (not the table &#8211; we are strictly dealing in domain objects here). We then say we only want the StatesServiced collection to include NSW. So what SQL ends up hitting the database?</p><pre>SELECT {fields for supplier and state} 
+FROM Supplier 
+  INNER JOIN Supplier_StatesServiced ON
+    Supplier.SupplierId=Supplier_StatesServiced.SupplierId 
+  INNER JOIN State ON Supplier_StatesServiced.StateId=State.StateId 
+WHERE State.Name = @p0
+</pre>
+<p>This is the query executed via a call to sp_executesql on SQL Server (slightly modified to better communicate the point, but the actual generated query is still very neat), with &#8220;NSW&#8221; passed as @p0.</p>
+<p>This was very different to the experience with SubSonic, which I couldn&#8217;t get to sensibly navigate over the many-to-many relationship.</p>
+<h2>Vague semblance of a conclusion</h2>
+<p>Ignoring the initial setup and configuration (as this can all be generated, but to be honest it was all fairly quick), I really enjoyed working with NHibernate. While the querying looked a little daunting to me at first glance, after about 3 seconds I found it very intuitive. Sometimes when I was working with SubSonic I found myself scratching my head as to how to get back specific information. Not so with NHibernate, as the query options I needed* were all fairly discoverable, and I never felt like I was going to have to fight the tool to get stuff out.</p>
+<p>Again, there are vast differences between the SubSonic and NHibernate approaches, and there a probably situations to which one is better suited than the other. <a href="http://blog.wekeroad.com/">Rob Conery</a> has a good post about the <a href="http://blog.wekeroad.com/2007/12/14/aspnet-mvc-choosing-your-data-access-method/">strengths and weaknesses of both tools</a>, as well as LinqToSql.</p>
+<p>Here are a couple of chapters from the <a href="http://www.hibernate.org/hib_docs/nhibernate/html/index.html">official documentation</a> that I used to get NHibernate going:</p>
+<ul>
+<li><a href="http://www.hibernate.org/hib_docs/nhibernate/html/mapping.html">Mapping files</a> 
+<li><a href="http://www.hibernate.org/hib_docs/nhibernate/html/querycriteria.html">Criteria queries</a>, and the <a href="http://www.hibernate.org/hib_docs/v3/reference/en/html/querycriteria.html">Hibernate version</a> of the same chapter</li></ul>
+<p style="font-size: xx-small">* Luckily I didn&#8217;t need Projections or similar. That may have started to get a bit hairier.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-09-01T17:25:54+10:00" class="updated">Updated 01 Sep 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/nhibernate/'>nhibernate</a>, <a class='category' href='/categories/orm/'>orm</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/12/messing-around-with-nhibernate.html" data-via="" data-counturl="http://davesquared.net/2007/12/messing-around-with-nhibernate.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/12/messing-around-with-subsonic.html" title="Previous Post: Messing around with SubSonic">&laquo; Messing around with SubSonic</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/12/messing-around-with-linqtosql.html" title="next Post: Messing around with LinqToSql">Messing around with LinqToSql &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/12/messing-around-with-nhibernate.html';
+        var disqus_url = 'http://davesquared.net/2007/12/messing-around-with-nhibernate.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

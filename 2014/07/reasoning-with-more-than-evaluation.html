@@ -1,0 +1,364 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Reasoning with more than evaluation - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Exercise 1.41 of SICP asks us to work out what the following expression will evaluate to, given the definition of double: (define (double f) (lambda &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2014/07/reasoning-with-more-than-evaluation.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Reasoning with more than evaluation</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-07-24T22:30:00+10:00" pubdate data-updated="true">24 Jul 2014</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><!-- more -->
+<p><a href="http://mitpress.mit.edu/sicp/full-text/book/book-Z-H-12.html#%_thm_1.41">Exercise 1.41 of SICP</a> asks us to work out what the following expression will evaluate to, given the definition of <code>double</code>:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='scheme'><span></span><span class="p">(</span><span class="k">define </span><span class="p">(</span><span class="nf">double</span> <span class="nv">f</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">f</span> <span class="p">(</span><span class="nf">f</span> <span class="nv">x</span><span class="p">))))</span>
+
+<span class="p">(((</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">))</span> <span class="nv">inc</span><span class="p">)</span> <span class="mi">5</span><span class="p">)</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="direct-substitution">Direct substitution</h2>
+<p>If this expression had side-effects, we’d need to <a href="http://www.davesquared.net/2013/03/reasoning-and-mutability.html">understand the evaluation order and keep track of state changes with each evaluation step</a>. Because this is a pure function, we can <a href="http://mitpress.mit.edu/sicp/full-text/book/book-Z-H-10.html#%_sec_1.1.5">substitute the definitions</a> of each sub-expression, and in any order we like. I found these substitutions quite tricky though, because with each evaluation of <code>double</code> I had to take into account its argument. I ended up with something like this:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='scheme'><span></span><span class="nv">Aim:</span> <span class="nv">evaluate</span> <span class="p">(((</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">))</span> <span class="nv">inc</span><span class="p">)</span> <span class="mi">5</span><span class="p">)</span>
+
+<span class="p">(</span><span class="nf">double</span> <span class="nv">f</span><span class="p">)</span>
+<span class="nv">=</span> <span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">f</span> <span class="p">(</span><span class="nf">f</span> <span class="nv">x</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">)</span>
+<span class="nv">=</span> <span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">x</span><span class="p">))</span>
+
+<span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">))</span>
+<span class="nv">=</span> <span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">)</span> <span class="p">((</span><span class="nf">double</span> <span class="nv">double</span><span class="p">)</span> <span class="nv">x</span><span class="p">))</span>
+<span class="nv">=</span> <span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="o">&#39;</span><span class="p">)</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">x</span><span class="o">&#39;</span><span class="p">)))</span>
+                 <span class="p">((</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="o">&#39;</span><span class="p">)</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">x</span><span class="o">&#39;</span><span class="p">)))</span> <span class="nv">x</span><span class="p">)</span> <span class="p">)</span>
+<span class="nv">=</span> <span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="o">&#39;</span><span class="p">)</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">x</span><span class="o">&#39;</span><span class="p">)))</span>
+                 <span class="p">((</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">x</span><span class="p">)))</span> <span class="p">)</span>
+<span class="nv">=</span> <span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span> <span class="nv">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">x</span><span class="p">)))</span> <span class="p">)</span>
+
+<span class="p">((</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">))</span> <span class="nv">inc</span><span class="p">)</span>
+<span class="nv">=</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">inc</span><span class="p">))))</span>
+<span class="nv">=</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="nv">x</span><span class="p">))))))</span>
+<span class="nv">=</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="nv">x</span><span class="p">)))))))</span>
+<span class="nv">=</span> <span class="p">(</span><span class="nf">double</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="p">(</span><span class="nf">inc</span> <span class="nv">x</span><span class="p">))))))))))</span>
+<span class="nv">=</span> <span class="p">(</span><span class="k">lambda </span><span class="p">(</span><span class="nf">x</span><span class="p">)</span> <span class="p">(</span> <span class="o">...</span> <span class="mi">16</span> <span class="nv">incs</span> <span class="o">...</span> <span class="nv">x</span><span class="p">))</span>
+
+<span class="p">(((</span><span class="nf">double</span> <span class="p">(</span><span class="nf">double</span> <span class="nv">double</span><span class="p">))</span> <span class="nv">inc</span><span class="p">)</span> <span class="mi">5</span><span class="p">)</span>
+<span class="nv">=</span> <span class="p">(</span><span class="o">...</span> <span class="mi">16</span> <span class="nv">incs</span> <span class="o">...</span> <span class="mi">5</span><span class="p">)</span>
+<span class="nv">=</span> <span class="mi">16</span><span class="nv">+5</span>
+<span class="nv">=</span> <span class="mi">21</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>I found this quite hard to follow. I had to use additional intermediary steps (not shown above) to evaluate expressions like <code>(double (lambda (x) (inc (inc x))))</code>.</p>
+<h2 id="using-other-equalities">Using other equalities</h2>
+<p>Instead of direct substitution we can transform the expression into equivalent terms we find easier to reason about, such as those with mathematical properties we can apply to simplify the expression. We still use substitution, but with other equalities instead of replacing a term’s name with its definition.</p>
+<p>For this example, I found it easier to think of <code>double</code> in terms of function composition.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">f</span> <span class="o">.</span> <span class="n">g</span>    <span class="ow">=</span> <span class="nf">\</span><span class="n">x</span> <span class="ow">-&gt;</span> <span class="n">f</span> <span class="p">(</span><span class="n">g</span> <span class="n">x</span><span class="p">)</span>
+
+<span class="nf">double</span> <span class="n">f</span> <span class="ow">=</span> <span class="nf">\</span><span class="n">x</span> <span class="ow">-&gt;</span> <span class="n">f</span> <span class="p">(</span><span class="n">f</span> <span class="n">x</span><span class="p">)</span>
+         <span class="ow">=</span> <span class="n">f</span> <span class="o">.</span> <span class="n">f</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Function composition is associative (which we can convince ourselves of using equalities<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>). I find this made it easier to reduce the nested <code>double</code> calls.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">double</span> <span class="n">double</span>
+  <span class="ow">=</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span>
+<span class="nf">double</span> <span class="p">(</span><span class="n">double</span> <span class="n">double</span><span class="p">)</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span> <span class="o">.</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span>
+  <span class="ow">=</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span>           <span class="c1">-- by associativity of composition</span>
+<span class="p">(</span><span class="n">double</span> <span class="p">(</span><span class="n">double</span> <span class="n">double</span><span class="p">))</span> <span class="n">inc</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span> <span class="n">inc</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span> <span class="p">(</span><span class="n">double</span> <span class="n">inc</span><span class="p">)</span>     <span class="c1">-- by defn of f . g</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span> <span class="p">(</span><span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span><span class="p">)</span>      <span class="c1">-- by: double f = f . f</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span> <span class="p">(</span><span class="n">double</span> <span class="p">(</span><span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span><span class="p">))</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="n">double</span> <span class="o">.</span> <span class="n">double</span><span class="p">)</span> <span class="p">(</span><span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span><span class="p">)</span>
+  <span class="ow">=</span> <span class="n">double</span> <span class="p">(</span><span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span> <span class="o">.</span> <span class="n">inc</span><span class="p">)</span>
+  <span class="ow">=</span> <span class="p">(</span> <span class="o">...</span> <span class="mi">16</span> <span class="n">incs</span> <span class="o">...</span><span class="p">)</span>
+  <span class="ow">=</span> <span class="p">(</span><span class="mi">16</span><span class="o">+</span><span class="p">)</span>                                       <span class="c1">-- \x -&gt; inc (inc x) = (2+)</span>
+
+<span class="kt">So</span> <span class="p">(((</span><span class="n">double</span> <span class="p">(</span><span class="n">double</span> <span class="n">double</span><span class="p">))</span> <span class="n">inc</span><span class="p">)</span> <span class="mi">5</span><span class="p">)</span> <span class="ow">=</span> <span class="p">(</span><span class="mi">16</span><span class="o">+</span><span class="p">)</span> <span class="mi">5</span> <span class="ow">=</span> <span class="mi">21</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Composition lets us deal with functions as values without having to substitute in for their arguments at each step. The fact composition is associative hides unimportant details, such as not having to worry about the order of composition in expressions like <code>(double . double) . (double . double)</code>. I found each step made more sense to me, and I had more confidence in my answer.</p>
+<p>I imagine different people will find different forms easier than others, but the point is we can choose whichever transformations we like to get the expression into an equivalent form we can work with more easily.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>For a while now I’ve appreciated that pure functions mean we can <a href="http://www.davesquared.net/2013/03/reasoning-and-mutability.html">more easily use substitution to understand code</a>, but it wasn’t until this exercise that I’ve finally started to get a vague idea of what <a href="http://www.haskellforall.com/2013/12/equational-reasoning.html">equational reasoning</a> means. It is more than just substitution – it is being able to use all sorts of transformations and properties to understand our code. I don’t think this example really showcases this idea, but I did feel like it was my first glimpse into a different, powerful way of understanding code.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>My attempt at showing function composition is associative:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="co">-- Associativity of composition</span></a>
+<a class="sourceLine" id="cb1-2" title="2">f <span class="fu">.</span> g <span class="fu">=</span> \x <span class="ot">-&gt;</span> f (g x)</a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4">a <span class="fu">.</span> (b <span class="fu">.</span> c) <span class="fu">=</span> \x <span class="ot">-&gt;</span> a ( (b<span class="fu">.</span>c) x)</a>
+<a class="sourceLine" id="cb1-5" title="5">            <span class="fu">=</span> \x <span class="ot">-&gt;</span> a ( (\x&#39; <span class="ot">-&gt;</span> b (c x&#39;)) x)</a>
+<a class="sourceLine" id="cb1-6" title="6">            <span class="fu">=</span> \x <span class="ot">-&gt;</span> a ( b (c x) )</a>
+<a class="sourceLine" id="cb1-7" title="7">            <span class="fu">=</span> \x <span class="ot">-&gt;</span> (a <span class="fu">.</span> b) (c x)</a>
+<a class="sourceLine" id="cb1-8" title="8">            <span class="fu">=</span> \x <span class="ot">-&gt;</span> ((a <span class="fu">.</span> b) <span class="fu">.</span> c) x</a>
+<a class="sourceLine" id="cb1-9" title="9">            <span class="fu">=</span> (a <span class="fu">.</span> b) <span class="fu">.</span> c</a></code></pre></div>
+<a href="#fnref1" class="footnote-back">↩</a></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2014-07-24T22:30:00+10:00" pubdate data-updated="true">24 Jul 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2014/07/reasoning-with-more-than-evaluation.html" data-via="" data-counturl="http://davesquared.net/2014/07/reasoning-with-more-than-evaluation.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2014/07/fsharp-assertion-libraries.html" title="Previous Post: F# assertion libraries">&laquo; F# assertion libraries</a>
+      
+      
+        <a class="basic-alignment right" href="/2014/08/simple-nodebot-haskell.html" title="next Post: A simple circuit, an Arduino, and Haskell">A simple circuit, an Arduino, and Haskell &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2014/07/reasoning-with-more-than-evaluation.html';
+        var disqus_url = 'http://davesquared.net/2014/07/reasoning-with-more-than-evaluation.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

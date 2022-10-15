@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Abstraction and OO - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="One observation I&#8217;ve heard when people start working with OO (especially when shown something silly like OOO) is that all the abstraction and &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2011/06/abstraction-and-oo.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Abstraction and OO</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-06-09T14:25:00+10:00" pubdate data-updated="true">09 Jun 2011</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>One observation I&#8217;ve heard when people start working with OO (especially when shown something silly like <a href="http://davesquared.net/2010/09/wrap-up-from-tdd-and-ooo-at-sydney.html">OOO</a>) is that all the abstraction and indirection makes it difficult to get a clear picture of all the execution paths through the code. A colleague of mine (not a dev, but someone with a fair amount of programming experience) once told me OO makes it difficult to be able to hold the entire program in your head at once. And this is certainly true to an extent, because it isn&#8217;t what OO is for. For this post I wanted to provide a quick overview of how I think about OO and abstractions.</p>
+
+<h2>Understanding procedural code</h2>
+
+<p>For many of us our first introduction to programming is procedural code. We use variables with different scopes, conditionals and program flow operators like <code>if</code>, <code>while</code> and <code>for</code>, as well as function calls to jump around. This makes it fairly easy and natural for us to trace through program execution by stepping through the code. Now you quickly get to a level of complexity where you can no longer hold the entire program in your head, but there is a certain sense of reassurance that we could start from the beginning of the code, and step our way through to the end to understand the code.</p>
+
+<p>By comparison OO can seem like you&#8217;re drowning in a sea of indirection. You no longer just step through the functions being called, but you also need to understand the state of the objects those functions live in, what types are in use due to polymorphism, or even which method will be called once virtual method dispatch is taken into account. For example, you may try and trace the execution of an <code>IFoo.DoSomething()</code> call, only to find you have no idea which implementation of <code>IFoo</code> is being used. Maybe it&#8217;s a <code>CompositeFoo</code> which aggregates a <code>WidgetFoo</code> and a <code>GadgetFoo</code>, and <code>GadgetFoo</code> may have an instance of an <code>IAmAtABar</code>, which will completely change what it&#8217;s <code>DoSomething()</code> method does. Surely this OO is a horrible beast to be avoided at all costs! (Cue functional programmers nodding in agreement ;))</p>
+
+<h2>Hiding details is the point of abstraction</h2>
+
+<p>This is not a problem with OO. This is the very point of OO. OO allows us to abstract away details so we only deal with a cohesive, understandable amount of information relevant to the abstraction level at which we&#8217;re working. It&#8217;s ok not to understand the whole thing at once. I&#8217;m pretty sure you&#8217;re not meant to.</p>
+
+<p>Rather than tracing through a procedural program from top to bottom, for OO programs we move sideways along a plane of abstraction to find the collaborators at that level. Our <code>ProcessOrderCommand</code> calls <code>BillCustomerCommand</code> and <code>ShipInventoryCommand</code>. I don&#8217;t know that <code>BillCustomerCommand</code> checks the customer is in our loyalty program and this order qualifies for a 10% discount. That&#8217;s a different level of detail that lives at another level of abstraction. All these little details are mercifully hidden so we can understand that processing an order means billing a customer and shipping some inventory to them.</p>
+
+<p>Holding all the combinations of state at each level of abstraction in our heads becomes a near impossibility, but we don&#8217;t need it. That&#8217;s what our abstraction is for; encapsulating all the details and freeing us to work at the optimum level of abstraction for our current problem. We can then switch between levels of abstraction to get the information relevant to the problem we&#8217;re trying to solve.</p>
+
+<h2>How can obscuring details be a good thing?</h2>
+
+<p>We pay a price for the traceability of procedural code. It tends to be hard to change because the code is all about implementation; the &#8220;how&#8221; rather than the &#8220;what&#8221; or &#8220;why&#8221;.  This can also make it hard to test, because isolating a section of code from the execution state is difficult, which makes it even harder to change with confidence.</p>
+
+<p>OO trades of some of this traceability for the ability to use abstractions in the form of objects in our code. By hiding details at one level we can better see the main features of another; we can <a href="http://en.wiktionary.org/wiki/see_the_forest_for_the_trees">see the forest for the trees</a>. Abstractions also let us express the &#8220;what&#8221; and &#8220;why&#8221; of the code. Because we&#8217;re programming to abstractions we can potentially change the details those abstractions encapsulate without affecting the rest of the system. In fact we can modify the behaviour of our system just by adding objects, rather than modifying existing code (see <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">Open Closed Principle of SOLID</a>). This encapsulation of details also lets us isolate small units for testing purposes.</p>
+
+<h2>Abstraction can be painful</h2>
+
+<p>Now it&#8217;s important to realise there are costs to the OO approach. We&#8217;ve talked about losing some of the ease with which we could trace through procedural code. This can also make concurrency difficult when we need to synchronise bits of state in different places. There can also be problems with the <a href="http://en.wikipedia.org/wiki/Object-relational_impedance_mismatch">impedance mismatch</a> between abstract concepts and technical implementation. A related problem is that of <a href="http://en.wikipedia.org/wiki/Leaky_abstraction">leaky abstractions</a>, where the encapsulation we&#8217;ve chosen breaks down in places and affects other parts of this system, increasing coupling and actually making the code harder to change (the opposite effect of what OO is designed for).</p>
+
+<p>While we can mitigate against these problems, it&#8217;s worth acknowledging that we will experience some level of pain from all these issues when using OO. OO gives us a lot, but there&#8217;s no such thing as a free lunch. This is, incidentally, a great reason to <a href="http://davesquared.net/2011/01/finding-functional-neatness-with.html">look at other programming paradigms</a>, as well as different frameworks and languages that all address these issues in different ways and to differing extents. Combining techniques (such as functional and object-oriented) can help give you some of the best of all worlds.</p>
+
+<h2>Getting the most from abstractions</h2>
+
+<p>There is a whole lot of design guidance that can help us with OO abstractions. <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">SOLID</a>, the <a href="http://c2.com/cgi/wiki?XpSimplicityRules">4 rules of simple design</a>, <a href="http://davesquared.net/2010/02/what-exactly-is-tdd-driving.html">TDD</a> and related disciplines, <a href="http://en.wikipedia.org/wiki/GRASP_(object-oriented_design">GRASP</a>, etc. I really recommend looking into all that stuff, but for this post I want to look at it from the more general viewpoint of what we want to get out of the abstractions (read: rant).</p>
+
+<div class="note"><b>Note: </b> Just to clarify, when I talk about abstractions here, I&#8217;m referring to an object or group of objects that encapsulate some part of your system. We&#8217;re really talking OO design, but in the general terms of abstraction.</div>
+
+
+<ul>
+<li>Don&#8217;t mix levels of abstraction. Each piece of an abstraction should be at a similar level of detail.</li>
+<li>Abstractions are lots of work. Don&#8217;t have one if you&#8217;re not willing to look after it. You will need to nurture it and help it grow into a useful member of your design society. Corollary: don&#8217;t use too many abstractions. They should be small and cohesive. The aim is to do more with less code.</li>
+<li>Define abstractions around things that need to change together. If you need to add lots of views to your app, writing a new view should not require changing bits of 7 different abstractions. Similarly, if you are only going to be using SQL Server, you don&#8217;t need to abstract that fact away so you can plug in a new DB engine (although your data access details will probably live at a similar level of abstraction, so it won&#8217;t be impossible to change either). Optimise for the things that change all the time. One big class that never needs to change is preferable to 30 tiny classes that all need to change all the time.</li>
+<li>Favour wide abstractions over deep ones. In other words, favour aggregating/composing several collaborators, rather than having many layers of objects (<code>A</code> uses <code>B</code> uses <code>C</code> uses &#8230; <code>Z</code>). Having to traverse many layers of abstraction down a deep hierarchy to pass one new piece of data is soul crushing.</li>
+<li>Keep data close to where it is used. Having to pass the same piece of data through many abstractions is also soul crushing.</li>
+<li>Don&#8217;t hide the important stuff. You want to abstract away the unnecessary details, not the key feature of what you&#8217;re working on.</li>
+<li>Obey the <a href="http://en.wikipedia.org/wiki/Law_of_Demeter">Law of Demeter</a>. She will try and tell you when your abstractions are leaking. You can then fix these leaks by applying the <a href="http://pragprog.com/articles/tell-dont-ask">Tell, Don&#8217;t Ask principle</a>.</li>
+<li>Tests can be another good guide to tell you when your abstractions are going wrong. If you need to do loads of setup or reach into lots of different collaborators then your abstraction is wrong. Unfortunately it doesn&#8217;t tell you how to do it right, but if you write the test you wish you had first, then you have a better chance of getting the abstraction you need.</li>
+<li>Avoid creating abstractions for testability alone. A well abstracted design should be naturally testable, but not all testable designs are well abstracted. The <a href="http://www.codemanship.co.uk/parlezuml/blog/?postid=934">Reused Abstractions Principle (RAP)</a> tells us to look for valuable abstractions. Just <a href="http://blog.ploeh.dk/2010/12/02/InterfacesAreNotAbstractions.aspx">testing against an interface does not mean we have a good abstraction</a>. (Thanks to <a href="http://twitter.com/xerxesb">Xerx</a> for pointing this out.)</li>
+<li>Modelling the real world as objects is probably not what you&#8217;re after. Read Uncle Bob&#8217;s Coffee Maker example (<a href="http://davesquared.net/2007/09/free-articles-every-developer-should.html">linked to here</a>). (Aside: this doesn&#8217;t conflict with the goals of DDD, which works to accurately reflecting business needs and concepts.)</li>
+<li>Layered / n-tier architectures do not necessarily help with abstractions. If you need to force your classes into presentation, business logic and data access layers, then your abstractions are not free to grow or (more importantly) shrink as required. Maybe the abstractions you choose will naturally group together into layers, or maybe each abstraction will have its own layers. I think forcing it can be detrimental though. If you want to change how you are loading data for a screen (say, optimised query instead of what your ORM generates), you don&#8217;t want to fight the weight of every other data access abstraction in the code.</li>
+<li>Separate infrastructure code concerns from app-specific abstractions. Abstractions should be <a href="http://en.wikipedia.org/wiki/Modular_(programming">modular</a>), the infrastructure can compose them together. An example of this infrastructure is your friendly neighbourhood IoC container. (We also want to keep infrastructure small and prevent it bleeding into our abstractions; again, less is more.)</li>
+<li>Ideally you want to be able to be able to try out new abstractions without fighting against the existing ones and without breaking too many conventions. Admittedly I have not found a good solution for this, but keep it in mind when designing and consider how much work it would be to do this differently if required for another feature.</li>
+</ul>
+
+
+<p>Finally, remember there is no single right abstraction for a given problem. This still seems more art than science, and practice and experience will trump all the rules and guidelines you can find. The trick is finding ways of experimenting productively with different options in both real and hobby projects.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-06-09T14:25:00+10:00" pubdate data-updated="true">09 Jun 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/dev-practices/'>dev practices</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2011/06/abstraction-and-oo.html" data-via="" data-counturl="http://davesquared.net/2011/06/abstraction-and-oo.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/06/random-software-dev-thoughts-june-2011.html" title="Previous Post: Random software dev thoughts (June 2011 edition)">&laquo; Random software dev thoughts (June 2011 edition)</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/07/bash-newbie-starts-to-learn-his-shell.html" title="next Post: Bash newbie starts to learn his shell for git and profit">Bash newbie starts to learn his shell for git and profit &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2011/06/abstraction-and-oo.html';
+        var disqus_url = 'http://davesquared.net/2011/06/abstraction-and-oo.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

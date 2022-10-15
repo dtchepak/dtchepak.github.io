@@ -1,0 +1,373 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Messing around with ADO.NET Entity Framework Beta 3 - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="This post is part of a small series on .NET ORM tools. You
+can find the rest of them <a href=
+"http://davesquared.net/2007/12/messing-around-with- &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2008/01/messing-around-with-adonet-entity.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Messing around with ADO.NET Entity Framework Beta 3</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-01-03T13:56:00+11:00" pubdate data-updated="true">03 Jan 2008</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>This post is part of a small series on .NET ORM tools. You
+can find the rest of them <a href=
+"http://davesquared.net/2007/12/messing-around-with-various-orms.html">
+here</a>.</em></p>
+<p>While I was checking out a number of .NET ORM tools, I thought
+I&#8217;d work through the exercise using the ORM-related bits from the <a href=
+"http://blogs.msdn.com/adonet/archive/2007/12/05/ado-net-entity-framework-beta-3-rleased.aspx">
+ADO.NET Entity Framework Beta 3</a> and the <a href=
+"http://blogs.msdn.com/adonet/archive/2007/12/06/entity-designer-ctp2.aspx">
+Entity Designer CTP2</a>.</p>
+<h2>Scene refresher</h2>
+<p>I have a table of suppliers, and a table of states (or
+provinces, territories, prefectures etc.). Both suppliers and
+states have names, which are stored as strings/varchars, and IDs,
+which are stored as Guids/uniqueidentifiers. Each supplier can
+service many states. So we have a simple many-to-many relationship
+between the two main entities. It looks a bit like this:</p>
+<p><a href=
+"/images/fromblogger/s1600-h-SampleSupplierSchema.png">
+<img id="BLOGGER_PHOTO_ID_5145922358406504498" style=
+"cursor: pointer" alt="" src=
+"/images/fromblogger/s400-SampleSupplierSchema.png"
+border="0" name="BLOGGER_PHOTO_ID_5145922358406504498" /></a></p>
+<p>I am using Aussie states for my tests, so I have populated the
+State table with the following names: NSW, VIC, QLD, TAS, SA, WA,
+ACT, NT.</p>
+<h2>Setting up Entity Framework</h2>
+<p>I created a new C# class library project, then added an ADO.NET
+Entity Data Model file (.edmx) as a project item, which I named
+WorkshopModel.edmx. Adding the project item runs a wizard that 
+lets you choose the connection, and then select which database 
+items to include in the model (including tables, views and SPs):</p>
+<p><a href=
+"/images/fromblogger/s1600-h-EntityFrameworkModelCreatorScreen.png">
+<img style="cursor: pointer;" src=
+"/images/fromblogger/s400-EntityFrameworkModelCreatorScreen.png"
+alt="" id="BLOGGER_PHOTO_ID_5151046907225661522" border="0" name=
+"BLOGGER_PHOTO_ID_5151046907225661522" /></a></p>
+<p>Once the wizard completes the model is opened in the designer. Note the recognition of the many-to-many relationship between suppliers and states. I edited to default association name from Supplier_StatesServiced to StatesServiced to make it a bit easier to read.</p>
+<p><a href="/images/fromblogger/s1600-h-EntityFrameworkModelDesignerScreen.png"><img style="cursor: pointer;" src="/images/fromblogger/s400-EntityFrameworkModelDesignerScreen.png" alt="" id="BLOGGER_PHOTO_ID_5151046911520628834" border="0" /></a></p>
+
+<p> The designer provides access to loads of properties for the model, so it is possible that some of the code I am going to write further on could be simplified by tweaking the model. At this stage it feels very much like a WYSIWYG way of generating an NHibernate-style mapping file and accompanying entity classes. The designer generates a WorkshopData.Designer.cs file from my WorkshopData.edmx, which includes definitions of the Entity Framework-based classes.</p>
+
+<h2>Populating the database</h2>
+<p>As per my previous posts, I&#8217;ll use a test fixture to run the
+remainder of the code. Here is the method used to create a supplier
+and map the states it services:</p>
+<pre>
+private static void createSupplier(String name, String[] statesServiced) {
+  using (WorkshopEntities entityModel = new WorkshopEntities()) {
+    Supplier supplier = Supplier.CreateSupplier(Guid.NewGuid(), name);
+    foreach (String stateName in statesServiced) {
+      supplier.State.Add(entityModel.State.Where(s =&gt; s.Name == stateName).First());
+    }
+    entityModel.SaveChanges();
+  } 
+}</pre>
+<p>The <code>WorkshopEntities</code> class gives us access to the relevant Entity Framework bits (it derives from <class>System.Data.Objects.ObjectContext</class>). The designer has generated a static <code>Supplier.CreateSupplier(...)</code> method, but I couldn&#8217;t find a nice way of adding all the relevant states at once. I would have loved to do something like this:</p>
+<pre>
+List&lt;State&gt; states = (from state in entityModel.State
+            where statesServiced.Contains(state.Name)
+            select state).ToList();
+states.ForEach(state =&gt; supplier.State.Add(state));
+</pre>
+<p>But this gave me an exception:</p>
+<blockquote>
+EntityFrameworkWorkshop.EntityFrameworkFixture.DatabaseSetup : System.NotSupportedException : The &#8216;Boolean Contains[String](System.Collections.Generic.IEnumerable`1[System.String], System.String)&#8217; method is not recognized by LINQ to Entities, and cannot be translated into a store expression.
+</blockquote>
+<p>The Entity Framework (as of this release) cannot map the <code>Contains</code> method to <a href="http://blogs.msdn.com/adonet/archive/2007/05/30/entitysql.aspx">Entity SQL</a>. The similar <a href="http://davesquared.net/2007/12/messing-around-with-linqtosql.html">LINQ to SQL query</a> works fine. The difference is that the LINQ to SQL provider is mapping direct to TSQL, whereas the LINQ to Entities provider is mapping to Entity SQL (I think, please correct me if I&#8217;m wrong), which needs to work over a variety of sources (not just relational databases). I&#8217;m assuming it&#8217;s tougher to implement something that works over all sources than simply targeting TSQL, but maybe this is just because we aren&#8217;t in RTM yet.</p>
+
+<p>I had a similar problem when I wanted to write <code>entityModel.State.Where(s =&gt; s.Name == stateName).Single()</code>, where I was told that it wouldn&#8217;t map Single(), but that I might like to try First() instead. Which I did, and it all worked fine. There are a few more comments about this kind of thing <a href="http://www.msdner.com/dev-archive/209/153-533-2095640.shtm">here</a>, as well as a list of <a href="http://msdn2.microsoft.com/en-us/library/bb738550.aspx">supported and unsupported methods on MSDN</a>.</p>
+
+<p>Still, at least we have a nice recognition of the relationship between suppliers and states, which was a big drawback with the <a href="http://davesquared.net/2007/12/messing-around-with-linqtosql.html">LINQ to SQL example</a>. We&#8217;ll then run the code below to populate the database with our test data:</p>
+
+<pre>createSupplier(&quot;Dave^2 Quality Tea&quot;, new string[] { &quot;NSW&quot;, &quot;VIC&quot; });
+createSupplier(&quot;ORMs'R'Us&quot;, new string[] { &quot;NSW&quot; });
+createSupplier(&quot;Lousy Example&quot;, new string[] { &quot;TAS&quot;, &quot;VIC&quot; });
+createSupplier(&quot;Bridge Sellers&quot;, new string[] { &quot;QLD&quot; });</pre>
+
+<h2>Querying the data</h2>
+<p>I&#8217;m going to favour using LINQ to Entities for querying in these examples, rather than Entity SQL. Similarly to NHibernate, which has HQL (Hibernate Query Language), Entity Framework can use a SQL-like language to query the domain objects. This gives both tools a lot of query power, at the cost of embedding logic in strings that aren&#8217;t checked by the compiler and that generally won&#8217;t work with refactoring tools. I used the ICriteria approach for strongly-typed queries in the <a href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">NHibernate example</a>, so I&#8217;ll use LINQ to Entities for this one.</p>
+
+<p>I&#8217;ll quickly run through the first two simple queries I&#8217;ve been using in the previous posts, first getting all suppliers and then suppliers that have an &quot;s&quot; in their name:</p>
+
+<pre>
+[Test]
+public void Should_be_able_to_get_all_suppliers() {
+  using (WorkshopEntities entityModel = new WorkshopEntities()) {
+    var suppliers = from supplier in entityModel.Supplier select supplier;
+    Assert.That(suppliers.Count(), Is.EqualTo(4));
+  }
+}
+[Test]
+public void Should_be_able_to_get_all_suppliers_with_s_in_their_name() {
+  using (WorkshopEntities entityModel = new WorkshopEntities())   {
+    var suppliers = from supplier in entityModel.Supplier
+            where supplier.Name.ToLower().Contains(&quot;s&quot;)
+            select supplier;
+    Assert.That(suppliers.Count(), Is.EqualTo(3));
+  }
+}
+</pre>
+
+<p>And here&#8217;s the code to get data over the supplier-state relationship, retrieving all suppliers that service NSW:</p>
+<pre>
+[Test]
+public void Should_be_able_get_all_suppliers_that_service_NSW() {
+  using (WorkshopEntities entityModel = new WorkshopEntities())   {
+    var suppliers = from supplier in entityModel.Supplier
+            where supplier.State.Any(state =&gt; state.Name == &quot;NSW&quot;)
+            select supplier;
+    Assert.That(suppliers.Count(), Is.EqualTo(2));
+  }
+}
+</pre>
+
+<p>This is much nicer than the LINQ to SQL version, which required explicitly joining over the relationship:</p>
+<pre>
+var suppliers = from supplier in db.Suppliers
+        join servicedState in db.Supplier_StatesServiceds 
+          on supplier.SupplierId 
+          equals servicedState.SupplierId
+        where servicedState.State.Name == &quot;NSW&quot;
+        select supplier;
+</pre>
+
+<h2>Vague semblance of a conclusion</h2>
+
+<p>We&#8217;ve only really looked at the ORM side of the Entity Framework in this example, and it definitely seems very capable in this regard (at least for this simple example), but as noted by David Laribee, <a href="http://laribee.com/blog/2007/03/17/linq-to-entities-vs-nhibernate/">ORM is a very small part of the Entity Framework</a>. It&#8217;s main potential is in querying across a model that incorporates different data sources and services (say, different databases, XML sources etc), which is definitely an exciting aim.</p>
+
+<p>The only real issue I had using the tool were the unmapped methods, but this was easy to work around. I think the real test of the tool will be how much you can get into the Entity Data Model and how easy it is to work with. Earlier releases faced <a href="http://codebetter.com/blogs/jeremy.miller/archive/2007/03/19/MVP-Summit-Recapped_3A00_-Linq-for-Entities_2C00_-MonoRail_2C00_-and-Shameless-Name-Dropping.aspx">some criticisms</a> regarding persistance ignorance and the fact you can&#8217;t use POCOs for entities, but I believe some of the issues <a href="http://blogs.msdn.com/dsimmons/archive/2007/09/26/ef-persistence-ignorance-recap.aspx">are being addressed</a> (thanks to <a href="http://davesquared.net/2008/01/messing-around-with-adonet-entity.html#c4674816261060793599">Tom</a> for the link) by the <a href="http://blogs.msdn.com/adonet/default.aspx">ADO.NET team</a> based on the feedback they have received.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-01T09:04:07+10:00" class="updated">Updated 01 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/orm/'>orm</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2008/01/messing-around-with-adonet-entity.html" data-via="" data-counturl="http://davesquared.net/2008/01/messing-around-with-adonet-entity.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/12/messing-around-with-various-orms.html" title="Previous Post: Messing around with various ORMs">&laquo; Messing around with various ORMs</a>
+      
+      
+        <a class="basic-alignment right" href="/2008/01/messing-around-with-castle-activerecord.html" title="next Post: Messing around with Castle ActiveRecord">Messing around with Castle ActiveRecord &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2008/01/messing-around-with-adonet-entity.html';
+        var disqus_url = 'http://davesquared.net/2008/01/messing-around-with-adonet-entity.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

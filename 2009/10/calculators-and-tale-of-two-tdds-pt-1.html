@@ -1,0 +1,432 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Calculators and a tale of two TDDs - Pt 1: a traditional approach - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I&#8217;ve seen TDD practiced a number of different ways. All of them use the basic &#8220;red, green, refactor&#8221; approach (i.e. write a failing &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-1.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Calculators and a tale of two TDDs - Pt 1: a traditional approach</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-10-21T13:11:00+11:00" pubdate data-updated="true">21 Oct 2009</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I&#8217;ve seen TDD practiced a number of different ways. All of them use the basic &#8220;red, green, refactor&#8221; approach (i.e. write a failing test, pass it, refactor to clean up the code), but differ in the way the tests are written and in the focus of each test. Each way seems to lead the design differently, pushing design decisions at different times, requiring different amounts of refactoring and also focussing on quite different elements of design and implementation. I have a feeling that when practiced by masters each approach would converge to similar levels of awesomeness, but how far the rest of us get with each approach seems to vary greatly by how we naturally tend to approach problems.</p>
+
+<p>To investigate this I thought I&#8217;d have a go at a coding exercise, and attempt it several different ways. You can&#8217;t draw too many conclusions from this as the knowledge I get each time I go through the exercise will impact the later attempts, but I thought it could be an interesting exercise regardless. </p>
+
+<p>The exercise I&#8217;ve picked is <a href="http://osherove.com/tdd-kata-1/">Roy Osherove&#8217;s String Calculator kata</a>. You can read the details at his site, but as it helps to avoid reading ahead I&#8217;ll just describe it as we go. The overall gist is a calculator that has an <code>Add()</code> method. This method takes a string input, adds the numbers in the string together, then returns the result.</p>
+
+<p>For this first attempt I&#8217;ll be using a traditional Test Driven Development approach (or at least, traditional TDD as I understand it from reading some early-ish work on the topic by <a href="http://www.amazon.com/Test-Driven-Development-Kent-Beck/dp/0321146530/">Kent Beck</a> et al.). We&#8217;ll pick up from the point where I have created a new solution containing a single C# project called CalculatorKata. I have two files: <code>Calculator</code> and <code>CalculatorTests</code>.</p>
+
+<h2>First test: empty strings</h2>
+
+<p>The first requirement for <code>Add()</code> is that it should return zero when given an empty string. Let&#8217;s do that:</p>
+
+<pre class="brush:csharp">
+[TestFixture]
+public class CalculatorTests {
+    private Calculator calculator;
+
+    [SetUp]
+    public void SetUp() {
+        calculator = new Calculator();
+    }
+    
+    [Test]
+    public void Takes_empty_string_and_returns_zero() {
+        Assert.That(calculator.Add(&quot;&quot;), Is.EqualTo(0));
+    }
+}
+</pre>
+
+<p>I&#8217;ve cheated a bit here by extracting a <code>SetUp</code> method in advance, but I&#8217;m pretty sure I&#8217;m going to need a new calculator for each test. Maybe this is evil. Feel free to point out the problems with this in the comments. This test doesn&#8217;t pass, so let&#8217;s pass it:</p>
+
+<pre class="brush:csharp">
+public class Calculator {
+    public int Add(string expression) {
+        return 0;
+    }
+}
+</pre>
+
+<p>It passes. Stay with me, things should start getting more interesting later (I hope&#8230;).</p>
+
+<h2>Test 2: Adding a single number</h2>
+
+<p>The next requirement is for when the string contains a single number. The test and passing implementation is below:</p>
+
+<pre class="brush:csharp">
+//CalculatorTests.cs
+[Test]
+public void Takes_a_single_number_and_returns_it() {
+    Assert.That(calculator.Add("2"), Is.EqualTo(2));
+}
+
+//Calculator.cs
+public int Add(string expression) {
+    if (expression == &quot;&quot;) return 0;
+    return int.Parse(expression);
+}
+</pre>
+
+<h2>Summing multiple numbers</h2>
+
+<p>The next requirement is to actually sum multiple numbers separated by commas (&#8216;,&#8217;). We&#8217;ll start of with the easy case: 2 numbers.</p>
+
+<pre class="brush:csharp">
+//CalculatorTests.cs
+[Test]
+public void Takes_two_numbers_delimited_by_commas_and_returns_the_sum() {
+    Assert.That(calculator.Add(&quot;1,2&quot;), Is.EqualTo(3));
+}
+
+//Calculator.cs
+public int Add(string expression) {
+    if (expression == &quot;&quot;) return 0;
+    return expression.Split(',').Sum(x =&gt; int.Parse(x));
+}
+</pre>
+
+<p>Now you&#8217;re quite welcome to debate me on whether this is actually the simplest thing that could possibly work. I could assume from my test that I&#8217;ll only be dealing with two single digit numbers separated by a comma, get each digit via array access (<code>expression[0]</code> and <code>expression[2]</code>), parse each as an <code>int</code> and return the sum, but that hardly sounds any simpler to me. The current implementation will also pass our next test:</p>
+
+<pre class="brush:csharp">
+[Test]
+public void Takes_multiple_numbers_separated_by_commas_and_returns_the_sum() {
+    Assert.That(calculator.Add(&quot;1,2,3,4,5,6,7,8,9&quot;), Is.EqualTo(45));
+}
+</pre>
+
+<p>The only refactoring I can see is extracting the delimiter (&#8216;,&#8217;) into a constant. Once that&#8217;s done we can go to the next step.</p>
+
+<h2>Allow commas and newlines as delimiters</h2>
+
+<pre class="brush:csharp">
+//CalculatorTests.cs
+[Test]
+public void Takes_numbers_delimited_by_a_newline_and_returns_the_sum() {
+    Assert.That(calculator.Add(&quot;1\n2\n3&quot;), Is.EqualTo(6));
+}
+
+//Calculator.cs
+public class Calculator {
+    private string[] delimiters = new[] {&quot;,&quot;, &quot;\n&quot;};
+    public int Add(string expression) {
+        if (expression == &quot;&quot;) return 0;
+        return expression.Split(delimiters, StringSplitOptions.None).Sum(x =&gt; int.Parse(x));
+    }
+}
+</pre>
+
+<h2>Allow a custom delimiter</h2>
+
+<p>The next requirement in the kata is more interesting. As input we can optionally specify a delimiter by using the following format: <code>//[delimiter]\n[numbers]</code>. The test is fairly simple, but the code got very messy:</p>
+
+<pre class="brush:csharp">
+//CalculatorTest.cs
+[Test]
+public void Can_set_the_delimiter_at_the_start_of_the_expression() {
+ Assert.That(calculator.Add(&quot;//;\n1;2;3;4&quot;), Is.EqualTo(10));
+}
+
+//Calculator.cs
+public class Calculator {
+    private const string CustomDelimiterToken = &quot;//&quot;;
+    private string[] DefaultDelimiters = new[] {&quot;,&quot;, &quot;\n&quot;};
+
+    public int Add(string expression) {
+        if (expression == &quot;&quot;) return 0;
+        var delimiters = DefaultDelimiters;
+        if (expression.StartsWith(CustomDelimiterToken)) {
+            var indexOfStartOfCustomDelimiter = CustomDelimiterToken.Length;
+            var indexAfterCustomDelimiter = expression.IndexOf(&quot;\n&quot;);
+            var customDelimiter = expression.Substring(indexOfStartOfCustomDelimiter, indexAfterCustomDelimiter - indexOfStartOfCustomDelimiter);
+            delimiters = new[] {customDelimiter};
+            expression = expression.Substring(indexAfterCustomDelimiter + 1);
+            //Console.WriteLine(expression);
+        }
+        return expression.Split(delimiters, StringSplitOptions.None).Sum(x =&gt; int.Parse(x));
+    }
+}
+</pre>
+
+<p>That&#8217;s beginning to look pretty intolerable. Our test passes, but this is in desperate need of refactoring. Now I&#8217;m pretty sure I&#8217;ve stuffed up the traditional TDD process here: this seems like much too big a step to get this test to pass. This could be an indication that I should have refactored first. Another indication is, as you may have noticed, I left a commented out <code>Console.WriteLine()</code> in there. That was because I had initially stuffed up the string escaping of the newline character, and couldn&#8217;t find a good way to get inside my implementation to test what the value was at that point. This just feels plain dirty when you resort to that, but pragmatism won that battle and it helped me fix my error. All of this is really screaming out for a nice big refactoring, and I did refactor, but it was mainly tinkering around the edges using Extract Method to make the mess more understandable, rather than cutting through the mess itself.</p>
+
+<pre class="brush:csharp">
+public class Calculator {
+    private const string CustomDelimiterToken = &quot;//&quot;;
+    private const string NewLine = &quot;\n&quot;;
+    private string[] DefaultDelimiters = new[] {&quot;,&quot;, NewLine};
+
+    public int Add(string expression) {
+        if (expression == &quot;&quot;) return 0;
+        var delimiters = DefaultDelimiters;
+        if (HasCustomDelimiterSpecified(expression)) {
+            delimiters = new[] {GetCustomDelimiter(expression)};
+            expression = GetExpressionWithoutCustomDelimiterSpecification(expression);
+        }
+        return expression.Split(delimiters, StringSplitOptions.None).Sum(x =&gt; int.Parse(x));
+    }
+
+    private string GetExpressionWithoutCustomDelimiterSpecification(string expression) {
+        return expression.Substring(IndexOfFirstNewLine(expression) + 1);
+    }
+
+    private string GetCustomDelimiter(string expression) {
+        var indexOfStartOfCustomDelimiter = CustomDelimiterToken.Length;
+        var indexAfterCustomDelimiter = IndexOfFirstNewLine(expression);
+        var lengthOfCustomDelimiter = indexAfterCustomDelimiter - indexOfStartOfCustomDelimiter;
+        var customDelimiter = expression.Substring(indexOfStartOfCustomDelimiter, lengthOfCustomDelimiter);
+        return customDelimiter;
+    }
+
+    private int IndexOfFirstNewLine(string expression) {
+        return expression.IndexOf(NewLine);
+    }
+
+    private bool HasCustomDelimiterSpecified(string expression) {
+        return expression.StartsWith(CustomDelimiterToken);
+    }
+}
+</pre>
+
+<p>Not horribly impressive, is it? Perhaps a little easier to understand the <code>Add()</code> method itself, but this implementation hardly fills me with joy. The kata is not fully finished yet, but I think this is a decent place to stop and take stock.</p>
+
+<h2>Where did I go wrong?</h2>
+
+<p>Well, first up I missed the cue for a bigger refactoring. My tests weren&#8217;t really screaming out a nice direction for me to go though. If you know your <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">SOLID principles</a> you&#8217;ll have noticed right away that I am violating the Single Responsibility Principle (SRP). My class is doing lots of things: interpretting custom delimiters specified in a string, parsing numbers from the string, and adding the numbers.</p>
+
+<p>Later on I went through and factored out a <code>NumberParser</code> class which took care of all the delimiter stuff and returning the numbers in the string, but that class still needed to be broken down further as well. Then I also needed to update the tests, so the calculator tests only test that it adds the numbers that come back from a mock <code>NumberParser</code>, and then adjust most of the current tests to test that the number parser is doing the parsing properly. Sure, I could leave the current tests as integration tests and forget about each unit, but I&#8217;ve this approach has given me troubles in the past.</p>
+
+<p>Now I&#8217;m sure that if I were a better TDDer, refactorer, OOer etc that this would have turned out better. But my main complaint is that my tests aren&#8217;t really helping me drive out my <i>design</i>. They help me to drive out an <i>implementation</i> that works (for which I am very grateful &#8211; so much better than old school hack and slash :)), but by the time I am getting design feedback and test smells I&#8217;ve already dug myself in a bit of a hole. Luckily I&#8217;ve got tests to haul myself out, but is there a better way? Or do I need to just resign myself to the fact that I&#8217;m going to have to run through the gauntlet of SOLID principles and GRASP patterns etc. after each test to see when I need to refactor? But even then, refactor to what? I can start writing tests for the <code>NumberParser</code>, then join the bits back together, but this seems a bit hit-and-miss to me.</p>
+
+<p>I&#8217;d love to get your thoughts on this. Anyone that wants to give the first part of the kata a try I&#8217;d love to read a blog post or have a chat with you and see how things ended up for you.</p>
+
+<p><a href="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-2.html">Next up</a> I&#8217;ll try a different flavour of TDD on the same problem.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-10-22T10:58:14+11:00" class="updated">Updated 22 Oct 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-calculator-tdd/'>+Calculator TDD</a>, <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/tdd/'>tdd</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-1.html" data-via="" data-counturl="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-1.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/10/using-privoxy-to-block-net-nasties-and.html" title="Previous Post: Using Privoxy to block net nasties and ads in Chrome [Windows]">&laquo; Using Privoxy to block net nasties and ads in Chrome [Windows]</a>
+      
+      
+        <a class="basic-alignment right" href="/2009/10/calculators-and-tale-of-two-tdds-pt-2.html" title="next Post: Calculators and a tale of two TDDs - Pt 2: BDD-style">Calculators and a tale of two TDDs - Pt 2: BDD-style &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-1.html';
+        var disqus_url = 'http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-1.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

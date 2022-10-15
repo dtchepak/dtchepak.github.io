@@ -1,0 +1,350 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Interesting documentation - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Now those are two words you don&#8217;t often hear put together, but I think what we came up with for NSubstitute&#8217;s documentation is actually &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/10/interesting-documentation.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Interesting documentation</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2010-10-24T23:34:00+11:00" pubdate data-updated="true">24 Oct 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Now those are two words you don&#8217;t often hear put together, but I think what we came up with for <a href="http://nsubstitute.github.com">NSubstitute&#8217;s documentation</a> is actually pretty interesting, and so I thought I&#8217;d share it. I&#8217;m not talking about the documentation itself, but about ways to write documentation that is maintainable and helps out your project as well as your users. In our case our docs ended up fairly easy to write, automatically tested for correctness and generated as HTML as part of the build. And this makes me happy, and so I blog. :)</p>
+
+<h2>Creating a monster of a website with Jekyll</h2>
+
+<p>We wanted to publish the NSubstitute docs to the website. We were pretty keen to be able to write the docs in <a href="http://daringfireball.net/projects/markdown/">Markdown</a> or similar, as writing large wads of HTML can be quite annoying; especially the hassle of escaping code samples. It turns out there are a number of <i>static website generators</i> that support this kind of approach (the site for one of these generators, <a href="http://nanoc.stoneship.org/docs/1-introduction/">nanoc</a>, has a good list of a number of these, mostly Ruby, but also some done in Python, Haskell and others).</p>
+
+<p>For NSubstitute we ended up choosing <a href="http://jekyllrb.com/">Jekyll</a>, a generator done in Ruby that is really optimised for blogs (and is also used for GitHub Pages). We tried a few other options that were very good too, but Jekyll seemed to fit in closest with what we wanted without too much effort.</p>
+
+<p>Jekyll works mainly from conventions with directory and file names. The root of the docs site includes a <code>_config.yml</code> file to include information like permalink format; layout templates go in <code>_layouts</code>; and posts typically go in <code>_posts</code> with the filename in the form <code>yyyy-mm-dd-title.markdown</code>. In NSubstitute we&#8217;re not too worried about the date itself, but Jekyll insists on it (it is designed for blogs remember), and it does provide an easy way of ordering posts. You can also put posts/documents under different categories, and include normal HTML pages and content. </p>
+
+<p>After running the <code>jekyll</code> command on your docs directory, out pops a static site. For rapidly testing changes you can also run <code>jekyll --server --auto</code> to serve up and automatically-regenerate the site every change on <code>http://localhost:4000</code>. It is hard to capture how awesome this is in a post, but compared to other attempts I&#8217;ve had at getting quick sites up and running I found this amazing.</p>
+
+<p></p>
+
+<h2>Liquid templates</h2>
+
+<p>Jekyll uses <a href="http://www.liquidmarkup.org/">Liquid</a> (and <a href="http://github.com/mojombo/jekyll/wiki/liquid-extensions">Liquid Extensions</a>) for templates. In the Jekyll <code>_layouts</code> files you can put in markup like <code>&#123;&#123; page.content &#125;&#125;</code> and <code>&#123;% for post in site.categories.help reversed %&#125;, &#123;% endfor %&#125;</code> and these will be expanded as required in the generated site.</p>
+
+<p>What&#8217;s really neat is that, in addition to the <a href="http://github.com/tobi/liquid/wiki/liquid-for-designers">large range of built in tags and templates</a>, it is also frightfully easy to create your own in Ruby. You just put them into a <code>_plugins</code> directory and Jekyll will automatically pick them up and apply them when generating your site.</p>
+
+<p>For NSubstitute we wanted to easily include code samples formated using <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>, so we created an <code>&#123;% examplecode %&#125;</code> tag:</p>
+
+
+<pre class="brush: ruby">
+module Jekyll
+ class ExampleCodeBlock &lt; Liquid::Block
+        include Liquid::StandardFilters
+  def render(context)
+            code = super.join
+            &lt;&lt;-HTML
+&lt;div class="highlight"&gt;
+    &lt;pre class="brush: csharp"&gt;#{h(code).strip}&lt;/pre&gt;
+&lt;/div&gt;
+            HTML
+  end
+ end
+end
+Liquid::Template.register_tag('examplecode', Jekyll::ExampleCodeBlock)
+</pre>
+
+<p>Any code samples wrapped in <code>&#123;% examplecode %&#125;, &#123;% endexamplecode %&#125;</code> tags will be automatically escaped (<code>h(code)</code> is built in to Liquid to do this) and will be wrapped in an element that includes the <code>class="brush: csharp"</code> that SyntaxHighlighter needs to do its job.</p>
+
+<div class="note"><b>Note:</b> Jekyll has built in support for syntax-highlighting using <a href="http://pygments.org/">Pygments</a>. Pygments is awesome too, but for a number of reasons (mainly ease of setup) we chose to use SyntaxHighlighter instead.</div>
+
+<h2>Docs with teeth</h2>
+
+<p>We wanted to make sure the NSubstitute code examples worked, and kept working even with future versions. It&#8217;s pretty frustrating to plug in an example from somewhere and have it not work. To use <a href="http://twitter.com/guywithbeard">Anthony&#8217;s</a> expression, we wanted &#8220;documents with teeth&#8221;; docs that would bite us if we did the wrong thing.</p>
+
+<h3>Writing runnable code samples</h3>
+
+<p>I&#8217;ve already mentioned we included code samples, written in Markdown, and designated with <code>&#123;% examplecode %&#125;</code> Liquid blocks. This would make it pretty easy to parse out these blocks and get them into a C# file so we could compile them, as we could just grab the text between the blocks without HTML decoding. The idea was we&#8217;d wrap each example in an NUnit test and make sure they both compile and any assertions passed.</p>
+
+<p>But what about supporting code that may be required, but that we didn&#8217;t necessarily want the reader to be bothered with? We may not want to repeat setup code for every example on a page, that would just add a lot of noise to the examples. So just as for our <code>&#123;% examplecode %&#125;</code> tag, we created a <code>&#123;% requiredcode %&#125;</code> tag that wouldn&#8217;t render its contents to the final page, but could still be parsed out into our C# files.</p>
+
+<p>The last hurdle was how to handle code-blocks that included class or interface definitions. These couldn&#8217;t just go into an NUnit test method as the C# compiler isn&#8217;t too fond of class definitions going into a method body. So we needed our parser to check if <code>&#123;% examplecode %&#125;</code> contained a class or interface definition, and it it did, then just dump it in the C# file without wrapping it in a <code>[Test]</code> method.</p>
+
+<h3>Code samples to code files to tested DLL</h3>
+
+<p>Now we had code samples in our documents, we needed to get them into C# files we could compile. This we ended up driving out in my own particular brand of n00bie Ruby, the <a href="http://github.com/nsubstitute/NSubstitute/tree/4852fb62a395b3a401bd2a4151d97b4a3371c81d/Build/rakelib/lib">results of which you can see on Github</a> (with tests in <code>../specs</code>). The <code>ExamplesToCode</code> class takes a documentation input path and an output path for our class files, extracts all the code blocks found in the input, then shoves each block into a template for a C# file either as a declaration or as a test and writes it to the output path.</p>
+
+<p>This is then called from our <a href="http://rake.rubyforge.org/">rake</a> script like this:</p>
+
+<pre class="brush: ruby">
+task :generate_code_examples do
+    examples_to_code = ExamplesToCode.create
+    examples_to_code.convert("../Source/Docs/", "#{OUTPUT_PATH}/CodeFromDocs")
+    examples_to_code.convert("../Source/Docs/help/_posts/", "#{OUTPUT_PATH}/CodeFromDocs")
+    examples_to_code.convert("../", "#{OUTPUT_PATH}/CodeFromDocs")
+end
+</pre>
+
+<p>We compile these using <code>csc.exe</code>, and run the tests in the resulting DLL using NUnit:</p>
+
+<pre class="brush: ruby">
+task :compile_code_examples =&gt; [:generate_code_examples] do
+    #Copy references to documentation directory
+    output_base_path = "#{OUTPUT_PATH}/#{CONFIG}"
+    output_doc_path = "#{OUTPUT_PATH}/CodeFromDocs"
+    references = %w(NSubstitute.dll nunit.framework.dll).map do |x|
+        "#{output_base_path}/NSubstitute.Specs/#{x}"
+    end
+    FileUtils.cp references, output_doc_path
+
+    #Compile
+    FileUtils.cd output_doc_path do
+        sh "#{DOT_NET_PATH}/csc.exe /target:library /out:\"NSubstitute.Samples.dll\" /reference:\"nunit.framework.dll\" /reference:\"NSubstitute.dll\" *.cs"
+    end
+end
+</pre>
+
+<p>Ok, so it&#8217;s not pretty, but it works a treat.</p>
+
+<h2>Generating the site</h2>
+
+<p>The last step was to automate all of this: generating code samples, testing them, then generating the final site for publishing.</p>
+
+
+<pre class="brush: ruby">
+desc "Generates documentation for the website"
+task :generate_docs =&gt; [:all, :check_examples] do
+    output = File.expand_path("#{OUTPUT_PATH}/nsubstitute.github.com", File.dirname(__FILE__))
+    FileUtils.cd "../Source/Docs" do
+        sh "jekyll \"#{output}\""
+    end
+end
+</pre>
+
+<h2>Conclusion</h2>
+
+<p>This has been a whirlwind tour around NSubstitute&#8217;s documentation systemy thang; mentioning things like Jekyll, Liquid, Markdown, some custom Ruby libraries and a couple of rake tasks.  What this gives us (and devs using NSubstitue) is fairly high confidence that any code samples on the site are going to work exactly as advertised.</p>
+
+<p>This has been an incredibly worthwhile experience, not only for making the documentation useful, but also in discovering great tools like Jekyll (which I am so tempted to migrate this blog to :)).</p>
+
+<p>As parting words for an excessively rambling post (even for me! :)), if you need to write some documentation for anything involving code, try and get some value out of it. Make it living documentation that will bite you when you make a mistake, and will help itself stay up-to-date by failing a build if it is neglected. Approached this way, documentation is even kind of fun. So go forth, all ye developers, and document! :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2010-10-24T23:34:00+11:00" pubdate data-updated="true">24 Oct 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/nsubstitute/'>nsubstitute</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/10/interesting-documentation.html" data-via="" data-counturl="http://davesquared.net/2010/10/interesting-documentation.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/09/wrap-up-from-tdd-and-ooo-at-sydney.html" title="Previous Post: Wrap up from TDD and OOO at Sydney ALT.NET">&laquo; Wrap up from TDD and OOO at Sydney ALT.NET</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/11/git-pre-commit-hook-to-help-with.html" title="next Post: Git pre-commit hook to help with multiple identities">Git pre-commit hook to help with multiple identities &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/10/interesting-documentation.html';
+        var disqus_url = 'http://davesquared.net/2010/10/interesting-documentation.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

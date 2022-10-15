@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>TDD, not UTDD - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="When I first learned TDD I was taught that the first step in the process is to write a failing test, not specifically a failing unit test. After all &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/06/tdd-not-utdd.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">TDD, not UTDD</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-06-04T23:16:00+10:00" pubdate data-updated="true">04 Jun 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>When I first learned TDD I was taught that the first step in the process is to write a failing <i>test</i>, not specifically a failing <i>unit test</i>. After all, it is Test Driven Development, not Unit Test Driven Development. I even read books that were apparently written using a TDD-style approach, without a unit test in sight*. This didn&#8217;t stop me from focussing almost entirely on using unit tests for TDD.</p>
+
+<p>Fast forward a few years and I&#8217;m now finding a lots of benefits in other forms of testing for TDD, to complement the <a href="http://www.artima.com/weblogs/viewpost.jsp?thread=126923">traditional unit test</a>.</p>
+
+<div style="font-size: x-small; font-style: italic;"><b>*</b> In case you&#8217;re wondering how this works:  write the goal for an unwritten section, write the section, verify it meets the goal, edit. Red, green, refactor. :)</div>
+
+<h2>Accepting acceptance tests</h2>
+
+<p>Acceptance testing is a practice that seems very easy to get wrong in ways that cause a lot of friction, resulting in it being ignored or given only cursory treatment by developers. This is unfortunate, as I see acceptance testing as essential for effective TDD.</p>
+
+<p>In Steve Freeman&#8217;s and Nat Pryce&#8217;s <a href="http://www.amazon.com/Growing-Object-Oriented-Software-Guided-Tests/dp/0321503627">Growing Object Oriented Software, Guided by Tests</a>, the first failing test they write is an acceptance test for the feature they are working on. They then drill down into unit tests so they can take small steps to incrementally build an implementation that passes the acceptance criteria. This was how I was initially introduced to TDD from reading about Extreme Programming (XP): an outer TDD cycle with acceptance tests, and an inner cycle with unit tests that had several iterations to get the acceptance test to pass.</p>
+
+<p>The key to effective acceptance tests (at least for me, YMMV) is making sure they exercise a specific feature of the system from top to bottom, using as much of the real system as possible. It should clearly specify the behaviour of that feature &#8211; once it passes you should be fairly confident that the customer&#8217;s requirements for that feature have been met.</p>
+
+<p>The main benefit I&#8217;ve found from acceptance testing is that the feedback from these tests help produce an architecture that is flexible, maintainable, and scriptable by virtue of being testable at such a high level. They also help me focus on exactly what I need to get this feature done, which in turn helps guide where I should start applying unit tests to drive the more specific elements of my design.</p> 
+
+<p>These benefits, using tests to define and design, are fairly universal to TDD regardless of which type of tests are used. In the case of acceptance tests, the large scope of the tests provide feedback on the larger aspects of the design.</p>
+
+<p>I&#8217;ve also found acceptance tests to be invaluable when I&#8217;ve had to make radical design changes (e.g. when I&#8217;ve stuffed up somewhere), letting me cull over-specified unit tests and make sweeping changes while still having enough coverage to be confident the software works.</p>
+
+<p>If you&#8217;re doing TDD but not using acceptance tests, or have tried acceptance testing before but haven&#8217;t been able to make it work for you, I&#8217;d really recommend giving it another shot. Don&#8217;t worry about them being customer-writable (or even customer-readable for now, provided you can explain what is being tested), don&#8217;t worry about what tool you use, just get them working. You&#8217;re architecture will thank you for it. :)</p> 
+
+<h2>Don&#8217;t mock types you don&#8217;t own &#8211; integration test them!</h2>
+
+<p>Recently I was test driving some code that uses Castle DynamicProxy. I mocked out the Castle interface and checked my subject under test interacted with that library in a way that I thought was correct. The problem here is I do not own the Castle type, and <a href="http://stevef.truemesh.com/archives/000194.html">you should not mock types you don&#8217;t own</a>.</p>
+
+<p>Mocking types you don&#8217;t own gives you very little in the way of ensuring correctness, and is potentially misleading in terms of the design guidance it provides. The problem is that you are testing based on your assumption of how the type works, not how it actually works. Sure, you&#8217;re testing that your code correctly calls the method you told it to, but what about testing it calls the correct method? If the type changes in a later version, or if it&#8217;s behaviour is slightly different than you expect under different conditions or arguments, then your tests can pass but your software fails. A misleading test like this can be more harmful than having no test.</p>
+
+<div class="note"><b>Aside:</b> The same criticism can be levelled at mocking in general. The difference is that you have tests defining how your own types work, and have the ability to easily change the types if they do not function as required.</div>
+
+<p>Another drawback, especially if you are working with libraries or frameworks that are not designed in a particularly test-friendly way (to put it diplomatically**), is that you may end up starting to push the behaviour of those libraries into those mocks in order for your class under test to interact with them in a meaningful way. Once you start simulating behaviour in your mocks you are doing it wrong &#8211; you are well on your way to brittle, over-specified, complicated tests.</p>
+
+<div style="font-size: x-small; font-style: italic"><b>**</b>  I&#8217;m not talking about Castle here, it&#8217;s awesome. I will remind readers I have worked with SharePoint before&#8230; :)</div>
+
+<p>Of course, if you are avoiding mocking types you don&#8217;t own, this implies you need to use the real types, which means we are in the realms of integration testing. For my Castle-calling code, I ended up unit testing down to my own class that needed to use Castle to achieve something, then writing integration tests with real Castle objects to ensure that my class actually did use Castle correctly. This ended up being much more valuable to me, and much more flexible. It was more valuable because my tests actually told me my class was using the library correctly and was getting the results my system required, rather than just calling the method I thought was needed. It was more flexible because I had not over-specified every interaction with the third-party library, and so could easily and independently vary both my code and how my code interacted with that library.</p>
+
+<p>I&#8217;ve had a habit of avoiding integration tests as I always assumed they had too wider scope and were too slow to be useful. Now I look forward to hitting a case I can easily cover with integration tests, as it means I&#8217;ve reached the bottom of my software&#8217;s abstractions and can just test a concrete piece that actually does some real work by interacting with its environment.</p>
+
+<div class="note"><b>Note:</b> A few words of caution about integration tests. I wouldn&#8217;t recommend switching to integration tests until you are at the very bottom layers of abstraction. Test-drive down until you reach a single class that is an effective facade for some behaviour from a third-party library, then use integration tests to make sure it works as required. Integration tests can also slow down your test suite if they end up hitting the file system, database etc., in which case you should make sure you are able to run them separately from your unit tests and only run them when needed (such as prior to checkin or when you change something related).</div>
+
+<h2>Conclusion</h2>
+
+<p>I still rely very heavily on unit tests when test driving software, but I feel it is really important to know when to use other forms of testing with TDD (and without TDD for that matter). Acceptance tests are a great way to kick off a TDD cycle from the top down, while integration tests are invaluable once you reach the bottom and need to write the code that interacts with the rest of the world. Then there&#8217;s unit testing for everything in between.</p>
+
+<p>Finally, of course, there&#8217;s manual, exploratory testing. This probably won&#8217;t feature too much in your standard TDD cycle, but is so important for checking your software actually works that it didn&#8217;t feel right not to mention it. :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-06-05T22:46:19+10:00" class="updated">Updated 05 Jun 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/tdd/'>tdd</a>, <a class='category' href='/categories/testing/'>testing</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/06/tdd-not-utdd.html" data-via="" data-counturl="http://davesquared.net/2010/06/tdd-not-utdd.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/05/wpf-newbie-and-contentpresenter-solve.html" title="Previous Post: WPF newbie and ContentPresenter solve the case of the disappearing content">&laquo; WPF newbie and ContentPresenter solve the case of the disappearing content</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/06/announcing-nsubstitute.html" title="next Post: Announcing NSubstitute">Announcing NSubstitute &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/06/tdd-not-utdd.html';
+        var disqus_url = 'http://davesquared.net/2010/06/tdd-not-utdd.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: link | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/link/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Link: Mounting ISO images in a virtual CD-ROM drive]]></title>
+    <link href="http://davesquared.net/2007/11/link-mounting-iso-images-in-virtual-cd.html"/>
+    <updated>2007-11-21T08:20:00+11:00</updated>
+    <id>http://davesquared.net/2007/11/link-mounting-iso-images-in-virtual-cd</id>
+    <content type="html"><![CDATA[<p>I end up looking for <a title="this link" href="http://weblogs.asp.net/pleloup/archive/2004/01/15/58918.aspx">this link</a> once or twice every&nbsp;year,&nbsp;so I have finally&nbsp;given in and am chucking&nbsp;on my blog for safe keeping :)&nbsp;</p>
+
+
+<p> <p><a href="http://weblogs.asp.net/pleloup/archive/2004/01/15/58918.aspx">Mounting ISO images in a virtual CD-ROM drive - help.net</a></p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Links to LINQ: Writing custom providers]]></title>
+    <link href="http://davesquared.net/2007/11/links-to-linq-writing-custom-providers.html"/>
+    <updated>2007-11-16T09:55:00+11:00</updated>
+    <id>http://davesquared.net/2007/11/links-to-linq-writing-custom-providers</id>
+    <content type="html"><![CDATA[<p>Just storing a couple of links for a rainy day:</p>
+
+
+<p> <ul> <li>Mehfuz Hossain's <a href="http://dotnetslackers.com/articles/csharp/LINQProviderBasics.aspx">LINQ provider basics</a> article on Dotnetslackers.com</li> <li>The Wayward Weblog's <a href="http://blogs.msdn.com/mattwar/archive/2007/07/30/linq-building-an-iqueryable-provider-part-i.aspx">series on building IQueryable providers</a></li></ul></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[LINQ, deferred execution and closures]]></title>
+    <link href="http://davesquared.net/2007/11/linq-deferred-execution-and-closures.html"/>
+    <updated>2007-11-07T12:32:00+11:00</updated>
+    <id>http://davesquared.net/2007/11/linq-deferred-execution-and-closures</id>
+    <content type="html"><![CDATA[<p>Reading Anders' post on <a href="http://andersnoras.com/blogs/anoras/archive/2007/11/06/lexical-closures-deferred-execution-and-kicker-methods.aspx">Lexical Closures, Deferred Execution and Kicker Methods</a> with respect to LINQ and Quaere, I thought I would write some notes&nbsp;since&nbsp;<a href="http://blogs.zdnet.com/microsoft/?p=898">VS 2008 is RTM this month</a> and I'll hopefully get to start doing some more LINQing. </p>
+
+
+<p> <p>I have used&nbsp;<a href="http://andersnoras.com/blogs/anoras/archive/2007/11/06/lexical-closures-deferred-execution-and-kicker-methods.aspx">Anders' example</a>. What result is printed?</p><pre>int[] numbers = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+int i = 1;
+var numbersPlusI = from n in numbers
+                   select n + i;
+i++;
+foreach (var n in numbersPlusI) {
+  Console.Write(n);
+  Console.Write(" ");
+}
+</pre></p>
+
+<p>To make the answer more obvious, let's rewrite without the layer of syntactic sugar. As I don't have .NET 3.5 handy on this PC, this is just an approximation built on .NET 2.0:</p>
+
+
+<pre>int[] numbers = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; 
+int i = 1;
+IEnumerable&lt;int&gt; numbersPlusI = 
+  Enumerable.Select&lt;int&gt;(numbers, <strong>delegate(int n) { return n + i; }</strong> );
+i++;
+foreach (int n in numbersPlusI) {
+  Console.WriteLine(n);
+  Console.Write(" ");
+}
+</pre>
+
+
+<p><p>LINQ builds up an expression for <code>numbersPlusI</code>, but doesn't execute it <a href="http://davesquared.net/2007/08/linq-enumeration-gotcha.html">until the result is enumerated</a>. Now remembering that C# has closures, the delegate binds to the local variable <code>i</code> (not its value at the point of declaration).&nbsp;When the enumeration is being performed, the delegate is called using <code>i</code>, which is 2 at the time of execution (i=1; i++). So we get:
+<p><pre>2 3 4 5 6 7 8 9 10 11 </pre>
+<p>If you want to run the code on .NET 2.0, here is my approximation of <code>System.Linq.Enumerable</code> and the <code>Func&lt;&gt;</code> delegate relevant for the example. Probably not brilliant, but I am really aiming to illustrate how variables a captured by closures in C#.</p><pre>public delegate T Func&lt;T, A&gt;(A a);
+public class Enumerable {
+  public static IEnumerable&lt;T&gt; Select&lt;T&gt;(IEnumerable&lt;T&gt; source, Func&lt;T,T&gt; valueFromSource) {
+    foreach (T value in source) {
+      yield return valueFromSource(value);
+    }
+  }
+}
+</pre>
+<p>Some good references on this:
+<ul>
+<li>More from Anders Norås: <a href="http://andersnoras.com/blogs/anoras/archive/2007/10/18/bare-naked-linq.aspx">Bare naked LINQ</a>
+<li><a href="http://www.interact-sw.co.uk/iangblog/2005/09/30/expressiontrees">IanG: C# 3.0 and LINQ - Expression Trees</a>
+<li><a href="http://blogs.msdn.com/ericwhite/pages/Lambda-Expressions.aspx">Eric White: Lambda Expressions</a>
+<li><a href="http://blogs.msdn.com/wesdyer/archive/2007/01/03/how-linq-to-objects-queries-work.aspx">Wes Dyer: How Linq to Objects Queries Work</a>
+<li><a href="http://msdn2.microsoft.com/en-gb/library/bb308959.aspx">Don Box and Anders Hejlsberg writing about LINQ in Feb 2007</a>
+<li><a href="http://www.martinfowler.com/bliki/Closure.html">Martin Fowler on closures</a></li></ul></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Link: Refactoring walkthrough]]></title>
+    <link href="http://davesquared.net/2007/10/link-refactoring-walkthrough.html"/>
+    <updated>2007-10-19T08:02:00+10:00</updated>
+    <id>http://davesquared.net/2007/10/link-refactoring-walkthrough</id>
+    <content type="html"><![CDATA[<p>Jeremy Miller recently posted a "<a href="http://codebetter.com/blogs/jeremy.miller/archive/2007/10/18/best-of-the-shade-tree-developer-part-ii.aspx">Best of...</a>" compendium&nbsp;that included the following post:</p>
+
+
+<p> <p><a href="http://codebetter.com/blogs/jeremy.miller/archive/2006/12/03/Composed-Method-Pattern.aspx">Composed Method Pattern</a></p> <p>This post&nbsp;takes a simple code example and applies a series of refactoring steps to make it easier to read and maintain. The comments point out a bug in the initial example (transferred to the final snippet) that is made more obvious by the refactoring (I won't point it out in case you want to find it yourself :)).</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Link: Tutorial on ASP.NET MVC]]></title>
+    <link href="http://davesquared.net/2007/10/link-tutorial-on-aspnet-mvc.html"/>
+    <updated>2007-10-18T09:33:00+10:00</updated>
+    <id>http://davesquared.net/2007/10/link-tutorial-on-aspnet-mvc</id>
+    <content type="html"><![CDATA[<p>Sergio Pereira has a great overview of the recently announced, pre-release&nbsp;ASP.NET MVC Framework:</p>
+
+
+<p> <p><a href="http://www.sergiopereira.com/articles/aspnetmvc.html">Developer Notes for the ASP.NET MVC Framework</a> </p> <p>He covers the file system layout, routing, implementing each part of the triad, and testing.</p></p>
+]]></content>
+  </entry>
+  
+</feed>

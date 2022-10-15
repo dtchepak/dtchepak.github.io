@@ -1,0 +1,337 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Don't mock types you don't own - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I&#8217;ve found applying the guideline* of not mocking types you don&#8217;t own to have helped my designs a fair bit recently. I&#8217;ve mentioned &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2011/04/dont-mock-types-you-dont-own.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Don't mock types you don't own</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2011-04-28T23:57:00+10:00" pubdate data-updated="true">28 Apr 2011</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I&#8217;ve found applying the guideline* of <a href="http://stevef.truemesh.com/archives/000194.html">not mocking types you don&#8217;t own</a> to have helped my designs a fair bit recently. I&#8217;ve <a href="http://davesquared.net/2010/06/tdd-not-utdd.html">mentioned it before</a>, but I wanted to take a closer look at the topic in an attempt to improve my own understanding. And in that spirit of improving my understanding, please feel free to rip this to shreds. :)</p>
+
+<div class="note"><b>*</b> Guideline, not a <a href="http://davesquared.net/2011/01/rules.html">rule</a>. :)</div>
+
+<h2>But I don&#8217;t use mocks! I use stubs!</h2>
+
+<p>Let&#8217;s start by clarifying that by &#8220;mocking&#8221; I&#8217;m referring to the <a href="http://martinfowler.com/articles/mocksArentStubs.html">mocks and stubs</a> we use as test doubles; the kind we tend to get from our mocking/substitution/fake/isolation framework of choice. By &#8220;types we don&#8217;t own&#8221; we&#8217;re talking about any type that isn&#8217;t defined and tested as part of the current build (or solution, to use Visual Studio parlance). This includes anything from types in a base class library to APIs for accessing another system or service.</p>
+
+<h2>When mocking makes sense</h2>
+
+<p>To me the sweet spot for mocking is when we&#8217;re using TDD to drive out the design of a collaborator that doesn&#8217;t exist yet, or one that requires modification.</p>
+
+<p>In these cases we&#8217;re defining how the type will act, and we have the ability to adjust this behaviour as required by the type&#8217;s consumers by altering these tests. At this level our design is really quite fluid; we can shuffle responsibilities between types, and create new or collapse existing types as we see fit. We are working within our own abstractions, optimised (hopefully) for making our code easy to work with.</p>
+
+<p>A more general form of this case is when we want to isolate a class under test from its dependencies. This allows us to configure explicit behaviour for our test doubles so we don&#8217;t need to test a whole host of input combinations; we can assume the collaborators&#8217; behaviours and just worry about the class under test. It also can shield us from long running tests by replacing slow collaborators (such as those that make database or web service calls), or from difficult test setups due to collaborators that need to run in an explicitly configured environment (such as those that make database or web service calls), or from unreliable tests due to collaborators with variable behaviour (such as those that make database or web service calls ;)).</p>
+
+<p>However this more general case has landed me in trouble more than a few times when I&#8217;ve tried mocking (and stubbing) the interactions with types I don&#8217;t own.</p>
+
+<h2>Tests that do little</h2>
+
+<p>When we are writing a test as part of TDD we are primarily specifying how our type will behave, and as a result defining the behaviour of the type&#8217;s collaborators. The interactions between these types are tested as well, but the next step we&#8217;ll do is drive down into the collaborating type and make sure it will work as required. As we have full control over the types at each end of the exchange, we can be reasonably confident our real code is going to do what we expect. After all, we wrote and tested that code in accordance with how our tests told us it was going to behave.</p>
+
+<p>For types we don&#8217;t own we don&#8217;t have this level of transparency. They already have a fixed design and behaviour specified elsewhere. By testing interactions with a mocked version of this type, we really are not using our test to check for the correct behaviour, nor to drive out a collaborator&#8217;s design. All our test is doing is reiterating our guess as to how the other type works. Sure, it&#8217;s better than no test, but not necessarily by much. Just because we have checked we successfully called <code>database.Save(data)</code> doesn&#8217;t mean that we didn&#8217;t need to call <code>database.OpenConnection()</code> first.</p>
+
+<p>Even when we know an external library really well, and so completely understand the interactions required, mocking that library can still give us misleading tests. If we update the library version and there has been a subtle change to the required interactions, our tests can still pass but our code will fail. Just because we have always received events in a particular order from a library doesn&#8217;t mean we can assume that will always be the case, particularly if it is not documented behaviour and/or it was just a side-effect of the implementation used in previous versions.</p>
+
+<p>These integration issues can also be a problem with types we do own, but I&#8217;ve found that because we&#8217;re driving out each step in an end-to-end behaviour, we get added transparency and more focussed abstractions that tend to make this much less common than when dealing with external types.</p>
+
+<h2>Tests that do too much</h2>
+
+<p>Another risk we run in specifying all the required interactions with types we don&#8217;t own is having <a href="http://xunitpatterns.com/Fragile%20Test.html#Overcoupled%20Test">overspecified tests</a>. These tests quickly become a pain point; they are hard to change because they are so coupled to the specific implementation and pattern of interactions with a type, and refactoring which doesn&#8217;t actually change the behaviour can result in tests failing.</p>
+
+<p>This can also mean large, convoluted setups as we attempt to mimic the way the collaborating types work, which can make our tests difficult to read, understand and maintain. In general, once we find ourselves setting up complex interactions and behaviour using mocking framework constructs, chances are we&#8217;re doing it wrong.</p>
+
+<p>This can be mitigated to some extent by the way we encapsulate the library and the setup needed for our test fixtures, but eventually we&#8217;re going to have to pay for the impedance mismatch between our abstractions and the abstractions used for the type we don&#8217;t own. Which segues neatly to our next point&#8230;</p>
+
+<h2>Corrupted abstractions</h2>
+
+<p>Depending on the complexity of the interactions with types we don&#8217;t own, the abstractions used for those types can leak into and influence our own abstractions. We may add abstractions just to give us enough visibility into interactions with these types to ensure we have specified all the calls we expect, rather than because they make sense to the problem we are trying to solve. This could mean a whole lot of wrappers over external types, or new factories to create specific objects required by the interactions.</p>
+
+<p>This isn&#8217;t necessarily bad, but it does mean we&#8217;re no longer writing the code that best solves or abstracts away our current problem, and also can leave us more tightly coupled than we&#8217;d like to the library that owns the type. Because we&#8217;re not defining the behaviour in our tests, we end up coupling our design to the implementation of the external types instead.</p>
+
+<p>Writing and maintaining these additional abstractions can also be quite expensive, especially considering the questions we&#8217;ve already raised about how useful those tests are.</p>
+
+<p>Remember, external libraries are built to help people solve a general problem. When we design code for a project we are trying to solve specific problems. An abstraction that is handy for addressing the more general problem is not necessarily going to match the abstractions that help us.</p>
+
+<h2>Well how do I test code that uses external types then?</h2>
+
+<p>One way of looking at this is that we are switching from TDD-style tests with the aim of driving design to good old fashion &#8220;check this works&#8221; tests. In my experience the mindset is fairly different, as are the tests themselves.</p>
+
+<p>One way of making this switch is to use the real types and do an integration test. Test drive our design down to a level of abstraction that is useful, then integration test over the boundary. Rather than checking our class interacts with an external type in a certain way, we check it gives us the behaviour we require.</p>
+
+<p>If we are testing that we&#8217;re using an ORM properly, we can use the real ORM and database and check that we can load up the required details after a save operation. If we&#8217;re using <a href="http://www.castleproject.org/">Castle DynamicProxy</a>, then we can call our code that uses DynamicProxy and check the object we get back forwards to the interceptor we expect, rather than asserting we return a specific object from a mocked <code>ProxyGenerator</code> class we don&#8217;t own and whose ins and outs we may not fully understand. We&#8217;re checking the consequence of the action, rather than the details of the action itself.</p>
+
+<p>This isn&#8217;t to say that we add a whole host of tests around a component we don&#8217;t own &#8211; we really need to have a little faith in it working as advertised otherwise it would probably be quicker to just write our own. Instead the purpose of our test should focus on getting some degree of confidence that our use of the library has the basic desired behaviour. Rather than stating we need certain interactions with the library, we can use some simple, focussed cases with the real types to sanity check assumptions we made about the required interactions.</p>
+
+<p>I&#8217;ve found that doing this frequently gives me much cleaner tests and implementations than if I had wrapped and tested the different elements of the interactions with types from another library. Provided the abstraction I&#8217;ve ended up with in my own code is OK, testing the behaviour tends not be too arduous.</p>
+
+<p>As an alternative (or ideally complimentary) approach, we can use acceptance tests to make sure the entire feature works as expected (i.e. not just covering the call over the integration boundary, but exercising as much of the real feature as possible). Again, we&#8217;re checking behaviour, not implementation specifics for types where we don&#8217;t have a constant, transparent view into those implementations.</p>
+
+<h2>What about when I just can&#8217;t use the real type?</h2>
+
+<p>There are times when using the real types is not practical. Maybe setting up an email server on each dev machine and checking the email account receives the required email is too much for our regular test suite (possibly a great test to run on a CI server or similar though). Or perhaps actually firing the doomsday device just isn&#8217;t prudent for a test case that runs several times an hour&#8230; :)</p>
+
+<p>In these cases we can create our own fake version of the external system or library. This is probably not going to come from our mocking framework of choice; as previously mentioned, once we find ourselves setting up complex interactions and behaviour using mocking framework constructs, we&#8217;re probably doing it wrong. The important thing is to verify that our calls to the fake are compatible with the real classes, and where possible check that the behaviour matches what we expect. Martin Fowler calls these <a href="http://martinfowler.com/bliki/IntegrationContractTest.html">Integration Contract Tests</a>. The idea is that if we pass a certain range of values to our fake, the real version should also be able to handle these values. If we assume the real version behaves in a certain way and replicate that in our fake, we can write a test to try and verify that assumption.</p>
+
+<p>In some cases we can use the real type with a different configuration as our fake. For example, we could run tests through our ORM configured to use an in-memory database. This won&#8217;t test the final hop to our target RDBMS, but it will give us some confidence that our use of the API is correct, and we can setup more comprehensive tests against the real configuration on our CI server.</p>
+
+<h2>Limitations of integration tests</h2>
+
+<p>It would be remiss of me not to mention <a href="http://www.jbrains.ca">J.B. Rainsberger&#8217;s</a> assertion that <a href="http://www.jbrains.ca/series/integrated-tests-are-a-scam">integration tests are a scam</a>, which is nicely <a href="http://b-speaking.blogspot.com/search/label/integration%20tests">summarised by Gabino Roche Jr</a>. I&#8217;m not proficient enough with this stuff to talk definitively on this, but I&#8217;ll give you my 2 cents, then you should go through J.B.&#8217;s work and see how you can apply it. It&#8217;s also worth looking at the <a href="http://www.growing-object-oriented-software.com/">GOOS book</a>; it has some really interesting examples of how to effectively use acceptance tests for driving development, including the need to deal with other libraries and systems.</p>
+
+<p>My limited understanding of J.B.&#8217;s objections to integration tests is that they are not going to ensure correctness (you can&#8217;t test exhaustively), they can be brittle and difficult to write and maintain, and that they can end up as a <a href="http://blog.thecodewhisperer.com/post/1325858548/integrated-tests-are-a-scam">&#8220;self-replicating virus&#8221;</a> when used as a crutch any time a programmer can&#8217;t find a good, testable abstraction and therefore can&#8217;t unit test the code.</p>
+
+<p>Almost without fail whenever I have mocked a type I don&#8217;t own I end up experiencing pain. Best case is I get lots of fairly useless abstractions that cover different operations within the external library&#8217;s API. Worst case is I get lots of useless abstractions that don&#8217;t work with the real API and are really difficult to change. This only leaves me with integration/acceptance-style tests for code that uses these types, so for me the question becomes one of how to write these tests effectively while trying to limit the legitimate problems J.B. has highlighted. I don&#8217;t have the answer to this, but here&#8217;s some guidelines I&#8217;ve been using:</p>
+
+<ul>
+<li>If possible, limit the amount of exposure we have to the external library. When <a href="https://github.com/nsubstitute/NSubstitute/blob/v1.0.0/Source/NSubstitute/Proxies/CastleDynamicProxy/CastleDynamicProxyFactory.cs">using DynamicProxy for NSubstitute</a> we could get away with using only a very small part of the library, which meant we <a href="https://github.com/nsubstitute/NSubstitute/blob/v1.0.0/Source/NSubstitute.Specs/Proxies/CastleDynamicProxy/CastleDynamicProxyFactorySpecs.cs">had only a few things to integration test</a>.</li>
+<li>The abstractions we choose are important; they can determine how much work we have to do in each interaction with the external system. If there is a big mismatch between the abstraction we&#8217;ve driven out and the external code we need to work with, it might just be a sign we need a better fit for our requirements. (e.g. maybe we should persist using a document DB instead of an RDBMS? Or maybe just throwing data on the file system would fit better?)</li>
+<li>Accept we can&#8217;t test exhaustively, and focus on the most helpful cases. We generally want to assume the external stuff works as advertised, so we really just want to get some confidence that we are using it in a way that seems to give us the behaviour we expect.</li>
+<li>If we keep coming up against integration bugs, adding integration tests is probably not the answer. We may need to examine ways we can push out more responsibility into unit-testable abstractions to simplify the integration.</li>
+<li>Sometimes it is worth the time to develop a good, fake implementation of a complex external system. Examples include simulating external hardware, or using an in-memory database instead of an external one.</li>
+<li>Make the tests easy to read and write. If you have long, complicated test setups we need to either look for better abstractions, or encapsulate the setup process in its own abstraction.</li>
+</ul>
+
+
+<h2>Conclusion</h2>
+
+<p>In summary, my current thinking on the subject is that while using mocks and stubs is really beneficial when driving out the design of collaborators using TDD, it is important to identify when we need to stop test-driving and start testing. This is generally the point where we hit a type we don&#8217;t own from a library or external system.</p>
+
+<p>Using test doubles for types we don&#8217;t own can end up with fragile tests that don&#8217;t actually test much of value, or can even compromise our design and the effectiveness of the abstractions we use. Even when mocking a library we know really well we can end up with compromised abstractions and fragile tests due to relying on implementation details or assumptions based on previous versions of the library.</p>
+
+<p>I&#8217;ve found switching to integration and acceptance tests to test over the boundary between my code and the other types a very useful alternative, but it is important to be aware that this approach can bring its own problems, and we need to try and mitigate these when writing our tests.</p>
+
+<p>And finally, we should remember that this is just a guideline. If we find a situation where it is going to be both safe and simpler to mock a type we don&#8217;t own, we may as well do so, but at least we&#8217;ve considered our options. :)</p>
+
+<p>Have I got this all wrong? Please leave a comment or email me at davesquared.net. :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2011-04-29T00:06:31+10:00" class="updated">Updated 29 Apr 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/tdd/'>tdd</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2011/04/dont-mock-types-you-dont-own.html" data-via="" data-counturl="http://davesquared.net/2011/04/dont-mock-types-you-dont-own.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/03/why-learning-tdd-is-hard-and-what-to-do.html" title="Previous Post: Why learning TDD is hard, and what to do about it">&laquo; Why learning TDD is hard, and what to do about it</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/05/rx-newbie-observes-property-changes.html" title="next Post: An Rx newbie observes property changes">An Rx newbie observes property changes &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2011/04/dont-mock-types-you-dont-own.html';
+        var disqus_url = 'http://davesquared.net/2011/04/dont-mock-types-you-dont-own.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

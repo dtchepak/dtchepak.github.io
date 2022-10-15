@@ -1,0 +1,454 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Lazy&lt;T&gt; monad instance in C# - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="One of the most surprising and useful things I’ve learned about .NET this year is that it has quite good support for monads as of .NET 3.5 (it’s just &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/12/lazy-monad-csharp.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Lazy&lt;T&gt; monad instance in C#</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-12-13T00:07:00+11:00" pubdate data-updated="true">13 Dec 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>One of the most surprising and useful things I’ve learned about .NET this year is that it has quite good support for <a href="http://davesquared.net/2012/06/fp-newbie-learns-monads.html">monads</a> as of .NET 3.5 (it’s just missing higher-order polymorphism). What’s more, for those allergic to monads, you don’t need to understand anything in that previous sentence to follow this post. :)</p>
+<p>In this post we’ll implement the couple of functions necessary to be able to compose instances of <a href="http://msdn.microsoft.com/en-us/library/dd642331.aspx"><code>Lazy&lt;T&gt;</code></a> together in interesting ways using LINQ and LINQ comprehensions.</p>
+<!-- more -->
+<h2 id="motivation">Motivation</h2>
+<p>As mentioned <a href="http://davesquared.net/2012/12/threading-and-lazy-t.html">last post</a>, I’ve been messing around with <code>Lazy&lt;T&gt;</code> as a way of performing one-time, long-running retrieval of values in an asynchronous way. Some of these values depend upon each other, so I’d like a way to build a new <code>Lazy&lt;T&gt;</code> from some existing lazy values, then hand them off to a background thread to populate. We’ll see an example of this at the end of the post.</p>
+<h2 id="lazy-linq-extension-methods">Lazy LINQ extension methods</h2>
+<p>To play nicely with LINQ we need to implement a couple of extension methods for <code>Lazy&lt;T&gt;</code>: <code>Select</code> and <code>SelectMany</code>. Types for which these functions are implemented are monads<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, which means we can combine them in interesting ways. In Haskell, <code>Select</code> is known as <code>fmap</code>, <code>SelectMany</code> is known as <code>&gt;&gt;=</code> (pronounced “bind”).</p>
+<h3 id="mapping-inside-with-select">Mapping inside with <code>Select</code></h3>
+<p>The <code>Select</code> implementation for <code>Lazy&lt;T&gt;</code> works similarly to how it does for <code>IEnumerable&lt;T&gt;</code>. For <code>IEnumerable&lt;T&gt;</code>, it takes a <code>Func&lt;T, TResult&gt;</code> and maps it over each value inside, and returns a new <code>IEnumerable&lt;TResult&gt;</code>. For <code>Lazy&lt;T&gt;</code>, it applies the selector function to the single value inside, returning a new <code>Lazy&lt;TResult&gt;</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">LazyExtensions</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;</span> <span class="n">Select</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="k">value</span><span class="p">,</span> <span class="n">Func</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;</span> <span class="n">selector</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="n">selector</span><span class="p">(</span><span class="k">value</span><span class="p">.</span><span class="n">Value</span><span class="p">));</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h3 id="mapping-and-flattening-with-selectmany">Mapping and flattening with <code>SelectMany</code></h3>
+<p>Now we come to <code>SelectMany</code>. Rather than taking a <code>Func&lt;T, TResult&gt;</code> like <code>Select</code>, it works on <code>Func&lt;T, Lazy&lt;TResult&gt;&gt;</code> instead.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="k">static</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;</span> <span class="n">SelectMany</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">lazy</span><span class="p">,</span> <span class="n">Func</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;&gt;</span> <span class="n">selector</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="n">selector</span><span class="p">(</span><span class="n">lazy</span><span class="p">.</span><span class="n">Value</span><span class="p">).</span><span class="n">Value</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The output of <code>selector(lazy.Value)</code> is a <code>Lazy&lt;TResult&gt;</code>. We don’t want to return a <code>Lazy&lt;Lazy&lt;TResult&gt;&gt;</code>, so we need to flatten this out. We can do this by returning <code>selector(lazy.Value).Value</code>, to get the inner <code>Lazy&lt;TResult&gt;</code> out.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
+<p>To work well with the <code>from .. select</code> style of LINQ query we also want to implement another overload of <code>SelectMany</code> that has an additional result combining function. We can also re-write our previous <code>SelectMany</code> in terms of this new overload. Here’s the finished static class:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="k">static</span> <span class="k">class</span> <span class="nc">LazyExtensions</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;</span> <span class="n">Select</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">lazy</span><span class="p">,</span> <span class="n">Func</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;</span> <span class="n">selector</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="n">selector</span><span class="p">(</span><span class="n">lazy</span><span class="p">.</span><span class="n">Value</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">static</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;</span> <span class="n">SelectMany</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">lazy</span><span class="p">,</span> <span class="n">Func</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;&gt;</span> <span class="n">selector</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nf">SelectMany</span><span class="p">(</span><span class="n">lazy</span><span class="p">,</span> <span class="n">selector</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="n">b</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">static</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;</span> <span class="n">SelectMany</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TA</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">lazy</span><span class="p">,</span> <span class="n">Func</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TA</span><span class="p">&gt;&gt;</span> <span class="n">selector</span><span class="p">,</span> <span class="n">Func</span><span class="p">&lt;</span><span class="n">T</span><span class="p">,</span> <span class="n">TA</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;</span> <span class="n">resultSelector</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span>
+                                 <span class="p">{</span>
+                                     <span class="kt">var</span> <span class="n">first</span> <span class="p">=</span> <span class="n">lazy</span><span class="p">.</span><span class="n">Value</span><span class="p">;</span>
+                                     <span class="kt">var</span> <span class="n">second</span> <span class="p">=</span> <span class="n">selector</span><span class="p">(</span><span class="n">first</span><span class="p">).</span><span class="n">Value</span><span class="p">;</span>
+                                     <span class="k">return</span> <span class="nf">resultSelector</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">);</span>
+                                 <span class="p">});</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The last function is our new <code>SelectMany</code> overload, which has the additional step of combining the results of both the first lazy value, and the second lazy value returned from the <code>selector</code> function.</p>
+<h2 id="its-alive-its-alive">It’s alive! It’s alive!</h2>
+<p>We can now test out our abomination. Here’s how <code>Select</code> works:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="na">[Test]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">Map</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">lazyInt</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="m">42</span><span class="p">);</span>
+    <span class="kt">var</span> <span class="n">newLazy</span> <span class="p">=</span> <span class="n">lazyInt</span><span class="p">.</span><span class="n">Select</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="p">(</span><span class="n">x</span> <span class="p">*</span> <span class="m">2</span><span class="p">).</span><span class="n">ToString</span><span class="p">());</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="s">&quot;84&quot;</span><span class="p">,</span> <span class="n">newLazy</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>And here’s how <code>SelectMany</code> works using LINQ comprehension syntax (we can also call the <code>SelectMany</code> extension method directly if we like):</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="na">[Test]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">SelectMany</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">first</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="m">42</span><span class="p">);</span>
+    <span class="kt">var</span> <span class="n">second</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="s">&quot;nyan&quot;</span><span class="p">);</span>
+
+    <span class="kt">var</span> <span class="n">third</span> <span class="p">=</span> <span class="k">from</span> <span class="n">x</span> <span class="k">in</span> <span class="n">first</span>
+                <span class="k">from</span> <span class="n">str</span> <span class="k">in</span> <span class="n">second</span>
+                <span class="k">select</span> <span class="n">str</span> <span class="p">+</span> <span class="s">&quot; cat &quot;</span> <span class="p">+</span> <span class="n">x</span><span class="p">;</span>
+
+    <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="s">&quot;nyan cat 42&quot;</span><span class="p">,</span> <span class="n">third</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The <code>from .. select</code> syntax gives us a nice way to express how we want to combine the values inside the <code>Lazy&lt;T&gt;</code> instances. We call the value in the <code>first</code> instance <code>x</code>, and the string in the <code>second</code> instance <code>str</code>, then create a new lazy that combines <code>str + " cat " + x</code>, all without ever really accessing the values until the <code>.Value</code> property is called.</p>
+<p>To illustrate that combining <code>Lazy&lt;T&gt;</code> instances does not trigger evaluation, let’s write a test that increments a counter for each instance whenever evaluation occurs.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="na">[Test]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">ShouldDeferExecutionUntilValueCalled</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">counters</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">int</span><span class="p">[</span><span class="m">3</span><span class="p">];</span>
+
+    <span class="kt">var</span> <span class="n">first</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="p">{</span> <span class="n">counters</span><span class="p">[</span><span class="m">0</span><span class="p">]++;</span> <span class="k">return</span> <span class="m">10</span><span class="p">;</span> <span class="p">});</span>
+    <span class="kt">var</span> <span class="n">second</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;(()</span> <span class="p">=&gt;</span> <span class="p">{</span> <span class="n">counters</span><span class="p">[</span><span class="m">1</span><span class="p">]++;</span> <span class="k">return</span> <span class="s">&quot;nyan&quot;</span><span class="p">;</span> <span class="p">});</span>
+    <span class="kt">var</span> <span class="n">third</span> <span class="p">=</span> <span class="k">from</span> <span class="n">x</span> <span class="k">in</span> <span class="n">first</span>
+                <span class="k">from</span> <span class="n">str</span> <span class="k">in</span> <span class="n">second</span>
+                <span class="k">let</span> <span class="n">temp</span> <span class="p">=</span> <span class="n">counters</span><span class="p">[</span><span class="m">2</span><span class="p">]++</span>
+                <span class="k">select</span> <span class="n">str</span> <span class="p">+</span> <span class="s">&quot; cat &quot;</span> <span class="p">+</span> <span class="n">x</span><span class="p">;</span>
+
+    <span class="c1">//No values have been evaluated yet:</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">That</span><span class="p">(</span><span class="n">counters</span><span class="p">,</span> <span class="n">Is</span><span class="p">.</span><span class="n">EquivalentTo</span><span class="p">(</span><span class="k">new</span><span class="p">[]</span> <span class="p">{</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span> <span class="p">}));</span>
+
+    <span class="c1">//Force values to be evaluated. </span>
+    <span class="c1">//third.Value will force first and second to evaluate too.</span>
+    <span class="kt">var</span> <span class="n">eval0</span> <span class="p">=</span> <span class="n">third</span><span class="p">.</span><span class="n">Value</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">eval1</span> <span class="p">=</span> <span class="n">third</span><span class="p">.</span><span class="n">Value</span><span class="p">;</span>
+
+    <span class="c1">//Each value only evaluated once</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">That</span><span class="p">(</span><span class="n">counters</span><span class="p">,</span> <span class="n">Is</span><span class="p">.</span><span class="n">EquivalentTo</span><span class="p">(</span><span class="k">new</span><span class="p">[]</span> <span class="p">{</span> <span class="m">1</span><span class="p">,</span> <span class="m">1</span><span class="p">,</span> <span class="m">1</span> <span class="p">}));</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This is just like the deferred execution we get using LINQ for <code>IEnumerable&lt;T&gt;</code>, where nothing is evaluated until we traverse the enumerable by using <code>foreach</code> or a method like <code>ToList()</code>.</p>
+<h2 id="back-to-our-motivating-example">Back to our motivating example</h2>
+<p>So back to our motivating example. We wanted to take several long-running operations, and calculate them once on a background thread. We’ll specify all these operations using <code>Lazy&lt;T&gt;</code> instances, compose them together using our extension methods, and do the initialisation of the value using an async task (this is <a href="http://davesquared.net/2012/12/threading-and-lazy-t.html">thread-safe by default for <code>Lazy&lt;T&gt;</code></a>).</p>
+<p>The <code>Lazy&lt;T&gt;</code> handles caching the calculation value, so subsequent accesses to any of the lazy instances involved in the calculation will now return the pre-calculated value immediately.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="na">[Test]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">AsyncInitialisation</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">key0Lookup</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;(</span><span class="n">FranticSearchForFirstKey</span><span class="p">);</span>
+    <span class="kt">var</span> <span class="n">key1Lookup</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Lazy</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;(</span><span class="n">SearchingEverywhereForSecondKey</span><span class="p">);</span>
+    <span class="kt">var</span> <span class="n">veryTrickyCalculation</span> <span class="p">=</span>
+        <span class="k">from</span> <span class="n">key0</span> <span class="k">in</span> <span class="n">key0Lookup</span>
+        <span class="k">from</span> <span class="n">key1</span> <span class="k">in</span> <span class="n">key1Lookup</span>
+        <span class="k">select</span> <span class="nf">LongRunningCalculation</span><span class="p">(</span><span class="n">key0</span><span class="p">,</span> <span class="n">key1</span><span class="p">);</span>
+
+    <span class="n">Task</span><span class="p">.</span><span class="n">Factory</span><span class="p">.</span><span class="n">StartNew</span><span class="p">(()</span> <span class="p">=&gt;</span> <span class="n">veryTrickyCalculation</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+
+    <span class="c1">//Blocks until async initialisation finished:</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="m">30</span><span class="p">,</span> <span class="n">veryTrickyCalculation</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+    <span class="c1">//Returns immediately:</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="m">30</span><span class="p">,</span> <span class="n">veryTrickyCalculation</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">private</span> <span class="kt">string</span> <span class="nf">FranticSearchForFirstKey</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;frantic search for first key&quot;</span><span class="p">);</span>
+    <span class="n">Thread</span><span class="p">.</span><span class="n">Sleep</span><span class="p">(</span><span class="m">1000</span><span class="p">);</span>
+    <span class="k">return</span> <span class="s">&quot;10&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">private</span> <span class="kt">string</span> <span class="nf">SearchingEverywhereForSecondKey</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;where&#39;s the second key?&quot;</span><span class="p">);</span>
+    <span class="n">Thread</span><span class="p">.</span><span class="n">Sleep</span><span class="p">(</span><span class="m">700</span><span class="p">);</span>
+    <span class="k">return</span> <span class="s">&quot;20&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">private</span> <span class="kt">int</span> <span class="nf">LongRunningCalculation</span><span class="p">(</span><span class="kt">string</span> <span class="n">key0</span><span class="p">,</span> <span class="kt">string</span> <span class="n">key1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;stand back, i&#39;m going to try science!&quot;</span><span class="p">);</span>
+    <span class="n">Thread</span><span class="p">.</span><span class="n">Sleep</span><span class="p">(</span><span class="m">2000</span><span class="p">);</span>
+    <span class="k">return</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">key0</span><span class="p">)</span> <span class="p">+</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">key1</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This test is just to show it working; for more realistic use we could try <a href="http://msdn.microsoft.com/en-us/library/hh211785(v=vs.103).aspx">wrapping the task in an <code>IObservable&lt;T&gt;</code></a> and calling subscribers back with the result. The first result will take some time, but subsequent calls will return the value back to the subscriber straight away.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>So we’ve now seen how to combine <code>Lazy&lt;T&gt;</code> instances in interesting ways using LINQ, <code>Select</code>, and <code>SelectMany</code>. This let us control evaluation of several lazy instances by composing them and pushing initialisation into an async task.</p>
+<p>More fundamentally, we’ve now got a bit of an idea about monads. A monad for a type is formed by a <code>Select</code> and <code>SelectMany</code> defined for the type, which enables the use of common composition patterns like <code>from .. select</code>. Between this, standard LINQ enumerables, and <a href="http://davesquared.net/2012/12/optional-fp-in-csharp.html">using F#’s Option type in C#</a> we can start to get an idea of how useful this pattern is.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>A monad also needs a function which takes a value of <code>T</code> and returns a new instance of the monad with that value. This is called <code>return</code> in Haskell. We can use the <code>Lazy&lt;T&gt;</code> constructor for this. There are also a few simple rules for how these functions should act and combine to make a valid monad instance, but we won’t go into them here.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>This is a key part of how the monad interface works, so you’ll see this pattern crop up all the time when implementing <code>SelectMany</code>.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-12-13T00:07:00+11:00" pubdate data-updated="true">13 Dec 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/linq/'>linq</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/12/lazy-monad-csharp.html" data-via="" data-counturl="http://davesquared.net/2012/12/lazy-monad-csharp.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/12/threading-and-lazy-t.html" title="Previous Post: Threading and Lazy&lt;T&gt;">&laquo; Threading and Lazy&lt;T&gt;</a>
+      
+      
+        <a class="basic-alignment right" href="/2013/02/from-two-functions-to-tuples.html" title="next Post: From two functions to tuples with a mad Haskeller">From two functions to tuples with a mad Haskeller &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/12/lazy-monad-csharp.html';
+        var disqus_url = 'http://davesquared.net/2012/12/lazy-monad-csharp.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

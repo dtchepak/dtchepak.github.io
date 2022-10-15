@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Some optional, functional goodness in C# - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="For this post I wanted to show you a small yet extremely useful bit of functional programming that you can apply right away to your current C# (or VB &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/12/optional-fp-in-csharp.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Some optional, functional goodness in C#</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-12-02T23:35:00+11:00" pubdate data-updated="true">02 Dec 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>For this post I wanted to show you a small yet extremely useful bit of functional programming that you can apply right away to your current C# (or VB.NET) project. While there’s solid theory underpinning it, we won’t need any of that to be able to apply it, so we’ll jump straight to the practice. (I love the theory, so this is quite a sacrifice I’m making for you! ;)) As an added bonus, we’ll also get a good stepping stone for starting to apply more of these practical FP ideas in our everyday code.</p>
+<!-- more -->
+<h2 id="are-you-null-if-not-then-do-stuff">Are you null? If not then do stuff!</h2>
+<p>Dealing with a <a href="http://lambda-the-ultimate.org/node/3186">null</a> is a fact of life in our C# projects. It is not unusual to end up with code that has one or more null checks. Let’s start with a small example:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="n">Order</span> <span class="nf">GetOrderWhilePeckish</span><span class="p">(</span><span class="n">IWaiter</span> <span class="n">waiter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">menu</span> <span class="p">=</span> <span class="n">waiter</span><span class="p">.</span><span class="n">GetCurrentMenu</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">menu</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">null</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="nf">Order</span><span class="p">(</span><span class="n">menu</span><span class="p">.</span><span class="n">Everything</span><span class="p">());</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Here we get the menu from a waiter. If there is no menu available, then we don’t place an order. Otherwise, we order everything on the menu.</p>
+<p>There are two issues with this. First is the noise; the guard clause obscures much of what the method is doing. This gets worse as the number of nullable references increases (we can end up with an explosion of guard clauses, or <a href="http://www.codinghorror.com/blog/2006/01/flattening-arrow-code.html">arrow code</a>).</p>
+<p>The second issue is that we are using <code>null</code> to indicate that there is no current menu, which is a value of some significance. We can also get <code>null</code> because we haven’t initialised a reference, which is generally due to a mistake rather than any particular significance. It would be nice to separate these cases, so that <code>GetCurrentMenu()</code> can return either <code>no menu</code> or <code>some menu</code>.</p>
+<p>Let’s try and address these problems.</p>
+<h2 id="null-or-empty">Null, or empty?</h2>
+<p>Rather than treating <code>GetCurrentMenu()</code> as something that returns a <code>Menu</code> object, let’s treat its output as a list of menus. This list is either going to contain a single <code>Menu</code>, or be empty. But we’ll make sure it never returns <code>null</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">private</span> <span class="n">IEnumerable</span><span class="p">&lt;</span><span class="n">Menu</span><span class="p">&gt;</span> <span class="n">ToList</span><span class="p">(</span><span class="n">Menu</span> <span class="n">menu</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Produce a single item or empty list; never null.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">menu</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span> <span class="k">yield</span> <span class="k">return</span> <span class="n">menu</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="n">Order</span> <span class="nf">GetOrderWhilePeckish</span><span class="p">(</span><span class="n">IWaiter</span> <span class="n">waiter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">menuOrNothing</span> <span class="p">=</span> <span class="n">ToList</span><span class="p">(</span><span class="n">waiter</span><span class="p">.</span><span class="n">GetCurrentMenu</span><span class="p">());</span>
+    <span class="k">return</span> <span class="n">menuOrNothing</span>
+            <span class="p">.</span><span class="n">Select</span><span class="p">(</span><span class="n">menu</span> <span class="p">=&gt;</span> <span class="k">new</span> <span class="n">Order</span><span class="p">(</span><span class="n">menu</span><span class="p">.</span><span class="n">Everything</span><span class="p">()))</span>
+            <span class="p">.</span><span class="n">SingleOrDefault</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We’re now dealing with a list of menus (that just happens to contain 0 or 1 items), so we can use all the standard LINQ extension methods like <code>Select</code> to transform each item in our list into the required order. Or if no menu is available, we get an empty list of orders back. To complete this step of the refactor, we need to convert our list back into a nullable reference to an <code>Order</code>, which we do using <code>SingleOrDefault()</code>. This will return our single order or <code>null</code>.</p>
+<div class="note">
+<strong>Note:</strong> You might be thinking it would be better to update our <code>GetOrderWhilePeckish</code> method to return a list of <code>Order</code> objects to indicate that it too can return no orders. This is a good line of thought! At this point though we’re just making a small refactor; we don’t have to change our callers, including those in our tests.
+</div>
+<p>And because we’re all LINQified now, we can also use the LINQ query comprehension syntax:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="n">Order</span> <span class="nf">GetOrderWhilePeckish</span><span class="p">(</span><span class="n">IWaiter</span> <span class="n">waiter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">orderOrNothing</span> <span class="p">=</span>
+        <span class="k">from</span> <span class="n">menu</span> <span class="k">in</span> <span class="nf">ToList</span><span class="p">(</span><span class="n">waiter</span><span class="p">.</span><span class="n">GetCurrentMenu</span><span class="p">())</span>
+        <span class="k">select</span> <span class="k">new</span> <span class="nf">Order</span><span class="p">(</span><span class="n">menu</span><span class="p">.</span><span class="n">Everything</span><span class="p">());</span>
+    <span class="k">return</span> <span class="n">orderOrNothing</span><span class="p">.</span><span class="n">SingleOrDefault</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="intermission">Intermission</h2>
+<p>It may be a bit hard to see the benefit of this refactor at this point. We’ve eliminated a null check, but the code isn’t significantly simpler. We’ll get to more complex examples in a minute, but first let’s formalise the concept of “none or one”, rather that commandeering lists for that purpose.</p>
+<h2 id="a-little-nuget">A little nuget</h2>
+<p>It turns out there is already a type in .NET to represent “none or one”, but to use it effectively we’ll want to install a nuget package or two: <a href="http://nuget.org/packages/FSharp.Core">FSharp.Core</a> and <a href="http://nuget.org/packages/FSharpx.Core">FSharpx.Core</a> (you can also use your existing F# installation instead of the FSharp.Core package).</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="n">PM</span><span class="p">&gt;</span> <span class="n">Install</span><span class="p">-</span><span class="n">Package</span> <span class="n">FSharp</span><span class="p">.</span><span class="n">Core</span>
+<span class="n">PM</span><span class="p">&gt;</span> <span class="n">Install</span><span class="p">-</span><span class="n">Package</span> <span class="n">FSharpx</span><span class="p">.</span><span class="n">Core</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>Then we just need <code>using FSharpx;</code> at the top of our file, and we’re ready to go.</p>
+<div class="note">
+<strong>Aside:</strong> Alternatively, we can always write our own option type without much trouble. Let me know if you’d like me to go through an implementation.
+</div>
+<h2 id="another-option">Another option</h2>
+<p>The type we want to represent our “none or one” value is called <a href="http://msdn.microsoft.com/en-us/library/dd233245.aspx"><code>option</code></a> from F#, and it is exposed to C# as <code>FSharpOption</code>. The FSharpx library gives us some convenient functions for working with this type. The only changes we need to make to our previous code is to call the <code>ToFSharpOption()</code> extension method instead of <code>ToList()</code>, and replace <code>SingleOrDefault()</code> with <code>GetOrDefault()</code>.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="n">Order</span> <span class="nf">GetOrderWhilePeckish</span><span class="p">(</span><span class="n">IWaiter</span> <span class="n">waiter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">orderOrNothing</span> <span class="p">=</span>
+        <span class="k">from</span> <span class="n">menu</span> <span class="k">in</span> <span class="n">waiter</span><span class="p">.</span><span class="n">GetCurrentMenu</span><span class="p">().</span><span class="n">ToFSharpOption</span><span class="p">()</span>
+        <span class="k">select</span> <span class="k">new</span> <span class="nf">Order</span><span class="p">(</span><span class="n">menu</span><span class="p">.</span><span class="n">Everything</span><span class="p">());</span>
+    <span class="k">return</span> <span class="n">orderOrNothing</span><span class="p">.</span><span class="n">GetOrDefault</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<div class="note">
+<strong>Note:</strong> Calling <code>ToFSharpOption()</code> will work fine on a null reference because it is an extension method; it’s syntactic sugar for calling <code>FSharpOption.ToFSharpOption(menu)</code>, just like our <code>ToList(menu)</code> call from before.
+</div>
+<p>Logically this works just like our list example. The only difference is we’re using the <code>FSharpOption&lt;T&gt;</code> type instead of <code>IEnumerable&lt;T&gt;</code>.</p>
+<h2 id="different-type-same-linq-goodness">Different type, same LINQ goodness</h2>
+<p>Let’s look at a more complicated example. Our restaurant patron is down on their luck, but is desperate for a shot of bacon. They’ll see if the waiter has a menu, and if so then check it for the cheapest item. If that item contains bacon, then we’ll order it. In all other cases our patron will not place an order.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="n">Order</span> <span class="nf">GetOrderForBaconFanWhoIsDownOnTheirLuck</span><span class="p">(</span><span class="n">IWaiter</span> <span class="n">waiter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">currentMenu</span> <span class="p">=</span> <span class="n">waiter</span><span class="p">.</span><span class="n">GetCurrentMenu</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">currentMenu</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">null</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="kt">var</span> <span class="n">cheapestItem</span> <span class="p">=</span> <span class="n">currentMenu</span><span class="p">.</span><span class="n">CheapestItem</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">cheapestItem</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">null</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">cheapestItem</span><span class="p">.</span><span class="n">Contains</span><span class="p">(</span><span class="s">&quot;Bacon&quot;</span><span class="p">)</span> <span class="p">?</span> <span class="k">new</span> <span class="n">Order</span><span class="p">(</span><span class="n">cheapestItem</span><span class="p">)</span> <span class="p">:</span> <span class="k">null</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>We can convert this from bottom-to-top in small steps, but I’ve found it easiest to start at the top and work down through the whole thing.</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="n">Order</span> <span class="nf">GetOrderForBaconFanWhoIsDownOnTheirLuck</span><span class="p">(</span><span class="n">IWaiter</span> <span class="n">waiter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">maybeOrder</span> <span class="p">=</span>
+        <span class="k">from</span> <span class="n">currentMenu</span> <span class="k">in</span> <span class="n">waiter</span><span class="p">.</span><span class="n">GetCurrentMenu</span><span class="p">().</span><span class="n">ToFSharpOption</span><span class="p">()</span>
+        <span class="k">from</span> <span class="n">cheapestItem</span> <span class="k">in</span> <span class="n">currentMenu</span><span class="p">.</span><span class="n">CheapestItem</span><span class="p">().</span><span class="n">ToFSharpOption</span><span class="p">()</span>
+        <span class="k">where</span> <span class="n">cheapestItem</span><span class="p">.</span><span class="n">Contains</span><span class="p">(</span><span class="s">&quot;Bacon&quot;</span><span class="p">)</span>
+        <span class="k">select</span> <span class="k">new</span> <span class="nf">Order</span><span class="p">(</span><span class="n">cheapestItem</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">maybeOrder</span><span class="p">.</span><span class="n">GetOrDefault</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>This reads much like our initial description of this scenario: from current menu get cheapest item and place and order if it contains bacon. If any of these is <code>null</code> no order will be placed.</p>
+<p>The <code>FSharpOption</code> type supports all the standard LINQ: <code>Select</code>, <code>SelectMany</code>, <code>Where</code>, <code>let</code>-bindings etc, so there is nothing new to learn, we’re just using options instead of lists.</p>
+<h2 id="more-benefits">More benefits</h2>
+<p>So far we’ve focussed on refactoring the insides of methods, rather than changing signatures. This has simplified our code a bit and also made our intentions more explicit by calling out places where we expect null.</p>
+<p>We can start getting a lot more benefit by pushing options into interfaces. Rather than <code>waiter.GetCurrentMenu()</code> returning <code>null</code> or a menu, we can make it return <code>FSharpOption&lt;Menu&gt;</code>. Callers then have to explicitly deal with the empty case, and the compiler will keep them honest.</p>
+<p>Having <code>FSharpOption&lt;T&gt;</code> in our APIs also clears up our calling code. We no longer need to use <code>.ToFSharpOption()</code> or <code>GetOrDefault()</code>.</p>
+<p>The other thing we gain is the ability to compose these types to perform some interesting operations. For example, say we want to check whether either of two properties is present, we can compose them using <code>first.OrElse(second)</code>, then use <code>HasValue()</code> to check if either are non-empty, or <code>GetOrElse(blah)</code> to use access the first value present (defaulting to <code>blah</code>).</p>
+<p>There are <a href="https://github.com/fsharp/fsharpx/blob/master/tests/FSharpx.CSharpTests/OptionTests.cs">lots of handy functions on <code>FSharpOption</code></a>, but for now I should just note that we can construct instances of options using <code>myObj.Some()</code> for non-empty, and <code>FSharpOption&lt;T&gt;.None</code> for empty values.</p>
+<h2 id="gateway-to-functional-programming">Gateway to functional programming</h2>
+<p>As we’ve seen, options can be introduced to clean up some null checks with zero impact on the rest of our code. As we become more comfortable with the ways of using options we can start using them in private fields, then in public interfaces, which starts making our code safer and more intention-revealing. After that, we can start trying other types that FSharp and FSharpx provide, such as <code>FSharpChoice</code>.</p>
+<p>This gives us a great, risk-free way of gradually becoming accustomed to some functional programming techniques. In turn this familiarity gives us new ways of thinking about problems which will undoubtedly come in handy, even if we don’t end up using FP all the time.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-12-04T08:47:00+11:00" class="updated">Updated 04 Dec 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/linq/'>linq</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/12/optional-fp-in-csharp.html" data-via="" data-counturl="http://davesquared.net/2012/12/optional-fp-in-csharp.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/11/catamorphisms.html" title="Previous Post: Catamorphisms">&laquo; Catamorphisms</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/12/threading-and-lazy-t.html" title="next Post: Threading and Lazy&lt;T&gt;">Threading and Lazy&lt;T&gt; &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/12/optional-fp-in-csharp.html';
+        var disqus_url = 'http://davesquared.net/2012/12/optional-fp-in-csharp.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

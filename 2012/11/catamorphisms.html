@@ -1,0 +1,351 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Catamorphisms - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="According to Wikipedia a catamorphism “denotes the unique homomorphism from an initial algebra into some other algebra”.
+Uh huh. Sure.
+I’ve got an &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/11/catamorphisms.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Catamorphisms</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-11-15T23:20:00+11:00" pubdate data-updated="true">15 Nov 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>According to Wikipedia a <a href="http://en.wikipedia.org/wiki/Catamorphism">catamorphism</a> “denotes the unique homomorphism from an initial algebra into some other algebra”.</p>
+<p>Uh huh. Sure.</p>
+<p>I’ve got an admittedly very basic understanding of this concept, but I thought I’d share the small amount I have been able to learn and apply, as I’ve found it to be a useful tool for working with types.</p>
+<!-- more -->
+<h2 id="cat-a-what">Cat a what?</h2>
+<p>The word catamorphism comes from the Greek <a href="http://en.wiktionary.org/wiki/%CE%BA%CE%B1%CF%84%CE%AC">κατά</a>, meaning “downwards”, and “morphism” which we tend to use to mean “transformation”. So it’s a transformation that takes something down, or reduces something.</p>
+<p>What’s this mean in terms of functional programming? Remember from a while back, an <a href="http://davesquared.net/2012/07/composition-via-scary-sounding-maths-terms.html#a-monoid-for-endomorphisms">endomorphism</a>, or “inside transformation”, transforms a value of some type into a value of the same type? Well a catamorphism takes a value of a type with some structure, and reduces that to a value of another type.</p>
+<h2 id="call-me-option">Call me Option</h2>
+<p>To explore this idea, let’s define our own version of the <code>Maybe</code> type:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">data</span> <span class="kt">Option</span> <span class="n">a</span> <span class="ow">=</span> <span class="kt">Empty</span> <span class="o">|</span> <span class="kt">Full</span> <span class="n">a</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>A value of this type can either be <code>Empty</code>, or <code>Full someValue</code>. Now let’s say we want to convert an <code>Option a</code> to some type <code>b</code>. We need to get at the structure of our <code>Option</code> type, and work out how to convert each alternative to a <code>b</code>. We can do this using pattern matching:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">option</span> <span class="ow">::</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Option</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+<span class="nf">option</span> <span class="n">valIfEmpty</span> <span class="kr">_</span> <span class="kt">Empty</span> <span class="ow">=</span> <span class="n">valIfEmpty</span>
+<span class="nf">option</span> <span class="kr">_</span> <span class="n">f</span> <span class="p">(</span><span class="kt">Full</span> <span class="n">a</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">a</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The first argument to <code>option</code> is the default value of type <code>b</code> that will be returned when the option is <code>Empty</code>. The second argument is a function that will convert the value in a <code>Full value</code> to a <code>b</code>. The final argument is the option we are reducing.</p>
+<p>We then have two patterns to match for <code>Option a</code> values. The first pattern is matched when the option is <code>Empty</code>, in which case the default value is returned. The second pattern is when we have a <code>Full value</code>, where we return the result of applying the function from the second argument <code>f</code> to that value. Here’s a quick example of it in action:</p>
+<pre><code>ghci&gt; option &quot;empty&quot; show (Full 42)
+&quot;42&quot;
+ghci&gt; option &quot;empty&quot; show Empty
+&quot;empty&quot;</code></pre>
+<p>So we’ve taken a type that has two possible components, and <code>Empty</code> and <code>Full value</code>, and created a function that transforms it into a type with a potentially reduced number of components. A downward transformation. A catamorphism. And we can now use this transformation to break apart our <code>Option</code> type without having to repeat that pattern matching everywhere.</p>
+<div class="note">
+<strong>Aside:</strong> Haskell has a built-in <code>maybe</code> function that works the same way for the <code>Maybe</code> type.
+</div>
+<h2 id="catamorphisms-and-identity">Catamorphisms and identity</h2>
+<p>Catamorphisms have an interesting property: if we use the type’s value constructors as arguments to the type’s catamorphism, we get the identity function for that type.</p>
+<p>Our <code>Option</code> type has two value constructors. We can construct a value of type <code>Option a</code> using the <code>Empty</code> constructor, or using <code>Full value</code>. Let’s use these as arguments to the <code>option</code> function:</p>
+<pre><code>ghci&gt; :t Empty
+Empty :: Option a
+ghci&gt; :t Full
+Full :: a -&gt; Option a
+ghci&gt; :t option
+option :: b -&gt; (a -&gt; b) -&gt; Option a -&gt; b
+
+ghci&gt; option Empty Full (Full 42)
+Full 42
+ghci&gt; option Empty Full (Empty)
+Empty
+ghci&gt; quickCheck $ \x -&gt; id x == option Empty Full x
++++ OK, passed 100 tests.</code></pre>
+<p>Whatever value we pass to <code>option Empty Full</code>, we always get the same value back. This is a result of the <code>option</code> catamorphism deconstructing the <code>Option</code> type, so feeding in the constructors for that type reconstructs the type unchanged.</p>
+<p>We can follow this pattern of matching value constructors to implement a catamorphism for any type:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="kr">data</span> <span class="kt">Foo</span> <span class="ow">=</span> <span class="kt">Bar</span> <span class="kt">Int</span> <span class="o">|</span> <span class="kt">Zap</span> <span class="kt">String</span> <span class="p">[</span><span class="kt">Int</span><span class="p">]</span> <span class="o">|</span> <span class="kt">Giraffe</span> <span class="kt">String</span>
+    <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Eq</span><span class="p">)</span>
+
+<span class="c1">-- Add an argument for each value constructor:</span>
+<span class="nf">foo</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">String</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="kt">Int</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="kt">String</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Foo</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+<span class="nf">foo</span> <span class="n">f</span> <span class="kr">_</span> <span class="kr">_</span> <span class="p">(</span><span class="kt">Bar</span> <span class="n">x</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">x</span>
+<span class="nf">foo</span> <span class="kr">_</span> <span class="n">f</span> <span class="kr">_</span> <span class="p">(</span><span class="kt">Zap</span> <span class="n">x</span> <span class="n">y</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">x</span> <span class="n">y</span>
+<span class="nf">foo</span> <span class="kr">_</span> <span class="kr">_</span> <span class="n">f</span> <span class="p">(</span><span class="kt">Giraffe</span> <span class="n">x</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">x</span>
+
+<span class="cm">{-  ghci&gt; quickCheck $ \x -&gt; id x == foo Bar Zap Giraffe x</span>
+<span class="cm">    +++ OK, passed 100 tests.</span>
+<span class="cm">-}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<h2 id="the-list-catamorphism">The list catamorphism</h2>
+<p>To finish up, let’s look at a very well known catamorphism. In Haskell there are two ways to construct a list. The first is to use <code>:</code> (cons) to add an element to an existing list, <code>x : list</code>. The second is using the empty list constructor <code>[]</code>. Now let’s have a look at this function:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='haskell'><span></span><span class="nf">foldr</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The first two arguments to <a href="http://davesquared.net/2012/02/folds-pt1-from-recursion-to-folds.html">fold right</a> match the value constructors for lists. The first takes a list item and a <code>b</code> used for accumulating the result of recursive calls, mirroring the calls used to construct the list. The second is the value used in the case of the empty list <code>[]</code>.</p>
+<pre><code>ghci&gt; quickCheck $ \x -&gt; id x == foldr (:) [] x
++++ OK, passed 100 tests.</code></pre>
+<p>Which is why <code>foldr</code> is also know as the list catamorphism.</p>
+<h2 id="parting-thoughts">Parting thoughts</h2>
+<p>Catamorphisms, at least as I understand them, aren’t nearly as frightening as they sound. A catamorphism for a type is function for transforming it, deconstructing the type into its components and providing us the option to reduce the type to a simpler structure (reduced number of components). One result of this is that plugging in the type’s value constructors will reassemble the type, giving us an identity function for the type.</p>
+<p>If you’ve read any of my posts on list folds you’ll probably have some appreciation for how useful catamorphisms can be. Whereas <code>foldr</code> lets us encapsulate list recursion, catamorphisms for other types like <code>Maybe</code> (or <code>Option</code>) let us deal with the constituent parts of a type, without having to repeat pattern matching on the type every time we wish to transform it.</p>
+<p>Hope you found this interesting! As always, please ask away if you have any questions or if I’ve failed to explain something adequately.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-11-15T23:20:00+11:00" pubdate data-updated="true">15 Nov 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/11/catamorphisms.html" data-via="" data-counturl="http://davesquared.net/2012/11/catamorphisms.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/10/fold-for-free.html" title="Previous Post: Fold for free">&laquo; Fold for free</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/12/optional-fp-in-csharp.html" title="next Post: Some optional, functional goodness in C#">Some optional, functional goodness in C# &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/11/catamorphisms.html';
+        var disqus_url = 'http://davesquared.net/2012/11/catamorphisms.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

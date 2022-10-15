@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Basic .NET builds using Rake - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I was starting up a new hobby project the other night and thought I&#8217;d try using Rake to script my build (instead of pure MSBuild, Nant, or just &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2009/04/basic-net-builds-using-rake.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Basic .NET builds using Rake</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2009-04-02T00:10:00+11:00" pubdate data-updated="true">02 Apr 2009</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I was starting up a new hobby project the other night and thought I&#8217;d try using <a href="http://rake.rubyforge.org/">Rake</a> to script my build (instead of pure MSBuild, Nant, or just plain VS). Now Ruby and I generally don&#8217;t get on too well, so I was really surprised with how easy I found it to setup, and even more surprised with how much I enjoyed it. :)</p>
+
+<h2>Prerequisites</h2>
+
+<p>Um, <a href="http://www.ruby-lang.org/en/downloads/">Ruby</a>. The installer I used gave me Ruby with Rake included. We&#8217;ll also need a simple .NET solution. I created one with a structure that looked a bit like this:</p>
+
+<ul>
+<li class="folder-icon">DaveSquared.SampleProject</li>
+  <ul>
+    <li class="folder-icon">build</li>
+      <ul><li class="file-icon"><b>rakefile.rb</b></li></ul>
+    <li class="folder-icon">src</li>
+   <ul>
+     <li class="folder-icon">DaveSquared.SampleProject.Tests</li>
+  <li class="folder-icon">DaveSquared.SampleProject.Web</li>
+  <li class="file-icon">DaveSquared.SampleProject.sln</li>
+   </ul>
+    <li class="folder-icon">tools</li>
+   <ul>
+  <li class="folder-icon">NUnit</li>
+   </ul>
+  </ul>
+</ul>
+ 
+<p>The SLN file contains two projects, <code>DaveSquared.SampleProject.Tests</code> and <code>.Web</code>. The <code>.Tests</code> project references the <code>.Web</code> project, as well as the NUnit framework buried somewhere in the <code>tools/NUnit</code> directory. Both projects where configured to build to the <code>build/output</code> directory (so <code>.Tests</code> will build to <code>build/output/DaveSquared.SampleProject.Tests</code>).</p>
+
+<p>We can now setup our <code>rakefile.rb</code>, which I&#8217;ve plonked into the <code>build</code> directory. We&#8217;ll run the build from this directory, so we can specify all our paths relative to this build file.</p>
+
+<h2>Basic build and test run</h2>
+
+<p>After reading Dave Laribee&#8217;s post on <a href="http://codebetter.com/blogs/david_laribee/archive/2008/08/25/omg-rake.aspx">OMG Rake!</a>, and Mark Guzman&#8217;s excellent post on <a href="http://hasno.info/2008/1/6/building-net-projects-with-rake">Building .NET projects with rake</a>, I then proceeded to ruin all their good work by patching bits and pieces of their posts together and got this:</p>
+
+<pre>
+require 'rake/clean'
+
+DOT_NET_PATH = &quot;#{ENV[&quot;SystemRoot&quot;]}\\Microsoft.NET\\Framework\\v3.5&quot;
+NUNIT_EXE = &quot;../tools/Nunit/bin/nunit-console.exe&quot;
+SOURCE_PATH = &quot;../src&quot;
+OUTPUT_PATH = &quot;output&quot;
+CONFIG = &quot;Debug&quot;
+ 
+<b>CLEAN.include(OUTPUT_PATH)</b>
+
+<b>task :default =&gt; [&quot;clean&quot;, &quot;build:all&quot;]</b>
+ 
+namespace :build do
+  
+  <b>task :all =&gt; [:compile, :test]</b>
+      
+  desc &quot;Build solutions using MSBuild&quot;
+  <b>task :compile do</b>
+    solutions = FileList[&quot;#{SOURCE_PATH}/**/*.sln&quot;]
+    solutions.each do |solution|
+      sh &quot;#{DOT_NET_PATH}/msbuild.exe /p:Configuration=#{CONFIG} #{solution}&quot;
+    end
+  end
+   
+  desc &quot;Runs tests with NUnit&quot;
+  <b>task :test =&gt; [:compile] do</b>
+    tests = FileList[&quot;#{OUTPUT_PATH}/**/*.Tests.dll&quot;].exclude(/obj\//)
+    sh &quot;#{NUNIT_EXE} #{tests} /nologo /xml=#{OUTPUT_PATH}/TestResults.xml&quot;
+  end
+  
+end
+</pre>
+
+<p>Now the good thing about this is that I don&#8217;t think you need to know much (any? I know virtually none) Ruby to understand what is going on here, or even to make basic modifications to the tasks (although it might be a struggle if you haven&#8217;t used build tools like <code>make</code> or </code>nant</code> before). But you can bring the full power of the language to bear when you need it. Let&#8217;s have a quick step through the main parts of the file.</p>
+
+<p>The first line imports <code>rake/clean</code>, which lets us use <code>CLEAN.include(OUTPUT_PATH)</code> to tidy up for us. We&#8217;ve then got loads of constants to specify various paths: the location of .NET tools like <code>msbuild</code>, and the relative paths to NUnit, our source, and our output. Our <code>:default</code> task is set to run <code>clean</code>, then <code>build:all</code> (the =&gt; syntax translates to <i>depends on</i> in <code>make</code> terms, so to run the default task rake will make sure its dependencies are run).</p>
+
+<p>If we drop into the <code>:build</code> namespace, we have <code>:all</code>, <code>:compile</code> and <code>:test</code> tasks defined. To <code>:compile</code>, we use the wonderful <code>FileList</code> class built into rake to get all <code>*.sln</code> files in our source directory, then shell out to <code>msbuild</code> to take care of the hardwork of compiling everything. The <code>:test</code> task relies on convention, by finding all <code>*.Tests.dll</code> files and running them through NUnit. We also make sure that <code>:test</code> won&#8217;t run until <code>:compile</code> has run by setting <code>:compile</code> as a dependency.</p>
+
+<p>Finally, our <code>:all</code> task compiles and tests the build.</p>
+
+<h2>Running our rake build</h2>
+
+<p>By dropping into our build directory from the command line, just typing <code>rake</code> will pickup our <code>rakefile.rb</code> and execute our default task, which will clean, compile and test our build. We can also run a task at a time, say <code>rake clean</code>, or <code>rake build:test</code> (the <code>:test</code> task is prefixed by <code>build</code> because of its namespace).</p>
+
+<p>There&#8217;s obviously tonnes we could do to make this nicer (like using <a href="http://hasno.info/2008/1/6/building-net-projects-with-rake">Mark&#8217;s .NET tasks</a>, and/or removing the hard-coded Debug configuration), but hopefully this gives people a quick way to start getting into rake and ruby for building .NET projects.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2009-04-02T00:10:00+11:00" pubdate data-updated="true">02 Apr 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2009/04/basic-net-builds-using-rake.html" data-via="" data-counturl="http://davesquared.net/2009/04/basic-net-builds-using-rake.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/04/explicitly-test-what-you-are-trying-to.html" title="Previous Post: Explicitly test what you are trying to test">&laquo; Explicitly test what you are trying to test</a>
+      
+      
+        <a class="basic-alignment right" href="/2009/05/setting-up-git-difftool-on-windows.html" title="next Post: Setting up Git difftool on Windows">Setting up Git difftool on Windows &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2009/04/basic-net-builds-using-rake.html';
+        var disqus_url = 'http://davesquared.net/2009/04/basic-net-builds-using-rake.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

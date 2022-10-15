@@ -1,0 +1,1445 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: featured | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/featured/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Favour test driving logic over data]]></title>
+    <link href="http://davesquared.net/2009/11/favour-test-driving-logic-over-data.html"/>
+    <updated>2009-11-04T10:07:00+11:00</updated>
+    <id>http://davesquared.net/2009/11/favour-test-driving-logic-over-data</id>
+    <content type="html"><![CDATA[<div class="note"><b>Warning:</b> this post (and this blog as a whole) contains the opinions of someone who does not know what they are doing. I'm a novice at TDD, and while the advice in this post seems to have helped me, following it blindly may completely wreck your way of developing. I'm posting it more so people can take a critical look at it, and after careful consideration can choose to ignore or adopt any of it they see fit. We now return you to your regular, rambling blog post.</div>
+
+
+
+
+<p>It's taken me a long time to figure out this simple guideline. Your mileage may vary, but since I started using this guideline I've found TDD much easier and more effective.</p>
+
+
+
+
+<blockquote>&quot;Favour test driving logic over data&quot;</blockquote>
+
+
+
+
+<p> When given the option, I've found test driving the logic of the SUT, rather than driving out design by writing tests for various permutations of data, guides me towards a nice, flexible design and gives me some robust tests. When I focus on testing the logic of the SUT, I am really getting to the heart of my SUT's single responsibility, and this helps give feedback on the design. When I build up a design using data-specific tests I've found I end up focussing more on driving implementation (rather than the design), and I end up with messy and fragile tests.</p>
+
+
+
+
+<p>So what do I mean by data-based tests? You've probably seen this style of testing in almost every introductory TDD example out there. We start with an empty string, handle one input, handle multiple inputs, handle edge cases, handle exceptional cases etc. Now don't get me wrong -- I'm not saying this is bad. I'm just saying that if I've got an option I'll defer this kind of unit testing for as long as possible, preferring to unit test the logic of my class as explicitly as possible. This means that the classes that perform the actual grunt work of the application are at the very bottom, most concrete, and most specific parts of the design.</p>
+
+
+
+
+<h2>Cue long-winded example...</h2>
+
+
+
+
+<p>You can see the indirect application of this guideline in my recent <a href="http://davesquared.net/categories/-calculator-tdd">Calculator Kata attempts</a>. The <a href="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-1.html">first attempt</a> uses a data-based approach, while the <a href="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-2.html">second attempt</a> uses a more behavioural approach. Rather than wading through that long and tedious series, let's take a look at this idea using a more focussed example (in a single long and tedious post ;)). Let's say we want to generate a filename that we're going to use to save some results. The file name needs to be based on the mode used and the date. We'll use an abbreviated form of the mode for the filename, and maybe just include the year from the date, and then add a ".txt" extension. Something like &quot;MD_2009.txt&quot;. </p>
+
+
+
+
+<h2>Using data-based tests for a file name generator</h2>
+
+
+
+
+<p>One way to start test driving this code is to start writing a code for a particular case, say, when we use <code>Mode.Gherkin</code> sometime in 2009. We could then test the same mode in 2007 and make sure the file name is still generated properly. We can then add a test for another mode and make sure that the mode abbreviation is correct. We could do a few permutations of this, then write a test for the exceptional case where we are given an unrecognised mode. Let's see some tests:</p>
+
+
+
+
+<pre class="brush:csharp">
+[TestFixture]
+public class FileNameGeneratorFixture {
+    private FileNameGenerator _generator;
+    
+    [SetUp]
+    public void SetUp() { _generator = new FileNameGenerator(); }
+
+    private void AssertModeAndDateGiveExpectedFileName(string expectedFileName, Mode mode, DateTime date) {
+        var actualFileName = _generator.GetFileName(mode, date);
+        Assert.AreEqual(expectedFileName, actualFileName);
+    }
+
+    [Test]
+    public void ShouldGenerateFileNameForGherkinModeIn2009() {
+        var expectedFileName = &quot;GK_2009.txt&quot;;
+        AssertModeAndDateGiveExpectedFileName(expectedFileName, Mode.Gherkin, new DateTime(2009, 1, 1));
+    }
+
+    [Test]
+    public void ShouldGenerateFileNameForGherkinModeIn2007() {
+        var expectedFileName = &quot;GK_2007.txt&quot;;
+        AssertModeAndDateGiveExpectedFileName(expectedFileName, Mode.Gherkin, new DateTime(2007, 1, 1));
+    }
+
+    [Test]
+    public void ShouldGenerateFileNameForSnebel() {
+        var expectedFileName = &quot;SN_2007.txt&quot;;
+        AssertModeAndDateGiveExpectedFileName(expectedFileName, Mode.Snerbel, new DateTime(2007, 1, 1));
+    }
+
+    /*... snip some tests for each mode. We may not have to test that it uses the right year for each mode, as we know the logic is the same... /*
+    
+    [Test]
+    public void ShouldThrowAnExceptionOnUnrecognisedMode() {
+        var unrecognisedMode = (Mode) 123;
+        Assert.Throws&lt;ArgumentOutOfRangeException&gt;(() =&gt; _generator.GetFileName(unrecognisedMode, new DateTime()));
+    }
+}
+</pre>
+
+
+
+
+<p>This encourages an implementation that looks a bit like this:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class FileNameGenerator {
+    public string GetFileName(Mode mode, DateTime dateTime) {
+        return GetModePrefix(mode) + &quot;_&quot; + GetYear(dateTime) + &quot;.txt&quot;;
+    }
+
+    private int GetYear(DateTime dateTime) {
+        return dateTime.Year;
+    }
+
+    private string GetModePrefix(Mode mode) {
+        switch (mode) {
+            case Mode.Gherkin: return &quot;GK&quot;;
+            case Mode.Flebel: return &quot;FL&quot;;
+            case Mode.Snerbel: return &quot;SN&quot;;
+            default: throw new ArgumentOutOfRangeException(&quot;mode&quot;);
+        }
+    }
+}
+</pre>
+
+
+
+
+<h2>What is this class really doing?</h2>
+
+
+
+
+<p>In this case our data-based tests are dancing around the real intention and logic of the SUT. The actual implementation says it quite clearly: <code>return GetModePrefix(mode) + &quot;_&quot; + GetYear(dateTime) + &quot;.txt&quot;;</code>. This is the real logic we should be testing. To do so we'll need to isolate each bit of functionality into its own class. Let's look at how we can refactor to this, but we could easily test drive it that way to begin with, or guide our refactoring with new tests.</p>
+
+
+
+
+<p>As an aside, you'll notice that our tests are giving us some signals that not all is well. We need to write basically the same test for each new mode we add  (yes, we could use <code>[RowTest]</code> or whatever equivalent your testing framework has, but the point is the same). The fact we can't isolate the date formatting properly and so are only testing it with one mode is also a bit concerning. We know our current implementation can be tested using a single mode, but when that implementation needs to change we might have to update a whole lot of tests. This ickiness is a sign we've got some design problems, which in this case are <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">OCP and SRP</a> violations.</p>
+
+
+
+
+<h2>Introducing dependencies</h2>
+
+
+
+
+<p>We have the <code>GetModePrefix()</code> and <code>GetYear()</code> methods on our <code>FileNameGenerator</code> class. The outputs of these functions change based on the data they are given, but the overall logic we are interested in is how our SUT uses these values, irrespective of what data is actually provided. Let's move these two methods to new classes and use them as dependencies for our <code>FileNameGenerator</code>. We can then test our SUT's logic in isolation.</p>
+
+
+
+
+<p>For our first step, let's create empty implementations of our dependencies for our <code>FileNameGenerator</code>. For now we'll just instantiate them in a default constructor so our existing tests won't break by changing constructor signatures.</p>
+
+
+
+
+<pre class="brush:csharp">
+//In FileNameGenerator.cs
+private readonly ModeFormatter _modeFormatter;
+private readonly DateFormatter _dateFormatter;
+
+public FileNameGenerator() {
+    _modeFormatter = new ModeFormatter();
+    _dateFormatter = new DateFormatter();
+}
+
+//Empty classes in separate files:
+public class ModeFormatter {}
+public clas DateFormatter {}
+</pre>
+
+
+
+
+<p>Now we want to move our private <code>GetYear()</code> and <code>GetModePrefix()</code> methods into our new classes. We'll then update the old private methods to delegate to the new methods on our dependencies. We end up with something like this:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class FileNameGenerator {
+    private readonly ModeFormatter _modeFormatter;
+    private readonly DateFormatter _dateFormatter;
+
+    /* ... snip to conserve precious pixels ... */
+
+    private int GetYear(DateTime dateTime) {
+        //Copied the body of this method to dependency, and delegate to that...
+        return _dateFormatter.GetYear(dateTime);
+    }
+
+    private string GetModePrefix(Mode mode) {
+        //Same thing here...
+        return _modeFormatter.GetModePrefix(mode);
+    }
+}
+
+public class ModeFormatter {
+    public string GetModePrefix(Mode mode) {
+        switch (mode) {
+            case Mode.Gherkin: return "GK";
+            case Mode.Flebel: return "FL";
+            case Mode.Snerbel: return "SN";
+            default: throw new ArgumentOutOfRangeException("mode");
+        }
+    }
+}
+public class DateFormatter {
+    public int GetYear(DateTime dateTime) {
+        return dateTime.Year;
+    }    
+}
+</pre>
+
+
+
+
+<p>We can run our tests now and check that they all still pass. And they do, so now we can remove the private methods and call the dependencies directly. Our <code>FileNameGenerator</code> now looks nice and simple:</p>
+
+
+
+
+<pre class="brush:csharp">
+public string GetFileName(Mode mode, DateTime dateTime) {
+    return _modeFormatter.GetModePrefix(mode) + "_" + _dateFormatter.GetYear(dateTime) + ".txt"
+}
+</pre>
+
+
+
+
+<h2>Testing logic over testing data</h2>
+
+
+
+
+<p>We now have some code that, according to our unit tests, is doing exactly what the old code did, but has pushed out the bits of behaviour that change as the data changes into some dependencies. This has left our SUT with logic that we can test in isolation from the data. Now writing these tests is going to be a funny sort of refactoring where our production code will be testing our test code. Our test code currently passes when run against our production code, and after changing the test code it should still pass.</p>
+
+
+
+
+<p>First thing we want to do is fake out the responses from our dependencies so we remove the data-related variation. There are a few ways to do this in our beloved, statically typed little language, but one of the easiest that has some nice design implications, but at the cost of a bit more (trivial) code, is to extract interfaces for the dependencies. This way we have a guaranteed separated of logic from the implementation of the dependencies. I'll just point my refactoring tool of choice at the <code>ModeFormatter</code> and <code>DateFormatter</code> and extract interfaces, but you can write the interfaces manually without any trouble:</p>
+
+
+
+
+<pre class="brush:csharp">
+public interface IModeFormatter {
+    string GetModePrefix(Mode mode);
+}
+public interface IDateFormatter {
+    int GetYear(DateTime dateTime);
+}
+</pre>
+
+
+
+
+<p>We'll also provide an additional constructor to <code>FileNameGenerator</code> to allow us to inject dependencies as required. This will help us to test the logic of the class, but also gives us a handy way to change the class' behaviour by giving it different dependencies. (Cue <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">Open Closed Principle</a> reference.)</p>
+
+
+
+
+<pre class="brush:csharp">
+public class FileNameGenerator {
+    private readonly IModeFormatter _modeFormatter;
+    private readonly IDateFormatter _dateFormatter;
+
+    public FileNameGenerator(IModeFormatter modeFormatter, IDateFormatter dateFormatter) {
+        _modeFormatter = modeFormatter;
+        _dateFormatter = dateFormatter;
+    }
+
+    public FileNameGenerator() : this(new ModeFormatter(), new DateFormatter()) {}
+ /* ... snip ... */
+} 
+</pre>
+
+
+
+
+<p>I've left the default constructor in at this stage and just chained it to the new constructor. That way we can still run our tests and code without further changes. (This is also referred to as "Poor Man's Dependency Injection", probably because it is commonly employed when we can't afford one of the great, free DI containers in the OSS market. :P)</p>
+
+
+
+
+<p>Finally, we're in a position to write some logic-based tests. In fact, we only really need one: </p>
+
+
+
+
+<pre class="brush:csharp">
+[TestFixture]
+public class FileNameGeneratorFixture {
+    private FileNameGenerator _generator;
+    private Mode mode;
+    private string modePrefix;
+    private DateTime date;
+    private int year;
+    
+    [SetUp]
+    public void SetUp() {
+        var modeFormatter = MockRepository.GenerateStub&lt;IModeFormatter&gt;();
+        var dateFormatter = MockRepository.GenerateStub&lt;IDateFormatter&gt;();
+
+        mode = Mode.Snerbel;
+        modePrefix = &quot;MODE&quot;;
+        modeFormatter.Stub(x =&gt; x.GetModePrefix(mode)).Return(modePrefix);
+
+        date = new DateTime();
+        year = 1234;
+        dateFormatter.Stub(x =&gt; x.GetYear(date)).Return(year);
+
+        _generator = new FileNameGenerator(modeFormatter, dateFormatter);    
+    }
+
+    [Test]
+    public void ShouldGenerateFileNameUsingModePrefixAndYear() {
+        var result = _generator.GetFileName(mode, date);
+        Assert.That(result, Is.EqualTo(modePrefix + &quot;_&quot; + year + &quot;.txt&quot;));
+    }
+}
+</pre>
+
+
+
+
+<p>Normally I <a href="http://davesquared.net/2009/10/calculators-and-tale-of-two-tdds-pt-2.html">use a style that is a bit easier to read</a>, but as far as a basic refactoring goes this reads pretty clear to me. We are now testing <b>exactly</b> what we expect our class to do. But what about all the other tests we had? Well, we simply move those to new fixtures testing the implementations of our dependencies. These will still be data-based tests, but we can simplify the cases and number of tests as we don't need to deal with combinations of data:</p>
+
+
+
+
+<pre class="brush:csharp">
+[TestFixture]
+public class ModeFormatterFixture {
+    private ModeFormatter _formatter;
+    
+    [SetUp]
+    public void SetUp() {
+        _formatter = new ModeFormatter();
+    }
+
+    [Test]
+    [TestCase(Mode.Flebel, &quot;FL&quot;)]
+    [TestCase(Mode.Snerbel, &quot;SN&quot;)]
+    [TestCase(Mode.Gherkin, &quot;GK&quot;)]
+    public void PrefixForMode(Mode mode, string expectedPrefix) {
+        Assert.That(_formatter.GetModePrefix(mode), Is.EqualTo(expectedPrefix));
+    }
+
+    [Test]
+    public void ShouldThrowAnExceptionOnUnrecognisedMode() {
+        var unrecognisedMode = (Mode)123;
+        Assert.Throws&lt;ArgumentOutOfRangeException&gt;(() =&gt; _formatter.GetModePrefix(unrecognisedMode));
+    }
+}
+
+[TestFixture]
+public class DateFormatterFixture {
+    [Test]
+    public void ShouldReturnYearFromDate() {
+        var formatter = new DateFormatter();
+        var date = new DateTime(2009, 1, 1);
+        Assert.That(formatter.GetYear(date), Is.EqualTo(2009));
+    }
+}
+</pre>
+
+
+
+
+<h2>What have we achieved?</h2>
+
+
+
+
+<p>We now have the same coverage as we had before, but we aren't trying to test all the different combinations of data, just the basic logic of each class. If we want to add a mode, we can do so without touching our <code>FileNameGenerator</code> or its tests. We also don't have any need to check that the filenames are generated properly when given different dates -- those responsibilities are completely separate. If you extrapolate this to more complex examples, you get code that is easier to change without worrying about breaking loads of tests. </p>
+
+
+
+
+<h2>When we are stuck with testing data...</h2>
+
+
+
+
+<p>You'll notice our data-specific tests now reside at the bottom layer of our application. Generally as we move from less abstract to more concrete we start having to make compromises for reality, and this is where we need to drop back to data-based tests. And that's fine -- if we keep these parts of the application at the bottom, and the code above is isolated from the implementation via interfaces, then we won't end up depending on the data and so our code will stay easy to change.</p>
+
+
+
+
+<p>Data-based tests can be good candidates for customer-facing / acceptance tests. Our customers will be the ones most likely to care about what prefixes are used for each mode, and having it in a format they can read, and possibly change, can be helpful in getting the requirements correct. When our data-specific code is kept isolated these tests can be very easy to write.</p>
+
+
+
+
+<p>A complementary technique I've found useful for separating logic from variable data is to pass in variable data as a configuration detail. I've found it is very easy to fall into testing data combinations while implementing domain/business rules by inadvertently coupling the implementation of the rule to the way that rule is processed. In this case we can separate out the logic of finding the right rule and executing it, and then inject the required collection of rules into our class which we can test independently. (See the <a href="http://en.wikipedia.org/wiki/Specification_pattern">Specification Pattern</a> for an example of how to do this.)</p>
+
+
+
+
+<p>Our <code>ModeFormatter</code> could be a possible candidate for this kind of approach. Rather than having our data-based test for each prefix we could interate over an enumerable of rules that map modes to prefixes, especially if the rules became more complex (for example, if <code>Mode</code> became a <code>[Flags]</code> enum). We could then test that our formatter picks the correct formatting specification and applies it. The mapping itself we may decide not to test, or we could rely on an acceptance test, or we could just write unit tests at that low level of abstraction knowing the code is isolated properly.</p>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+<p>This may seem like a silly little example, but looking back over code I've test driven over the last 12 months I've found data-based testing like this has been one of my major sources of troubles, and it's surprisingly easy trap to fall into when you're not keeping an eye out for it. I think the more technical correct expression of this guideline is in terms of SRP, OCP, and Tell Don't Ask, but for me at least the basic approach of preferring test driving logic over data is easy to apply and a pretty easy smell to detect when you're looking out for it.</p>
+
+
+
+
+<p>Next time you find yourself writing tests for a whole lot of combinations of inputs to the one behaviour, have a think about your current level of abstraction, and whether you may be better off isolating the logic from the data variability.</p>
+
+
+
+
+<p>As always, I'd love to hear your thoughts, so please feel free to leave a comment or email me. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Brackets, braces, parentheses, and other such creatures]]></title>
+    <link href="http://davesquared.net/2008/07/brackets-braces-parenthesis-and-other.html"/>
+    <updated>2008-07-25T00:40:00+10:00</updated>
+    <id>http://davesquared.net/2008/07/brackets-braces-parenthesis-and-other</id>
+    <content type="html"><![CDATA[<p>I've been fairly busy the last couple of weeks finishing up my current job and preparing for my new one (a really exciting role with a team practising Scrum, TDD etc.), so I haven't been able to dedicate much time to the three potentially bloggable projects I am working on at the moment. The other day I found <a href="http://www.dev102.com/2008/07/21/a-programming-job-interview-challenge-13-brackets/">Part 13</a> of a series of coding challenges posted to <a href="http://www.dev102.com">dev102.com</a>, and thought I'd give it a go as a quick little exercise.</p>
+
+
+
+
+<div class="note"><b>Note:</b> potential spoiler ahead, in the event you were intending to work through this yourself. That's not to say my solution is even vaguely correct, but if you want to do it completely off your own bat then have a go before you have all my mistakes to help you :)</div>
+
+
+
+
+<h2>The problem</h2>
+
+
+<p>This aim of this challenge was to determine whether any given string has a legal bracket structure. Basically, make sure all the '(', '[', '{', and '<' have matching ')', ']', '}' and '>'. We also need to take nesting into account, so that &quot;({)}&quot; is incorrect, and &quot;({}<{}>)&quot; will pass.</p>
+
+
+
+
+<p>Part of the challenge is also to &quot;Provide the most efficient, elegant and simple solution&quot;. I'm not even going to attempt that, but I'll try and get something vaguely efficient and, much like this author, simple.</p>
+
+
+
+
+<h2>Some quick planning</h2>
+
+
+<p>Shahar Yair (who posted the challenge) notes &quot;I think that this is a well known problem&quot;. I think (although without a good googling I can't be sure due to my limited cranial capacity) one of the common implementations is to use a stack, and push brackets on as you find them, and pop them off when you close them. If you have an empty stack at the end your string is ok. If a closing bracket doesn't match the bracket on the top of the stack then you have a problem. The beautiful image below (crafted in that great image editor, MS Word) shows the basic idea: pushing on open brackets and popping them off once they get closed.</p>
+
+
+<p><a href="http://davesquared.net/images/fromblogger/s1600-h-BracketStackExample.png"><img src="http://davesquared.net/images/fromblogger/s400-BracketStackExample.png" border="0" alt="Using a stack to keep track of open brackets." id="BLOGGER_PHOTO_ID_5226591626698288450" /></a></p>
+
+<p>In terms of efficiency, the worst case for this is when you have a valid string, as you will have had to checked every character at least once (to see if it is a bracket). Using a stack will let us make a single pass through the string.</p>
+
+
+
+
+<p>With this basic plan in mind, let's start writing some tests. We're not doing real TDD here I guess, as we have an end implementation in mind, but I still feel more comfortable working with the protection of some tests. It will hopefully cut down the amount of silly mistakes I normally make :).</p>
+
+
+
+
+<h2>Starting small</h2>
+
+
+<p>Here are a few easy tests to start off with (I'm using XUnit.NET here. I'm kind of growing attached to the simplicity of it :)):</p>
+
+
+
+
+<pre>
+public class When_matching_brackets {
+    BracketMatcher matcher = new BracketMatcher();
+    [Fact]
+    public void Empty_string_should_pass() {
+        should_pass(String.Empty);
+    }
+    [Fact]
+    public void Null_string_should_pass() {
+        should_pass(null);
+    }    
+    private void should_pass(String input) {
+        Assert.True(matcher.IsValid(input));
+    }
+    private void should_fail(String input) {
+        Assert.False(matcher.IsValid(input));
+    }    
+}
+public class BracketMatcher {
+    public bool IsValid(string input) { return true; }
+}</pre>
+
+
+
+
+<p>We can pass these by just returning true. Let's write a test that will make this fail:</p>
+
+
+
+
+<pre>
+[Fact]
+public void Single_bracket() {
+    should_fail("(");
+}
+</pre>
+
+
+
+
+<p>We can cheat again to pass this:</p>
+
+
+
+
+<pre>
+public class BracketMatcher {
+    public bool IsValid(string input) { 
+        if (input == null) return true;
+        return input.Length < 1;
+    }
+}</pre>
+
+
+
+
+<p>To drive the next bit of our algorithm we can add another failing test:</p>
+
+
+
+
+<pre>
+[Fact]
+public void Matched_brackets() {
+    should_pass("()");
+}
+</pre>
+
+
+
+
+<p>We could dodgy this up again, but let's start writing something a bit more realistic -- but only a little.</p>
+
+
+
+
+<pre>
+public class BracketMatcher {
+    public bool IsValid(string input) {
+        if (input == null) return true;
+        int openBrackets = 0;
+
+        foreach (var c in input) {
+            if (c == '(') { openBrackets++; }
+            else if (c == ')') { openBrackets--; }                                
+        }
+        return openBrackets == 0;
+    }
+}
+</pre>
+
+
+
+
+<p>This passes, but it is obviously going to incorrectly return true for an input like &quot;)(&quot;. We'll use this to write our next test. What we are doing here is slowly building up a number of cases that should have a specific result, and writing a minimal (and trivial) implementation to make the test cases pass. The actual time spent doing this is quite short. I doubt anyone would spend any more than a few minutes typing this out. What we gain is momentum, and a test suite for when the time comes to refactor. Maybe it's just me, but if I were going straight to an implementation, I'd generally make great progress for a while but stuff up a sign or an end case or similar, and then spend and inordinate amount of time manually tracing through the code to find where I had gone wrong. The slow-and-steady approach here means less initial speed, but no speed bumps later, and usually a faster* trip overall.</p>
+
+
+
+
+<p style="font-size: x-small">* Caution: unsubstantiated anecdote! YMMV</p>
+
+
+
+
+<h2>Skipping ahead to our first major refactoring</h2>
+
+
+
+
+<p>After plugging away for a little while I've got the following test cases:</p>
+
+
+
+
+<pre>
+public class When_matching_brackets {
+    BracketMatcher matcher = new BracketMatcher();
+
+    [Fact]
+    public void Empty_string_should_pass() {
+        should_pass(String.Empty);
+    }
+
+    [Fact]
+    public void Null_string_should_pass() {
+        should_pass(null);
+    }
+
+    [Fact]
+    public void Single_bracket_should_fail() {
+        should_fail(&quot;(&quot;);
+    }
+
+    [Fact]
+    public void Single_bracket_within_string_should_fail() {
+        should_fail(&quot;abc(&quot;);
+    }
+
+    [Fact]
+    public void Matched_brackets_should_pass() {
+        should_pass(&quot;()&quot;);
+    }
+
+    [Fact]
+    public void Matched_brackets_within_string_should_pass() {
+        should_pass(&quot;This is (a test).&quot;);
+    }
+
+    [Fact]
+    public void Matched_brackets_with_single_brace_should_fail() {
+        should_fail(&quot;This {is (a test).&quot;);
+    }
+
+    [Fact]
+    public void Matched_brackets_and_braces_should_pass() {
+        should_pass(&quot;This {is} a (test).&quot;);
+    }
+
+    <b>[Fact]
+    public void Correct_number_but_wrong_nesting_of_brackets_and_braces_should_fail() {
+        should_fail(&quot;This {is a (test}).&quot;);
+    }</b>
+
+    private void should_pass(String input) {
+        Assert.True(matcher.IsValid(input));
+    }
+
+    private void should_fail(String input) {
+        Assert.False(matcher.IsValid(input));
+    }
+}
+</pre>
+
+
+<p></p>
+
+<p>The last test (emphasised) is failing with the following implementation (which passes all the other tests), because it fails to take bracket nesting into account:</p>
+
+
+
+
+<pre>
+public class BracketMatcher {             
+    public bool IsValid(string input) {
+        if (input == null) return true;
+        
+        var bracketCount = 0;
+        var braceCount = 0;
+        foreach (var c in input) {                
+            if (c == '(') {
+                bracketCount++;
+            } else if (c == ')') {
+                bracketCount--;
+            } else if (c == '{') {
+                braceCount++;
+            } else if (c == '}') {
+                braceCount--;
+            }
+        }
+        return bracketCount == 0 && braceCount == 0;
+    }
+}
+</pre>
+
+
+
+
+<p>You can also see I have duplicated the counters for braces and brackets, and we'll only be adding to this problem when it comes time to add the other bracket types. Let's refactor to remove this, and get in the stack idea we talked about earlier.</p>
+
+
+
+
+<div class="note"><b>Aside:</b> Strictly speaking this isn't refactoring -- I'm changing both design and behaviour in one big step (currently there is one failing test, afterward they all pass). In this case it works out ok, but I have gotten myself into trouble many, many times by doing this kind of premature refactoring (it's a bad habit I'm trying to break). In general I'd suggest getting all your tests passing, <i>then</i> refactoring to remove duplication.</div>
+
+
+
+
+<pre>
+public class BracketMatcher {                  
+    public bool IsValid(string input) {            
+        if (input == null) return true;
+
+        var bracketStack = new Stack&lt;char&gt;();
+        foreach (var c in input) {                
+            if (c == '(') {
+                bracketStack.Push(c);
+            } else if (c == ')') {
+                if (bracketStack.Pop() != '(') return false;
+            } else if (c == '{') {
+                bracketStack.Push(c);
+            } else if (c == '}') {
+                if (bracketStack.Pop() != '{') return false;
+            }
+        }
+        return bracketStack.Count == 0;
+    }
+}
+</pre>
+
+
+<p></p>
+
+<p>This passes all our tests, but it's still ugly. The pushes and pops obscure the algorithm we are using. Sure, you can pick it out by tracing through a few cases, but it would be nicer to get the gist of it by inspection alone. We also have some duplicated <code>if (bracketStack.Pop() != '(') return false;</code> style code happening, but now we are at least passing all our tests, we can continue to work toward removing the ugliness without breaking what we have.</p>
+
+
+
+
+<pre>
+public class BracketMatcher {
+    private static Dictionary&lt;char, char&gt; bracketPairs
+        = new Dictionary&lt;char, char&gt; { {'(', ')'}, {'{', '}'} };
+
+    public bool IsValid(string input) {
+        if (input == null) return true;
+
+        var bracketStack = new Stack&lt;char&gt;();
+        foreach (var c in input) {
+            if (bracketPairs.ContainsKey(c)) {
+                bracketStack.Push(c);
+            } else if (bracketPairs.ContainsValue(c)) {
+                char lastBracket = bracketStack.Pop();
+                if (bracketPairs[lastBracket] != c) return false;
+            }
+        }
+        return bracketStack.Count == 0;
+    }
+}
+</pre>
+
+
+
+
+<p>This version is a bit of an improvement: we have removed the duplication by adding a dictionary of bracket pairs. It still isn't exactly intention revealing though with those key/value checks and pushing and popping. I'll go out on a limb here though, and suggest that it's much better than the implementation we opened this section with.</p>
+
+
+<p></p>
+
+<h2>Finishing up</h2>
+
+
+<p>A few more tests, and a refactoring later, and here's what I ended up with:</p>
+
+
+
+
+<pre>
+public class BracketMatcher {
+    private static readonly Dictionary&lt;char, char&gt; bracketPairs
+        = new Dictionary&lt;char, char&gt; { {'(', ')'}, {'{', '}'}, {'[', ']'}, {'&lt;', '&gt;'} };
+
+    private Stack&lt;char&gt; bracketStack;
+
+    <b>public bool IsValid(string input) {        
+        if (input == null) return true;
+        clearOpenedBrackets();
+        foreach (var c in input) {
+            if (isOpenBracket(c)) {
+                recordBracketOpening(c);
+            } else if (isCloseBracket(c)) {
+                if (!canCloseLastOpenBracket(c)) return false;
+                closeLastOpenedBracket();                    
+            }
+        }
+        return areAllBracketsClosed();
+    }</b>
+
+    private void clearOpenedBrackets() {
+      bracketStack = new Stack&lt;char&gt;();
+    }
+
+    private bool areAllBracketsClosed() {
+      return bracketStack.Count == 0;
+    }
+
+    private void closeLastOpenedBracket() {
+        bracketStack.Pop();
+    }
+
+    private bool canCloseLastOpenBracket(char bracket) {
+        if (areAllBracketsClosed()) return false;
+        char lastOpenBracket = bracketStack.Peek();
+        char closingBracket = bracketPairs[lastOpenBracket];
+        return bracket == closingBracket;
+    }
+
+    private void recordBracketOpening(char bracket) {
+        bracketStack.Push(bracket);
+    }
+
+    private bool isOpenBracket(char c) {
+        return bracketPairs.ContainsKey(c);
+    }
+
+    private bool isCloseBracket(char c) {
+        return bracketPairs.ContainsValue(c);
+    }
+}
+</pre>
+
+
+
+
+<p>I think <code>IsValid(...)</code> is actually reading pretty well here. The intent of the operation is fairly clear from a quick read through, with no implementation details like pops and pushes scattered around the code. The implementation itself is pushed to fairly simple helper methods.</p>
+
+
+
+
+<p>The <code>canCloseLastOpenBracket(...)</code> method is a bit ugly, but it is only four lines, has descriptive variable names, and is tucked away in a private method. It's also a bit inefficient, as we are doing an unecessary <code>Peek()</code> before <code>Pop()</code>ing the value off the stack. I rewrote the code several ways, but any approach that combined the <code>Pop()</code> with matching the brackets tended to obscure what the code was doing. I've had a minor method-count explosion, but they are all small and self-explanatory (less lines that commenting the previous version in any event ;)).</p>
+
+
+
+
+<p>We might be able to simplify this in a number of ways, like putting the required closing brackets on the stack to make the matching more straightforward, but the other approaches I tried all seemed to compromise readability to some extent, so I ended up sticking with the verbosity of this version. I'm sure you can do better (leave a comment!), but for now it's passing the tests thrown at it and I can live with how it reads. Which means we're as good as done. :)</p>
+
+
+
+
+<p>Speaking of done, here's the test suite it passes:</p>
+
+
+
+
+<pre>
+public class When_matching_brackets {
+    BracketMatcher matcher = new BracketMatcher();
+
+    [Fact]
+    public void Empty_string() {
+        should_pass(String.Empty);
+    }
+
+    [Fact]
+    public void Null_string() {
+        should_pass(null);
+    }
+
+    [Fact]
+    public void Single_bracket() {
+        should_fail(&quot;(&quot;);
+    }
+
+    [Fact]
+    public void Single_closing_bracket() {
+        should_fail(&quot;)&quot;);
+    }
+
+    [Fact]
+    public void Single_bracket_within_string() {
+        should_fail(&quot;abc(&quot;);
+    }
+
+    [Fact]
+    public void Matched_brackets() {
+        should_pass(&quot;()&quot;);
+    }
+
+    [Fact]
+    public void Matched_brackets_within_string() {
+        should_pass(&quot;This is (a test).&quot;);
+    }
+
+    [Fact]
+    public void Missing_a_brace() {
+        should_fail(&quot;This {is (a test).&quot;);
+    }
+
+    [Fact]
+    public void Pairs_of_matched_brackets_and_braces() {
+        should_pass(&quot;This {is} a (test).&quot;);
+    }
+
+    [Fact]
+    public void Incorrect_nesting_of_brackets_and_braces() {
+        should_fail(&quot;This {is a (test}).&quot;);
+    }
+
+    [Fact]
+    public void Valid_nesting_with_multiple_types() {
+        should_pass(&quot;&lt;Hello (World), ({how} are) you today&gt;?&quot;);
+    }
+
+    [Fact]
+    public void Multiple_pairs() {
+        should_pass(&quot;(Hello) {World}, &lt;how&gt; are (you) today?&quot;);
+    }
+
+    [Fact]
+    public void Multiple_lines_with_valid_brackets() {
+        should_pass(@&quot;(Hello {World,
+                        How are you}
+                        ?)&quot;);
+    }
+
+    [Fact]
+    public void Multiple_lines_with_invalid_brackets() {
+        should_fail(@&quot;(Hello {World,
+                        How are you)
+                        ?)&quot;);
+    }
+
+    [Fact]
+    public void Valid_example_from_problem_statement() {
+        should_pass(&quot;([](&lt;{}&gt;))&quot;);
+    }
+
+    [Fact]
+    public void Invalid_example_from_problem_statement() {
+        should_fail(&quot;({&lt;)&gt;}&quot;);
+    }
+
+    [Fact]
+    public void Matching_square_brackets() {
+        should_pass(&quot;[asdf]&quot;);
+    }
+
+    [Fact]
+    public void Single_square_bracket() {
+        should_fail(&quot;[&quot;);
+    }
+
+    [Fact]
+    public void Single_angle_bracket() {
+        should_fail(&quot;&lt;&quot;);
+    }
+    [Fact]
+    public void Matching_angle_brackets() {
+        should_pass(&quot;&lt;&gt;&quot;);  
+    }
+
+    private void should_pass(String input) {
+        Assert.True(matcher.IsValid(input));
+    }
+
+    private void should_fail(String input) {
+        Assert.False(matcher.IsValid(input));
+    }
+}
+</pre>
+
+
+
+
+<p>Was a bit of fun for a half hour or so :) Please feel free to leave a comment if you have any suggested improvements (or better yet, some failing tests!).</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Yet another way of raising events from mocks]]></title>
+    <link href="http://davesquared.net/2008/06/yet-another-way-of-raising-events-from.html"/>
+    <updated>2008-06-21T23:16:00+10:00</updated>
+    <id>http://davesquared.net/2008/06/yet-another-way-of-raising-events-from</id>
+    <content type="html"><![CDATA[<p><i><b>Update 2008-06-26</b>: This is <a href="http://groups.google.com/group/RhinoMocks/browse_frm/thread/b7c865a8827594a0/6a70d267c4c33884?tvc=1#6a70d267c4c33884">now in the Rhino Mocks trunk</a>, so it should be available as part of the 3.5 release.</i></p>
+
+
+
+
+<p>I've been playing around with raising events from mocks for the last couple of nights, and think I've finally come up with an approach that works for me. Finding a nice way of raising these events is particularly tricky for mock object frameworks, as the C# compiler is really picky about how you can use event references. For example, let's look at a very useful interface:</p>
+
+
+
+
+<pre>
+public interface IDoSomething {    
+    event EventHandler SomethingDone;
+}
+</pre>
+
+
+
+
+<p>Outside of a class that implements <code>IDoSomething</code>, the only time we can reference <code>SomethingDone</code> is when we are adding or removing listeners (<code>x.SomethingDone += someEventHandler;</code> or <code>x.SomethingDone -= someEventHandler;</code>). (<a href="http://codebetter.com/blogs/matthew.podwysocki/archive/2008/06/06/functional-c-revisited-into-the-great-void.aspx">C#'s lack of real support for System.Void</a> is partly to blame here, as both these operations are void.)</p>
+
+
+
+
+<p>To raise an event on a mock object, it would be lovely to be able to code something like this:</p>
+
+
+
+
+<pre>
+var mock = mocks.DynamicMock<IDoSomething>();
+mock.Raise(<b>mock.SomethingDone</b>, mock, EventArgs.Empty);
+</pre>
+
+
+
+
+<p>Unfortunately due to the aforementioned constraint, the emphasised part of the code will give a compiler error stating <i>&quot;The event 'IDoSomething.SomethingDone' can only appear on the left hand side of += or -=&quot;</i>.</p>
+
+
+
+
+<p>There are a few workarounds for this. Let's start with the <a href="http://www.ayende.com/Wiki/Rhino+Mocks+IEventRaiser.ashx">standard Rhino Mocks approach</a>. (I'm using <a href="http://www.ayende.com/Blog/archive/2008/05/16/Rhino-Mocks--Arrange-Act-Assert-Syntax.aspx">Rhino Mocks 3.5 beta</a> and <a href="http://www.codeplex.com/xunit">xUnit.net</a> here -- feel free to translate from [Fact] to [Test] if you use NUnit, MBUnit et al.)</p>
+
+
+
+
+<pre>
+[Fact]
+public void Raise_event_old_style() {
+    var mock = mocks.DynamicMock&lt;IDoSomething&gt;();
+    <b>mock.SomethingDone += null;
+    IEventRaiser eventRaiser = LastCall.IgnoreArguments().GetEventRaiser();</b>
+    mocks.ReplayAll();
+
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+    <b>eventRaiser.Raise(mock, EventArgs.Empty);</b>
+
+    mocks.VerifyAll();  
+    Assert.True(wasCalled);
+}
+</pre>
+
+
+
+
+<p>Rhino Mocks records the expectation that an event handler is added, then uses <code>LastCall</code> to ignore the argument and gets an <code>IEventRaiser</code> for the last event referenced. That <code>IEventRaiser</code> can be used later on to raise our event. Phil Haack has <a href="http://haacked.com/archive/2006/06/23/UsingRhinoMocksToUnitTestEventsOnInterfaces.aspx">a helpful post which explains a bit more</a> about this approach.</p>
+
+
+
+
+<p>When I first saw this I must admit it seemed like a lot of noise that obscured what I was really trying to do. This got worse when I started playing around with the new <a href="http://www.ayende.com/Blog/archive/2008/05/16/Rhino-Mocks--Arrange-Act-Assert-Syntax.aspx">Arrange - Act - Assert</a> syntax and I didn't want to go through the whole replay / verify cycle. So I started looking at the Rhino Mocks implementation of <code>IEventRaiser</code>, the <code>EventRaiser</code> class. This class lets us do this:</p>
+
+
+
+
+<pre>
+[Fact]
+public void Raise_event_using_string_for_event_name() {
+    var mock = mocks.DynamicMock&lt;IDoSomething&gt;();
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+
+    <b>var eventRaiser = EventRaiser.Create(mock, &quot;SomethingDone&quot;);
+    eventRaiser.Raise(mock, EventArgs.Empty);</b>
+    
+    Assert.True(wasCalled);
+}
+</pre>
+
+
+
+
+<p>Here we can specify the relevant event using a string. This works nicely and is easy to read, but causes problems when refactoring and means we don't get intellisense or compiler assistance. <a href="http://www.ayende.com/Blog/archive/2007/06/08/Rhino-Mocks-Events-Purity-vs.-Practicality.aspx">Ayende has written about this approach</a>, comparing it with the <code>LastCall.GetEventRaiser()</code> approach we used last time.</p>
+
+
+
+
+<p>I wasn't overjoyed about either of these, and while searching around for other options I found another of Ayende's posts (I think his blog is about 30% of the web... great stuff :)), asking for feedback on a <a href="http://www.ayende.com/Blog/archive/2007/06/23/Natural-Event-Syntax-for-Rhino-Mocks.aspx">more natural syntax for raising events from mocks</a>. This looked a bit like this:</p>
+
+
+
+
+<pre>
+mock.MyEvent += EventRaiser.Raise(this, EventArgs.Empty);
+</pre>
+
+
+
+
+<p>I quite liked this, but there were a few complaints in the comments about subscribing to and raising the event at the same time. The post was from about 12 months prior to me writing this and, as I'm using a recent Rhino Mocks build and couldn't find it, it looks like nothing came of this. Let's look for a compromise that also fits in nicely with our Arrange - Act - Assert approach. First we'll see what we can get working based on the first, <code>LastCall.GetEventRaiser()</code> approach used:</p>
+
+
+
+
+<pre>
+[Fact]
+public void Raise_event_with_new_arrange_act_assert_syntax() {
+    //Arrange
+    var mock = MockRepository.GenerateMock&lt;IDoSomething&gt;();
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+    
+    <b>var eventRaiser = 
+        mock
+        .Stub(x =&gt; x.SomethingDone += null)
+        .IgnoreArguments()
+        .GetEventRaiser();</b>
+    
+    //Act
+    <b>eventRaiser.Raise(mock, EventArgs.Empty);</b>
+
+    //Assert
+    Assert.True(wasCalled);
+}
+</pre>
+
+
+
+
+<p>Here we are specifying a fairly useless stub so we can get an <code>IEventRaiser</code>. We are still using ye olde  <code>x.SomethingDone += null</code> trick (albeit with a lambda to neaten it up), but we are pretty much stuck with that if we want strong typing on this as discussed at the beginning of this post.</p>
+
+
+
+
+<p>I think this looks a bit more cohesive now we are using the lambda. We have one statement that is fairly obviously getting an <code>IEventRaiser</code>, rather than a null event handler floating around on its own confusing poor people like me :). Beyond aesthetics, this cohesion can let us pull out this functionality and start getting closer to a neater syntax. For now we'll just whack this in a .NET 3.5 extension method, but we could probably find a better home for it (it can go in a standalone class but the final syntax doesn't read quite as well to me).</p>
+
+
+
+
+<pre>
+public static class EventRaiserExtensions {
+    private static IEventRaiser GetEventRaiserFromSubscription&lt;TEventSource&gt;(
+        this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription) {
+        <b>return mock
+            .Stub(eventSubscription)
+            .IgnoreArguments()
+            .GetEventRaiser();</b>
+    }
+    
+    public static void Raise&lt;TEventSource&gt;(this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription, object sender, EventArgs args) {
+        var eventRaiser = GetEventRaiserFromSubscription(mock, eventSubscription);
+        eventRaiser.Raise(sender, args);
+    }
+
+    public static void Raise&lt;TEventSource&gt;(this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription, params object[] args) {
+        var eventRaiser = GetEventRaiserFromSubscription(mock, eventSubscription);
+        eventRaiser.Raise(args);
+    }        
+
+    public static void Raise&lt;TEventSource&gt;(this TEventSource mock, Action&lt;TEventSource&gt; eventSubscription) {
+        var eventRaiser = GetEventRaiserFromSubscription(mock, eventSubscription);
+        eventRaiser.Raise(mock, EventArgs.Empty);
+    }    
+}
+</pre>
+
+
+
+
+<p>The emphasised bit of code is the stub call we did last time, but this time pulled out into one method. The main bits are the <code>Raise&lt;TEventSource&gt;</code> extension methods, which combine all the steps and give us an easy syntax for calling an event on a mock based on an event subscription delegate. So our example now looks like this:</p>
+
+
+
+
+<pre>
+[Fact]
+public void Suggestion_for_raising_events() {
+    var mock = MockRepository.GenerateMock&lt;IDoSomething&gt;();
+    var wasCalled = false;
+    mock.SomethingDone += (sender, e) =&gt; wasCalled = true;
+
+    <b>mock.Raise(x =&gt; x.SomethingDone += null, mock, EventArgs.Empty);</b>
+
+    Assert.True(wasCalled);
+}
+</pre>
+
+
+
+
+<p>The implementation itself might need work, but I reckon that syntax is pretty neat considering the limitations of C#. Of course, you're welcome to think otherwise, so please leave a comment expressing your outrage and/or contempt :).</p>
+
+
+
+
+<p>Disclaimer: I am fairly new to Rhino Mocks (have tended to stick to manual test doubles) and especially to Arrange - Act - Assert (it's only in beta at present), so this might fail pretty hard in other circumstances. Still, I thought I'd post the syntax in case it gave more knowledgable people some good ideas :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[BDD test naming with AutoHotKey]]></title>
+    <link href="http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html"/>
+    <updated>2008-05-28T09:14:00+10:00</updated>
+    <id>http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey</id>
+    <content type="html"><![CDATA[<p><i><b>Updates:</b> See change log at the bottom of this post for the most recent updates.</i></p>
+
+
+<p><i><b>Update 2008-05-29:</b> <a href="http://www.jpboodhoo.com/blog">JP</a> has posted a <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">much better version of this script</a> (with suggestions from a few of his readers). I've updated the script on this post to work more like JP's version, but you're probably best off grabbing it from <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">his post</a>, or searching <a href="http://www.jpboodhoo.com/blog">his site</a> for his latest version.</i></p>
+
+
+
+
+<p>Was having a chat earlier with my good mate <a href="http://www.jpboodhoo.com/blog">JP Boodhoo</a>... er, well, more accurately, I left a comment on his blog and he was nice enough to email me back. Anyway, JP has <a href="http://www.jpboodhoo.com/blog/SoLongBDDMacroHelloAutohotkey.aspx">started trying AutoHotKey rather than his previous macro</a> for BDD-style test naming.</p>
+
+
+
+
+<p>I thought I'd post an extremely over-engineering version of this <a href="http://www.autohotkey.com/">AutoHotKey</a> script, which has a toggle-approach similar to the <a href="http://davesquared.net/2008/02/emacs-key-bindings-everywhere.html">Emacs Everywhere script</a> I posted earlier.</p>
+
+
+
+
+<p>Once you have <a href="http://www.autohotkey.com/">AHK</a> installed, you can just extract the ZIP below and double click the .AHK file to load the script. The script will let you toggle &quot;test-naming mode&quot; (i.e. replacing spaces with underscores) using Ctrl + Shift + U. You can cancel out of test naming mode by pressing ENTER, ESCAPE, TAB, starting the method signature by typing a '(', or typing a '{' or ':' for when you are naming a class. Pressing Ctrl + Alt + U will insert a new test template before switching on test naming mode (although you might be better off using R# templates for this). All this is simply to make it easier to type out tests like this:</p>
+
+
+
+
+<pre>[Test]
+public void Test_naming_mode_turns_spaces_to_underscores() {}
+</pre>
+
+
+
+
+<p>Version 2.2 of the script can be downloaded here: 
+<ul><li><a href="http://davesquared.googlecode.com/files/TestNamingMode-v2.2.zip">TestNamingMode-v2.2.zip</a></li></ul></p>
+
+
+
+
+<p>Feel free to change the hotkeys and the dodgy icons :). I haven't had a good test of it yet so use at your own risk.</p>
+
+
+
+
+<p>If you're happy with how it works you can add it to your Startup programs and have BDD-style test naming goodness whenever you like. Hope_this_helps! :-)</p>
+
+
+
+
+<p style="font-size: x-small"><b>Change log</b>
+<ul style="font-size: x-small">
+<li>2008-11-18: Uploaded v2.2, making TAB exit test naming mode. This is helpful when using Resharper live templates for tests.</li>
+<li>2008-08-13: Uploaded v2.1, making '{' and ':' exit test naming mode, based on <a href="http://scottcreynolds.com/archive/2008/08/11/tweak-of-bdd-naming-autohotkey-macro.aspx">Scott C Reynold's script modification</a>. I should probably make it exit on any punctuation, but calling YAGNI on it for now.</li>
+<li>2008-05-29: Uploaded v2, synching with <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">JP's version 2</a>, adding test templates, and made test mode exit after typing '(' for test method signature</li>
+<li>2008-05-28: Updated hotkeys to match JP's version</li>
+<li>2008-05-28: Original post</li>
+</ul>
+</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[An assortment of basic TDD tips]]></title>
+    <link href="http://davesquared.net/2008/04/assortment-of-basic-tdd-tips.html"/>
+    <updated>2008-04-18T09:24:00+10:00</updated>
+    <id>http://davesquared.net/2008/04/assortment-of-basic-tdd-tips</id>
+    <content type="html"><![CDATA[<p>I spent most of last week working strictly TDD-style on a work project. Now all the stuff I do at home is done using TDD, and I sometimes manage to test-drive a feature into a work project, but for a number of reasons I've never jumped 100% into test driving stuff for work.</p>
+
+
+<p></p>
+
+<p>For the first few days I had mixed results. The code and design was probably not significantly better or worse that I would have come up with without TDD. I <em>did</em> end up with a decent suite of tests for the code, which was a nice bonus, and the code took a similar amount of time to non-TDD for me.</p>
+
+
+<p></p>
+
+<p>The last couple of days were a very different story: I felt the code and design turned out significantly better and was written much faster than I would generally have done sans TDD. The whole process flowed wonderfully.</p>
+
+
+<p></p>
+
+<p>I thought I'd jot down a couple of rambling points I learned or re-learned during the week, for my own future reference and on the off chance I help someone else experimenting with TDD. These are all pretty basic points, but ones which I sometimes lose sight of while coding in anger :-).</p>
+
+
+<p></p>
+
+<h2>When I'm not sure <i>how</i> to do something, my tests tend to drive the procedure instead of the design</h2>
+
+
+<p></p>
+
+<p>This was something that occurred to me while test-driving some code to generate XML schemas (XSD). It had been a while since I had done anything manual with XSD, so while I knew roughly <i>what</i> what I was trying to do, I was not really sure of the details on <i>how</i> to do it. So I started writing tests about how I thought XSD worked, and responding to the feedback from those tests.</p>
+
+
+<p></p>
+
+<p>The end result was that my tests built up the <i>procedure</i> of <i>how</i> to generate XSD, rather than a good design for <i>what</i> I was trying to achieve.</p>
+
+
+<p></p>
+
+<p>While this can be helpful in itself to learn an API or something else that's a bit new to you, it is not what you really want for production code. So next time I'm in a similar situation I'll make sure I do a quick spike (possibly test-first if I think it will help) to learn <i>how</i>, before throwing it away and starting to test-drive the production code.</p>
+
+
+<p></p>
+
+<h2>Avoid complex APIs until you really need them</h2>
+
+
+
+
+<p>Back to my previous XSD example, we have a few options as of .NET 3.5. First up, XSDs are just strings, so we could work at that level. They are also valid XML documents, so we could use <code>XmlDocument</code>, <code>XDocument</code>, or <code>XmlWriter</code>. Finally, .NET has a built in <code>XmlSchema</code> and related classes specifically for dealing with XSD documents. So which would you chose?</p>
+
+
+<p></p>
+
+<p>I started with strings, but quickly ran into the problem mentioned in my previous point: I had forgotten many of the details of XSDs that I needed to build up the right string. So I back tracked and jumped straight into <code>XmlSchema</code>, leaning on the API a bit to relearn everything. This introduced a lot of needless complexity into my design to enable it to play nicely with the API.</p>
+
+
+<p></p>
+
+<p>In retrospect I think I'd have been better off sticking with strings or another basic construct until I really needed a full featured API.</p>
+
+
+<p></p>
+
+<h2>Have a clear Subject Under Test (SUT)</h2>
+
+
+
+
+<p>Especially when starting out with testing (any testing, not just TDD), I have occasionally managed to confuse myself setting up the test context -- the data and dependencies required for the test. I would sometimes end up testing the test data, rather than exercising the production code.</p>
+
+
+<p></p>
+
+<p>This is probably (hopefully?) a bit less stupid than it sounds, as sometimes your code will simply delegate to another object, in which case you can test the state (test data that comes back) or the iteraction itself (usings mocks).</p>
+
+
+<p></p>
+
+<p>It pays to be very concious of exactly what your <a href="http://xunitpatterns.com/SUT.html">Subject Under Test (SUT)</a> is. I've found myself thinking increasingly in terms of the SUT, its dependencies, and its behaviour to be exercised in the test*. Once clear on these points, it's time to setup the dependencies to provide a specific testing context and test data, exercise the SUT, then verify that the SUT performs correctly in that context. Using a <a href="http://xunitpatterns.com/Four%20Phase%20Test.html">four-phase test structure</a> can help here.</p>
+
+
+<p></p>
+
+<p style="font-size: xx-small">* I'm getting crazy ideas about single test contexts per class, where the test context becomes the class state. A bit like <a href="http://blog.eleutian.com/CommentView,guid,762249da-e25a-4503-8f20-c6d59b1a69bc.aspx">AMC</a> but less to do with mocking and more to do with structure and easy reproduction of test context across related tests/specifications.</p>
+
+
+
+
+<h2 id="postAnchor_BasicTddTips_TestSmells">Use test difficulties to drive design</h2>
+
+
+
+
+<p>After completing a couple of tests on a class, I found there was a method that seemed like it should be <code>protected</code>, but that I still wanted to have tests around. There are lots of valid approaches to do this: using inheritance (either a test double, or self-shunt <a href="http://www.objectmentor.com/resources/articles/SelfShunPtrn.pdf">[PDF]</a>), <a href="http://msdn2.microsoft.com/en-us/library/system.runtime.compilerservices.internalsvisibletoattribute.aspx"><code>InternalsVisibleTo</code></a>, generated mocks, reflection tricks, or just <a href="http://c2.com/cgi/wiki?MethodsShouldBePublic">leaving the method <code>public</code></a>. But why should we have to go through these hoops just for testability's sake? Why is something so trivial requiring any complexity or workarounds?</p>
+
+
+
+
+<p>This kind of signal is generally referred to as a &quot;smell&quot; -- something that just doesn't seem right, and it is this kind of feedback that TDD is very good at providing.</p>
+
+
+
+
+<p>In this case the smell prompted me to have another look at the code, and I discovered that the method actually seemed to belong on another object. So I <a href="http://www.refactoring.com/catalog/moveMethod.html">moved the method</a> to the other class, and had the original SUT delegate to it. This meant I could test the now <code>public</code> method on its new class, while keeping proper encapsulation for the original class. And even more importantly, the design was now much cleaner and clearer (IMHO).</p>
+
+
+
+
+<p>So if you come across something that seems a bit messier to test than necessary, it might be your test's way of telling you there is something amiss with your design. Sometimes you may look at it and decide it is worth a bit of mess, but other times it is a clear cue to refactor.</p>
+
+
+
+
+<h2>Use tests to drive through uncertainty</h2>
+
+
+
+
+<p>I was test driving a controller class that accepted requests for specific resources. I had tests for a <code>VerifyAccess(Guid id)</code> method which loaded some information about the resource with that ID, then ensured the caller had access. A few tests later and I had another method, <code>GetResource(Guid id)</code>, which actually retrieved the resource. Now <code>GetResource</code> should really check the access as well.</p>
+
+
+
+
+<pre>//Pseudocode
+public void VerifyAccess(Guid id) {
+  <b>//Get details about resource with id
+  //Check access, throw if access denied</b>
+}
+public Resource GetResource(Guid id) {
+  <b>//Get details about resource with id
+  //Check access?</b>
+  //return resource
+}
+</pre>
+
+
+
+
+<p>So I had the situation where both methods wanted to call each other. As the access verification logic was important, I also wanted to keep it testable in isolation from the code to retrieve the resource. It looked like a simple matter of extracting a private, helper method called from both methods, but I was not sure... there were a few ways I could do it, but the resulting method names and code structure all seemed a bit convoluted and unnatural.</p>
+
+
+
+
+<p>My approach was to write a test that exposed the required behaviour. When doing something that calls <code>GetResource</code>, the attempt should fail if <code>VerifyAccess</code> would also fail. It was then just a matter of getting the test to pass.</p>
+
+
+
+
+<p>My final implementation was much nicer than my initial, uncertain guess. Turns out that <code>GetResource</code> would be better suited as a protected method called <code>GetResourceAndCheckAccess</code>. Callers never actually had to <i>get</i> a resource, they only needed to <i>use</i> one. So the old tests around <code>GetResource</code> became tests around <code>UseResource(Guid id)</code> (I'm changing the scenario from the original problem as don't want to post work stuff verbatim, so the real names are a lot more natural. Hopefully the main idea is clear though). <code>VerifyAccess</code> also called <code>GetResourceAndCheckAccess</code>. I also ended up with a nice, private helper method, <code>verifyAccessToResource(Resource resource)</code>, that took a loaded resource rather than an ID. The intention of the code was now obvious from the names and structure, and the tests acurately specified the required behaviour.</p>
+
+
+
+
+<pre>//Psuedocode
+public void VerifyAccess(Guid id) {
+  GetResourceAndCheckAccess();
+}
+protected Resource GetResourceAndCheckAccess() {
+  <b>//Get details about resource with id</b>
+  verifyAccessToResource(resource);
+  return resource;  
+}
+private void verifyAccessToResource(Resource resource) {
+  <b>//Check access, throw if access denied.</b>
+}
+public SomeOutput UseResource(Guid id) {
+  Resource resource = GetResourceAndCheckAccess();
+  return resource.DoSomething();
+}
+</pre>
+
+
+
+
+<p>While it's obviously pretty simple to come up with a solution without going test-first, once the required behaviour was specified correctly and protected by automated tests, I found it much easier to work towards a usable implementation without having to worry about correctness all the time. Provided the tests stayed green, I knew the implementation satisfied the requirement. For me, this approach lets me focus on incrementally getting it right, without being distracted by the uncertainties caused by having many ways of proceeding to a &quot;final&quot; answer.</p>
+
+
+
+
+<p>Hope this is of some help to someone. It was definitely helpful for me to explain it all in any case, so if you made it this far, thanks for listening! :-)</p>
+
+]]></content>
+  </entry>
+  
+</feed>

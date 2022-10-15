@@ -1,0 +1,301 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>FP newbie learns a little about applicatives - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="A few posts back I learned that functors are types that can be mapped over. The idea is that if we have a function a -&gt; b, we would like to be &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/05/fp-newbie-learns-applicatives.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">FP newbie learns a little about applicatives</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-05-15T17:47:00+10:00" pubdate data-updated="true">15 May 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>A few posts back I learned that <a href="/2012/05/fp-newbie-learns-functors.html">functors are types that can be mapped over</a>. The idea is that if we have a function <code>a -&gt; b</code>, we would like to be able to apply that to <code>a</code>s in different contexts, such as a list of <code>a</code>, a <code>Maybe a</code>, or an IO action that results in an <code>a</code>. In the previous post we referred to these contexts as “boxes”, so we could lift a function <code>a -&gt; b</code> to work on a box of <code>a</code> and return a box of <code>b</code>.</p>
+<pre><code>-- &quot;Functor f =&gt;&quot;  just means that `f` refers to a functor type (or a type of box)
+fmap :: Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b 
+
+ghci&gt; fmap succ (Just 4)
+Just 5
+ghci&gt; fmap (^2) (Just 4)
+Just 16
+ghci&gt; fmap (++&quot;!&quot;) getLine
+Hello World
+&quot;Hello World!&quot;</code></pre>
+<p>All these calls map single argument functions over functors, which is neat, but a bit limiting. What happens if we map a two (or more) argument function like <code>+</code>?</p>
+<pre><code>ghci&gt; :t fmap (+) (Just 4)
+fmap (+) (Just 4) :: Num a =&gt; Maybe (a -&gt; a)</code></pre>
+<p>This gives us a <code>+4</code> function in a <code>Maybe</code> context, so <code>fmap (+) (Just 4) = Just (4+)</code>. But how do we pass the second argument to this boxed up function? We can’t use <code>fmap</code> again, because it’s signature takes an <code>(a -&gt; b)</code>, not a <code>f (a -&gt; b)</code>. But if <code>f</code> is not just a functor, but an <em>applicative functor</em>, then we have another option. Applicative functors still support <code>fmap</code>, but also add some other functions, the main one being:</p>
+<pre><code>(&lt;*&gt;) :: Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b</code></pre>
+<p>The bizarre-looking <code>&lt;*&gt;</code> function takes a boxed-up function <code>a -&gt; b</code> and applies it to a boxed-up <code>a</code>, which is just what we need in this case.</p>
+<!-- more -->
+<pre><code>ghci&gt; import Control.Applicative  -- imports (&lt;*&gt;) function (et al.)
+ghci&gt; fmap (+) (Just 4) &lt;*&gt; (Just 10)
+Just 14</code></pre>
+<h2 id="applying-applicatives">Applying applicatives</h2>
+<p>Just as <code>fmap</code> lets us map a function over a value in a context, <code>&lt;*&gt;</code> applies a function in a context to a value in a context. It ends up mirroring standard function application, only within a context:</p>
+<pre><code>ghci&gt; let sum3 a b c = a+b+c
+ghci&gt; sum3 5 10 15
+30
+ghci&gt; fmap sum3 (Just 5) &lt;*&gt; (Just 10) &lt;*&gt; (Just 15)
+Just 30</code></pre>
+<p>The initial <code>fmap</code> call lifts <code>sum3</code> into the new context (puts it in a box, in this case the <code>Maybe</code> type), then we apply that boxed function to its remaining arguments while staying in that context.</p>
+<p>Because this is a fairly common pattern, the <code>Control.Applicative</code> library defines the function <code>&lt;$&gt;</code> as an alias for <code>fmap</code>:</p>
+<pre><code>ghci&gt; sum3 &lt;$&gt; (Just 5) &lt;*&gt; (Just 10) &lt;*&gt; (Just 15)
+Just 30</code></pre>
+<p>Using this syntax we can apply functions with any number of arguments within a context. We apply each argument using <code>&lt;*&gt;</code>.</p>
+<h2 id="lifting-functions">Lifting functions</h2>
+<p>There are also some convenience functions, <code>liftA</code>, <code>liftA2</code> and <code>liftA3</code> to convert 1, 2 and 3 argument functions that take applicative functor values. From the <a href="http://hackage.haskell.org/packages/archive/base/latest/doc/html/src/Control-Applicative.html#liftA">Haskell source</a>:</p>
+<pre><code>-- For unary functions:
+liftA :: Applicative f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+liftA f a = pure f &lt;*&gt; a
+
+-- For binary functions:
+liftA2 :: Applicative f =&gt; (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c
+liftA2 f a b = f &lt;$&gt; a &lt;*&gt; b
+
+-- For ternary functions:
+liftA3 :: Applicative f =&gt; (a -&gt; b -&gt; c -&gt; d) -&gt; f a -&gt; f b -&gt; f c -&gt; f d
+liftA3 f a b c = f &lt;$&gt; a &lt;*&gt; b &lt;*&gt; c</code></pre>
+<p>This lets us use standard function syntax for calling our functions within a context.</p>
+<pre><code>ghci&gt; liftA3 sum3 (Just 5) (Just 10) (Just 15)
+Just 30</code></pre>
+<h2 id="well-behaved-applicatives">Well-behaved applicatives</h2>
+<p>Just as there are <a href="/2012/05/fp-newbie-learns-functors.html#well-behaved-functors">laws a functor must satisfy</a>, applicative functors have some additional requirements.</p>
+<p>First up, as they are defined in Haskell, applicatives have to not only supply a <code>&lt;*&gt;</code> function, but also a <code>pure</code> function, which will take a value and put it in the context of the applicative functor:</p>
+<pre><code>pure :: Applicative f =&gt; a -&gt; f a</code></pre>
+<p>This can be used to lift a function into a context so we can apply it to applicatives. As above, <code>liftA</code> is defined as <code>liftA f a = pure f &lt;*&gt; a</code>, which is equivalent to writing <code>fmap f a</code>. This gives our first applicative property. There’s a good description of <a href="http://en.wikibooks.org/wiki/Haskell/Applicative_Functors">all the applicative laws in the Haskell Wikibook</a>, but as a quick summary:</p>
+<ul>
+<li>fmap law: <code>pure f &lt;*&gt; x = fmap f x</code></li>
+<li>Identity: <code>pure id &lt;*&gt; v = v</code></li>
+<li>Composition: <code>pure (.) &lt;*&gt; u &lt;*&gt; v &lt;*&gt; w = u &lt;*&gt; (v &lt;*&gt; w)</code></li>
+<li>Interchange: <code>u &lt;*&gt; pure y = pure ($ y) &lt;*&gt; u</code></li>
+<li>Homomorphism: <code>pure f &lt;*&gt; pure x = pure (f x)</code></li>
+</ul>
+<h2 id="summary">Summary</h2>
+<p>Applicative functors are functors that support some additional behaviours. While the motivation for functors is to be able to apply a function within a context, the motivation for applicatives is to apply functions with multiple arguments within a context.</p>
+<p>We can apply each argument using the <code>&lt;*&gt;</code> operator, giving us expressions like <code>f &lt;$&gt; arg0 &lt;*&gt; arg1 &lt;*&gt; ... &lt;*&gt; argN</code>. We can also lift functions of 1 to 3 arguments using <code>liftA</code>, <code>liftA2</code> or <code>liftA3</code>.</p>
+<p>We saw previously that <a href="http://davesquared.net/2012/05/fp-newbie-learns-functors.html#lifting-functions-is-useful">functors can be quite useful</a> to reuse functions in different contexts, such as when performing IO operations that result in particular values. Applicative functors extends the same benefits to functions that take multiple arguments.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-05-15T17:47:00+10:00" pubdate data-updated="true">15 May 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/05/fp-newbie-learns-applicatives.html" data-via="" data-counturl="http://davesquared.net/2012/05/fp-newbie-learns-applicatives.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/05/towards-point-free-redux.html" title="Previous Post: Towards point-free redux">&laquo; Towards point-free redux</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/06/fp-newbie-learns-monads.html" title="next Post: FP newbie learns a little about monads">FP newbie learns a little about monads &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/05/fp-newbie-learns-applicatives.html';
+        var disqus_url = 'http://davesquared.net/2012/05/fp-newbie-learns-applicatives.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

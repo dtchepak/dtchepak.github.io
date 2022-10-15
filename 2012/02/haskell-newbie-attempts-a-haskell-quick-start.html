@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Haskell newbie attempts a Haskell quick start guide - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I recently posted an attempt to explain folds using Haskell, and I got some feedback that the code samples were quite hard to follow for people that &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Haskell newbie attempts a Haskell quick start guide</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-02-09T12:02:00+11:00" pubdate data-updated="true">09 Feb 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I recently posted an <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">attempt to explain folds using Haskell</a>, and I got some feedback that the code samples were quite hard to follow for people that hadn&#8217;t played with Haskell before. Now the best way that I know of to quickly get started with Haskell is to go through the excellent <a href="http://learnyouahaskell.com/">Learn You a Haskell for Great Good</a> guide. I heartily recommend leaving this post right now and reading it. The whole guide is available free online, but you can also buy print copies of the fantastic reference. Here&#8217;s <a href="http://learnyouahaskell.com/">the link</a> again in case you missed it the first time.</p>
+
+<p>Are you still here? Oh. Well, seeing as you don&#8217;t seem to want to listen to my advice, you deserve the rest of this post. It features a complete Haskell-n00b sharing his ignorance and misinformation with a reckless disregard for your quest to understand the basics of Haskell in a way that may permanently impair your ability to learn Haskell, understand functional programming, operate heavy machinery, socialise with other humans or be trusted with the weighty responsibility of goldfish ownership.</p>
+
+<p>The aim of this post, despite your reticence to go through an <a href="http://learnyouahaskell.com/">extraordinarily helpful Haskell tutorial</a>, is to get going with the very basics of Haskell insanely quickly and with a minimum of understanding about what&#8217;s actually going on. Because that&#8217;s just the way I roll. And let&#8217;s face it, you deserve it for not taking my advice. ;) (<a href="http://learnyouahaskell.com/">Last chance</a> for redemption.)</p>
+
+<!-- more -->
+
+
+<h2>Getting to a Haskell interactive prompt</h2>
+
+<p>There are a few ways to install <a href="http://www.haskell.org/">Haskell</a>. I tend to use <a href="https://github.com/haskell/ghcup">ghcup</a> (on Mac or Linux). Before ghcup I used to <a href="https://davesquared.net/2014/05/platformless-haskell.html">build the required bits</a> (GHC, Cabal) myself (which I found much simpler than it sounds). Failing that, and probably the simplest option if you&#8217;re running Windows, you can <a href="https://www.haskell.org/downloads">download and install the Haskell Platform</a>.</p>
+
+<p>Once installed, go to your favourite terminal and type <code>ghci</code> to load the <a href="http://www.haskell.org/ghc/docs/latest/html/users_guide/index.html">Glorious Glasgow Haskell Compilation System</a> interactive environment (assuming <code>ghci</code> is on your path). You should see GHCi&#8217;s <code>Prelude&gt;</code> prompt. If you type in something profound like <code>7*6</code> and hit return you should get an answer of sorts.</p>
+
+<p>Don&#8217;t do it now, but when you want to exit, type <code>:q</code> (in glorious vim tradition).</p>
+
+<h2>Loading a Haskell file</h2>
+
+<p>Create a blank file called <code>haskell-misinformation.hs</code> in the same directory you ran <code>ghci</code> from. Actually, you can call it whatever you want, but it should end in <code>.hs</code>. Now jump back to your GHCi prompt and type <code>:l haskell-misinformation.hs</code> (you get tab for autocomplete). This will load your file into GHCi. Now whenever we make changes to our Haskell file, we just need to type <code>:r</code> to reload it and pick up our changes.</p>
+
+<p>Here&#8217;s what it looks like on my machine:</p>
+
+<pre><code>~  % ghci
+GHCi, version 7.0.4: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Loading package ffi-1.0 ... linking ... done.
+Prelude&gt; :l haskell-misinformation.hs 
+[1 of 1] Compiling Main             ( haskell-misinformation.hs, interpreted )
+Ok, modules loaded: Main.
+*Main&gt; :r
+Ok, modules loaded: Main.
+*Main&gt; 
+</code></pre>
+
+<h2>Writing a function</h2>
+
+<p>Let&#8217;s write an function that takes an integer and increments it. In our Haskell file, type:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">increment</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">increment</span> <span class="n">i</span> <span class="ow">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+</code></pre></div></figure>
+
+
+<p>Switch back to GHCi and reload our Haskell file by typing <code>:r</code> and hitting return (from now on, we&#8217;ll abbreviate this to &#8220;reload the file&#8221;). If we then type <code>increment 3</code> into GHCi we should get the unsurprising result of <code>4</code>.</p>
+
+<pre><code>*Main&gt; :r
+[1 of 1] Compiling Main             ( haskell-misinformation.hs, interpreted )
+Ok, modules loaded: Main.
+*Main&gt; increment 3
+4
+</code></pre>
+
+<p>Notice we don&#8217;t need any parentheses for our function call? We just put the arguments straight after the function name.</p>
+
+<p>Let&#8217;s take a close look at this syntax. The first line is the type declaration of our <code>increment</code> function. The <code>Int -&gt; Int</code> bit shows the arguments and return type to our function. In this case, <code>increment</code> takes an <code>Int</code> and returns an <code>Int</code>. At first this confused me, having argument types and return types all bundled together like that, with <code>-&gt;</code> arrows thrown around somewhat haphazardly, but it ends up making a lot of sense later on.</p>
+
+<p>But we&#8217;re not here to make a lot of sense. We&#8217;re here to get started with Haskell quickly. Let&#8217;s move on before any accidental learning takes place!</p>
+
+<h2>Writing another function</h2>
+
+<p>Let&#8217;s write an <code>add</code> function that adds two numbers together. Before we do, let&#8217;s try and work out that weird, arrow-filled type signature. Our function is going to take 2 <code>Int</code> arguments, and return an <code>Int</code>. So let&#8217;s write all that out separated by arrows:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">add</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">add</span> <span class="n">a</span> <span class="n">b</span> <span class="ow">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+</code></pre></div></figure>
+
+
+<p>Reload the file and run <code>add 3 39</code>. As we saw ealier we don&#8217;t use parentheses when calling functions, and now we can see that multiple arguments are separated by spaces. GHCi helpfully tells us the answer is <code>42</code>. Amazing! Is there anything this Haskell thing can&#8217;t do?</p>
+
+<h2>Fun with function arguments</h2>
+
+<p>Before we go on, try typing <code>:t add</code> into GHCi. It should return <code>add :: Int -&gt; Int -&gt; Int</code>, the type declaration of our function. You can use that to query the types of lots of things, so it&#8217;s a handy trick to remember.</p>
+
+<p>Now try typing <code>:t add 5</code>. I get this:</p>
+
+<pre><code>*Main&gt; :t add 5
+add 5 :: Int -&gt; Int
+</code></pre>
+
+<p>Hmmm. The type of <code>add</code> is <code>Int -&gt; Int -&gt; Int</code>, which means it takes 2 integers and returns an integer. The type of <code>add 5</code> is <code>Int -&gt; Int</code>, which means it takes 1 integer and returns 1 integer. We gave <code>add</code> its first argument and the result is another function which takes the rest of the arguments.</p>
+
+<p>Let&#8217;s put that into a new function in our Haskell file and reload it. Our file should look something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">increment</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">increment</span> <span class="n">i</span> <span class="ow">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+
+<span class="nf">add</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">add</span> <span class="n">a</span> <span class="n">b</span> <span class="ow">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+
+<span class="nf">addFive</span> <span class="ow">=</span> <span class="n">add</span> <span class="mi">5</span>
+</code></pre></div></figure>
+
+
+<p>Notice we didn&#8217;t put the type declaration in for <code>addFive</code>? That&#8217;s because Haskell can infer that for us. In fact, we didn&#8217;t need to put in any of the previous ones either. Haskell can work those out too. Hah! Made you type for nothing! Actually I did have my reasons; I feel getting to grips with the type declarations is really important for using Haskell effectively.</p>
+
+<p>Now if we call <code>addFive 10</code> in GHCi we get <code>15</code>. This may strike you as a bit strange. Where is <code>addFive</code>&#8217;s argument? Shouldn&#8217;t we have written <code>addFive a = add 5 a</code>?</p>
+
+<p>Well, that would work too, but we already used <code>:t</code> to determine <code>add 5</code> is a function that takes one integer and returns another. By writing <code>addFive = add 5</code> we have just given that function a name.</p>
+
+<p>This is called partial function application. If we just give a few of the arguments a function requires, it will return a function that takes the remainder of the arguments. As an aside, this is the reason for the funny <code>-&gt;</code> symbols in the function type declaration; <a href="http://www.haskell.org/haskellwiki/Currying">all Haskell functions take just one argument</a> (<em>warning:</em> don&#8217;t click that link if you are feeling lost. You don&#8217;t need partial application to understand the rest of this post).</p>
+
+<h2>When we don&#8217;t know the exact type</h2>
+
+<p>So far our type declarations have all involved <code>Int</code>. What if we want to return <code>42</code> for any argument of any type? After all, it is the meaning of life, the universe and everything. For that we can use a lowercase placeholder to represent that type (Haskell convention is to use a single character, but I think any string that begins with a lowercase char will do). In this case we&#8217;ll use <code>a</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">meaningOfLife</span> <span class="ow">::</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">meaningOfLife</span> <span class="n">x</span> <span class="ow">=</span> <span class="mi">42</span>
+</code></pre></div></figure>
+
+
+<p>In the function body we&#8217;re putting the argument we get into a variable named <code>x</code>, but no matter what that variable contains, the answer is always 42.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="o">*</span><span class="kt">Main</span><span class="o">&gt;</span> <span class="n">meaningOfLife</span> <span class="mi">123</span>
+<span class="mi">42</span>
+<span class="o">*</span><span class="kt">Main</span><span class="o">&gt;</span> <span class="n">meaningOfLife</span> <span class="mi">20</span>
+<span class="mi">42</span>
+<span class="o">*</span><span class="kt">Main</span><span class="o">&gt;</span> <span class="n">meaningOfLife</span> <span class="mf">3.1416</span>
+<span class="mi">42</span>
+<span class="o">*</span><span class="kt">Main</span><span class="o">&gt;</span> <span class="n">meaningOfLife</span> <span class="s">&quot;hello world&quot;</span>
+<span class="mi">42</span>
+<span class="o">*</span><span class="kt">Main</span><span class="o">&gt;</span> <span class="n">meaningOfLife</span> <span class="kt">[]</span>
+<span class="mi">42</span>
+</code></pre></div></figure>
+
+
+<h2>Lists</h2>
+
+<p>Haskell has a list type that we can construct using square brackets, as I&#8217;ve done in the following GHCi session:</p>
+
+<pre><code>*Main&gt; [1,2,3,4,5,6,7,8]
+[1,2,3,4,5,6,7,8]
+*Main&gt; [1..8]
+[1,2,3,4,5,6,7,8]
+*Main&gt; [1,3..8]
+[1,3,5,7]
+*Main&gt; []
+[]
+</code></pre>
+
+<p>Lists can also be constructed using the <em>cons</em> operator, which in Haskell is <code>:</code>. The <code>:</code> operator takes two arguments. The first is the element you want to add to the front of a list, and the second is an existing list (bonus points if you can work out what the type declaration for this will be before running <code>:t (:)</code>). So we can add 1 to the front of an empty list, or to an existing list:</p>
+
+<pre><code>*Main&gt; 1:[]
+[1]
+*Main&gt; 1:[2,3,4,5]
+[1,2,3,4,5]
+</code></pre>
+
+<p>In fact, <code>[1,2,3]</code> is actually shorthand for <code>1:2:3:[]</code> (as pointed out in this <a href="http://learnyouahaskell.com/starting-out#an-intro-to-lists">tutorial I forgot to mention previously</a>).</p>
+
+<p>We&#8217;re really dealing with a linked list here. A Haskell list consists of an initial element, called the <em>head</em>, with a link to the rest of the list, called the <em>tail</em>. There&#8217;s even built-in functions to help us get at these bits of the list:</p>
+
+<pre><code>*Main&gt; let myList = [1,2,3,4,5]
+*Main&gt; head myList
+1
+*Main&gt; tail myList
+[2,3,4,5]
+</code></pre>
+
+<p>A <code>String</code> in Haskell is a list of characters, so we can do these same list operations on strings. The string <code>"hello"</code> is the same as <code>'h':'e':'l':'l':'o':[]</code>, so <code>tail "hello"</code> will return <code>"ello"</code></p>
+
+<h2>Pattern matching</h2>
+
+<p>I hope you&#8217;re still reading (unless you&#8217;ve gone off to read <a href="http://learnyouahaskell.com/">Learn You a Haskell</a> of course), because this is such a fun part of Haskell.</p>
+
+<p>When defining a function in Haskell, we can actually provided different function bodies for different patterns of arguments. For example, let&#8217;s add this to our Haskell file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">isZero</span> <span class="ow">::</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span>
+<span class="nf">isZero</span> <span class="mi">0</span> <span class="ow">=</span> <span class="kt">True</span>
+<span class="nf">isZero</span> <span class="n">x</span> <span class="ow">=</span> <span class="kt">False</span>
+</code></pre></div></figure>
+
+
+<p></p>
+
+<p>When we call this function, Haskell will check the function bodies from top to bottom, and evaluate the first one that matches the pattern for the specified arguments.</p>
+
+<pre><code>*Main&gt; isZero 1
+False
+*Main&gt; isZero 432
+False
+*Main&gt; isZero 0
+True
+</code></pre>
+
+<p>We can do much more exciting things than that with patterns though. We can tease apart data types like the lists we were working with earlier.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">isFirstItemZero</span> <span class="ow">::</span> <span class="p">[</span><span class="kt">Int</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span>
+<span class="nf">isFirstItemZero</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">isZero</span> <span class="n">head</span>
+<span class="nf">isFirstItemZero</span> <span class="n">x</span> <span class="ow">=</span> <span class="kt">False</span>
+</code></pre></div></figure>
+
+
+<p>Now if we call <code>isFirstItemZero [1,2,3]</code>, Haskell will check the first function body. Does <code>[1,2,3]</code> fit the pattern <code>(head:tail)</code>? Remembering that <code>[1,2,3]</code> is the same as <code>1:[2,3]</code>, we can see that it does. So we return <code>isZero 1</code>, which is <code>False</code>. By the same logic we get <code>isFirstItemZero [0,1,2]</code> equal to <code>True</code>.</p>
+
+<p>What about <code>isFirstItemZero []</code>? We can&#8217;t break that into a head and a tail, so Haskell will check the next function body. Could <code>[]</code> go into a variable <code>x</code>? If we type <code>let x = []</code> into GHCi it doesn&#8217;t complain, so I guess it can. Haskell evaluates the second function body, so it returns <code>False</code>.</p>
+
+<p>Haskell can work with some truly awesome patterns, but just to show you we&#8217;re not limited to single values and basic head/tail, let&#8217;s add this to our Haskell file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">hasMoreThanOne</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span>
+<span class="nf">hasMoreThanOne</span> <span class="p">(</span><span class="n">first</span><span class="kt">:</span><span class="n">second</span><span class="kt">:</span><span class="kr">_</span><span class="p">)</span> <span class="ow">=</span> <span class="kt">True</span>
+<span class="nf">hasMoreThanOne</span> <span class="kr">_</span> <span class="ow">=</span> <span class="kt">False</span>
+</code></pre></div></figure>
+
+
+<p>This will return <code>True</code> whenever the argument fits the pattern <code>(first:second:_)</code>. In Haskell, the underscore <code>_</code> matches anything, so all these will be <code>True</code>:</p>
+
+<pre><code>*Main&gt; hasMoreThanOne (1:2:[])
+True
+*Main&gt; hasMoreThanOne (1:2:[3,4,5])
+True
+*Main&gt; hasMoreThanOne [1,2]
+True
+*Main&gt; hasMoreThanOne [1,2,3,4]
+True
+*Main&gt; hasMoreThanOne [1..]
+True
+</code></pre>
+
+<p>Anything that doesn&#8217;t match that pattern, like <code>[1]</code> or <code>[]</code>, will fall through to the second function body and return <code>False</code>.</p>
+
+<h2>Pattern matching with recursion</h2>
+
+<p>Let&#8217;s try an example that uses recursion:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">len</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">len</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">len</span> <span class="n">tail</span>
+<span class="nf">len</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="mi">0</span>
+</code></pre></div></figure>
+
+
+<p>What happens when we call <code>len [1,2,3]</code>? Well, <code>[1,2,3]</code> gets split into <code>1:[2,3]</code>, so the function returns <code>1 + len [2,3]</code>.</p>
+
+<p>So what&#8217;s <code>len [2,3]</code>? The <code>[2,3]</code> gets split into <code>2:[3]</code>, so that will return <code>1 + len [3]</code>. By the same logic <code>len [3]</code> returns <code>1 + len []</code>.</p>
+
+<p>What&#8217;s <code>len []</code>? That doesn&#8217;t have a head and tail, so that falls through to the second method body, which returns <code>0</code>. So tracing through the whole function call, we get:</p>
+
+<pre><code>len [1,2,3]
+    = 1 + len [2,3]
+    = 1 + (1 + len [3])
+    = 1 + (1 + (1 + len []))
+    = 1 + (1 + (1 + 0))
+    = 3
+</code></pre>
+
+<h2>Pattern matching with case expressions</h2>
+
+<p>If you find the multiple function bodies used for pattern matching confusing, you might find the case syntax easier to follow. In fact, according to <a href="http://learnyouahaskell.com/syntax-in-functions#case-expressions">Learn You a Haskell</a>, function pattern matching is really just syntactic sugar for case expressions anyway. So we can modify our previous <code>len</code> function like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">len</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">len</span> <span class="n">x</span> <span class="ow">=</span>
+    <span class="kr">case</span> <span class="n">x</span> <span class="kr">of</span>
+        <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">len</span> <span class="n">tail</span>
+        <span class="kt">[]</span>          <span class="ow">-&gt;</span> <span class="mi">0</span>
+</code></pre></div></figure>
+
+
+<p>I find this more confusing, so I&#8217;m not going to attempt to explain it, but I&#8217;d thought I&#8217;d mention it in case it helps you.</p>
+
+<h2>Higher-order functions</h2>
+
+<p>A higher-order function is one which takes one or more functions as arguments or returns a function (or both). In other words, it has a function in its type declaration. Functions passed to other functions are written with their type declarations surrounded by parentheses.</p>
+
+<p>Let&#8217;s write a higher-order function called <code>incrementIf</code> that increments an integer only if another function returns <code>True</code> for that integer. So the function we&#8217;re passing through to <code>incrementIf</code> is going to have a type of <code>Int -&gt; Bool</code> &#8211; it will take an integer and return true or false, just like a <code>Func&lt;int, bool&gt;</code> in C# if you&#8217;re familiar with that. The second argument to <code>incrementIf</code> will be the integer it is working with, and finally <code>incrementIf</code> will return an integer.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">incrementIf</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Int</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">incrementIf</span> <span class="n">predicate</span> <span class="n">x</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">predicate</span> <span class="n">x</span> <span class="kr">then</span> <span class="n">increment</span> <span class="n">x</span> <span class="kr">else</span> <span class="n">x</span>
+</code></pre></div></figure>
+
+
+<p>Here we have two arguments; the first one being a predicate function, the second being our integer. We&#8217;ve also used an <code>if-then-else</code> expression to return the incremented integer if the predicate is true, or else return the integer unchanged.</p>
+
+<p>To test this we can use Haskell&#8217;s built in <code>even</code> function (or we could write it ourselves), which will return true or false depending on whether the integer is even.</p>
+
+<pre><code>*Main&gt; incrementIf even 2
+3
+*Main&gt; incrementIf even 1
+1
+*Main&gt; incrementIf even 4
+5
+</code></pre>
+
+<p>We can also declare simple functions in-line using lambda syntax. The syntax for lambdas follows the pattern <code>(\ firstArg secondArg ... -&gt; functionBody)</code> (the <code>\</code> is meant to represent the lambda symbol λ). So rather than using the built-in <code>even</code> function, we could pass our own using a lambda:</p>
+
+<pre><code>*Main&gt; incrementIf (\x -&gt; x `mod` 2 == 0) 5
+5
+*Main&gt; incrementIf (\x -&gt; x `mod` 2 == 0) 6
+7
+</code></pre>
+
+<h2><code>where</code> and <code>let</code></h2>
+
+<p>The last bit of Haskell I used in my <a href="http://davesquared.net/2012/02/folds-pt1-from-recursion-to-folds.html">folds post</a> was a <code>where</code> binding. These can be used to pull out part of an expression for clarity, or to remove duplication if the same expression is used in multiple places within a single function. For example, these two functions are equivalent (the <code>'</code> mark is legal in Haskell function names):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">circumference</span> <span class="n">radius</span> <span class="ow">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="n">radius</span>
+
+<span class="nf">circumference&#39;</span> <span class="n">radius</span> <span class="ow">=</span> <span class="n">pi</span> <span class="o">*</span> <span class="n">diameter</span>
+    <span class="kr">where</span> <span class="n">diameter</span> <span class="ow">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span>
+</code></pre></div></figure>
+
+
+<p>You can also use a <code>let</code> binding for this, which goes before the function body rather than after.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">circumference&#39;&#39;</span> <span class="n">radius</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">diameter</span> <span class="ow">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">radius</span>
+    <span class="kr">in</span>  <span class="n">pi</span> <span class="o">*</span> <span class="n">diameter</span>
+</code></pre></div></figure>
+
+
+<p>The <code>let</code> binding has some other properties (for example, you can use it in lots of places, such as typing <code>let a = 1</code> into GHCi), but check <a href="http://learnyouahaskell.com/syntax-in-functions#let-it-be">Learn You a Haskell</a> for more details.</p>
+
+<h2>Putting it together</h2>
+
+<p>Let&#8217;s apply a whole bunch of the things we&#8217;ve covered in this post by writing a function that filters a list. This function will have to take another function to do the filtering, which makes it a higher-order function. We&#8217;ll also use pattern matching and recursion to work our way through the list. We also want to support any type of list elements, so we&#8217;ll need a type signature that reflects that.</p>
+
+<p>If we&#8217;re dealing with lists of any element type, let&#8217;s just call that type <code>a</code>. If we are filtering elements from a list of <code>a</code>, we&#8217;re going to end up with another list of <code>a</code>, so that will also be our return type. The predicate function we pass in to do the actual filtering on each element is going to have to take one of these <code>a</code>s, and return <code>True</code> or <code>False</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">filterList</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span>
+</code></pre></div></figure>
+
+
+<p>Now let&#8217;s try and implement it. We&#8217;re going to use pattern matching to break the list argument up into its head and tail. If the head element satisfies the predicate function, then well add that to the head of the result of filtering the tail. Otherwise we&#8217;ll drop that head element, and just return the result of filtering the tail. Finally, as a stopping condition for our recursion, we&#8217;ll tell Haskell that filtering the empty list will return the empty list, irrespective of what predicate function we pass in.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">filterList</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Bool</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span>
+<span class="nf">filterList</span> <span class="n">f</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="kr">if</span> <span class="n">f</span> <span class="n">head</span> <span class="kr">then</span> <span class="n">head</span> <span class="kt">:</span> <span class="n">filteredTail</span> <span class="kr">else</span> <span class="n">filteredTail</span>
+    <span class="kr">where</span> <span class="n">filteredTail</span> <span class="ow">=</span> <span class="n">filterList</span> <span class="n">f</span> <span class="n">tail</span>
+<span class="nf">filterList</span> <span class="kr">_</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="kt">[]</span>
+</code></pre></div></figure>
+
+
+<p>We&#8217;ve used <code>where</code> to pull out the <code>filteredTail</code> expression, otherwise we would have had to have <code>filterList f tail</code> in both the <code>if</code> and <code>else</code> conditions. This was just to try and make things neater, but we could have written it all in line too.</p>
+
+<p>Now let&#8217;s use some declared functions and lambdas to filter a couple of lists:</p>
+
+<pre><code>*Main&gt; filterList even [1..10]
+[2,4,6,8,10]
+*Main&gt; filterList odd [1..10]
+[1,3,5,7,9]
+*Main&gt; filterList isZero [-3..3]
+[0]
+*Main&gt; filterList (\x -&gt; x &gt; 10) [42, 7, 2, 109, 0, 15]
+[42,109,15]
+*Main&gt; filterList (\x -&gt; x `mod` 3 == 0) [1..20]
+[3,6,9,12,15,18]
+*Main&gt; filterList (\x -&gt; x &lt;= 'g') "Hello world, how are you today?"
+"He d,  ae  da?"
+</code></pre>
+
+<p>If you&#8217;ve followed this whole <code>filterList</code> example then congratulations on making it successfully through the minefield that was my attempt at a Haskell quick start! Despite my best efforts, you&#8217;ve manage to learn a bit of Haskell. :)</p>
+
+<h2>Where to from here?</h2>
+
+<p>There is loads more to cover before I&#8217;d say we know introductory Haskell, particularly function composition, abstract data types (and pattern matching on those), typeclasses, IO, and then on to functors and <a href="/2011/08/functional-programming-newbie-and.html">monads</a>. The best way I know of to get this knowledge in a fun and attainable way is <a href="http://learnyouahaskell.com/">Learn You a Haskell</a>. But we&#8217;ve definitely made a start, and hopefully we&#8217;ve got enough to start deciphering code samples we see around the place.</p>
+
+<p>Let me know if this helped you at all, or if you want me to go into something in greater detail, or if you&#8217;d like me to push further into some of the introductory stuff I&#8217;ve picked up so far.</p>
+
+<p><a href="/downloads/code/haskell-misinformation.hs">Download the code: haskell-misinformation.hs</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2019-02-06T10:38:00+11:00" class="updated">Updated 06 Feb 2019</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html" data-via="" data-counturl="http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/02/folds-pt1-from-recursion-to-folds.html" title="Previous Post: Folds Pt 1: From recursion to folds">&laquo; Folds Pt 1: From recursion to folds</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/02/goals-for-devs.html" title="next Post: Goals for software developers">Goals for software developers &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html';
+        var disqus_url = 'http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

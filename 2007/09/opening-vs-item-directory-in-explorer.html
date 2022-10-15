@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Opening a VS item's directory in Explorer - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I use TortoiseSVN as my SVN client, but it is not integrated into Visual Studio like AnkhSVN and others. This generally suits the way I like to work &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/09/opening-vs-item-directory-in-explorer.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Opening a VS item's directory in Explorer</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-09-04T13:46:00+10:00" pubdate data-updated="true">04 Sep 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I use TortoiseSVN as my SVN client, but it is not integrated into Visual Studio like AnkhSVN and others. This generally suits the way I like to work, but occasionally it would be nice to right click on a new class and pick &#8220;Add to SVN&#8221;, or have an easy way of doing an SVN move. I have recently started using a simple way of accessing these features, without installing a VS-integrated client, by&nbsp;providing a shortcut to opening a Visual Studio&nbsp;item&#8217;s folder in Windows Explorer where we can use all our standard TortoiseSVN functionality.</p> <p><em><strong>UPDATE 2007-09-24</strong>: The functionality provided by the following steps is very similar to right-clicking on tab of an open file, and selecting &#8220;Open containing folder&#8221;, which I admittedly only just noticed*. I have left this example online for two reasons. First, the method below offers a bit more functionality, as it also works for files selected in the Solution Explorer. Secondly, the general approach described is&nbsp;a really useful technique for easily extending VS. For example, I remember seeing a screencast of configuring Subsonic&#8217;s SubCommander as an external tool in VS to generate your DAL and script your database with a single button click.</em></p> <p>From Visual Studio 2005 (similar steps should work for 2008/Orcas too):</p> <ol> <li>Go to the <em>Tools</em> menu and select <em>External Tools&#8230;</em>  <li>Click on the <em>Add</em> button  <li>Set the executable to your Windows Explorer path (<code>C:\WINDOWS\Explorer.exe</code> on my PC).  <li>Set the arguments and initial directory to <code>"$(ItemDir)"</code>. Not sure if the quotes are needed incase you have spaces in your paths, but they don&#8217;t seem to hurt.  <li>Give it a title, such as <code>Open in E&amp;xplorer</code>. The <code>&amp;</code> just designates the menu accessor key, which is <em>x</em> in this case. &#8211; you can leave it out if you like.  <li>Note which number your external tool is in the list &#8211; in the screenshot mine is #7 (1-based counting here). This is only for if you want to create a menu button for this external tool.  <li>Click OK</li></ol> <p><a onblur="try {parent.deselectBloggerImageGracefully();} catch(e) {}" href="/images/fromblogger/s1600-h-externalTools.png"><img id="BLOGGER_PHOTO_ID_5106193564831098418" style="display: block; margin: 0px auto 10px; cursor: hand; text-align: center" alt="Screenshot of External Tools dialog." src="/images/fromblogger/s400-externalTools.png" border="0"></a></p> <p>You can now select an item in the solution explorer, or just use the file you are currently editing, and go to <em>Tools &#8211;&gt; Open in Explorer</em> to open the file&#8217;s folder. Now you are back in Tortoise country, and can add the file to SVN.</p> <p>You can make this even easier by setting up a menu button for the external tool:</p> <ol> <li>Right-click on one of your menu bars and select <em>Customise</em> (ok, it says <em>Customize</em>, but I can correct the spelling can&#8217;t I? :) )  <li>From the <em>Commands</em> tab, select the <em>Tools</em> category, and then <em>External Command {xx}</em>, where {xx} is the number you carefully noted in step 6 of creating the external tool.  <li>Drag and drop the command on to the menu bar of your choice.  <li>Customise the button&#8217;s appearance as required. I right clicked on the <em>View &#8211;&gt; Solution Explorer</em> menu item and selected <em>Copy Button Image</em>, then right-clicked on my button and used <em>Paste Button Image</em> to get a purdy icon. I also hid the text description so it takes less room on my menu bar.  <li>Click <em>Close</em> on the customisation dialog.</li></ol> <p>You can now select a file, click the icon, and voila, instant Explorer. Ok, so this sounds largely pointless, but it does really help me to quickly switch between Visual Studio and TortoiseSVN.</p> <p style="font-size: x-small">* There seems to be <a href="http://www.aaronlerch.com/blog/2007/09/11/the-talented-mr-editgotofindcombo/">quite a lot</a> of <a href="http://www.chinhdo.com/chinh/blog/20070920/top-11-visual-studio-2005-ide-tips-and-tricks-to-make-you-a-more-productive-developer/">cool crouching-tiger-hidden-features in VS 2005</a> (i.e. features that are not very discoverable). Some of the things I love about Resharper are present (mostly in simplified form) in standard VS 2005, but they are easier to discover (and generally easier to use and work better IMHO, YMMV) in Resharper.</p><hints id="hah_hints"></hints>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-01T09:04:07+10:00" class="updated">Updated 01 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/tools/'>tools</a>, <a class='category' href='/categories/vs-net/'>vs.net</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/09/opening-vs-item-directory-in-explorer.html" data-via="" data-counturl="http://davesquared.net/2007/09/opening-vs-item-directory-in-explorer.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/09/ultraexplorer-windows-explorer.html" title="Previous Post: UltraExplorer, a Windows Explorer alternative">&laquo; UltraExplorer, a Windows Explorer alternative</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/09/refactoring-your-life.html" title="next Post: Refactoring your life?">Refactoring your life? &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/09/opening-vs-item-directory-in-explorer.html';
+        var disqus_url = 'http://davesquared.net/2007/09/opening-vs-item-directory-in-explorer.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

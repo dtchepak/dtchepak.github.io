@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Aristotle and parametricity - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="In episode 6 of the Philosophize This! podcast Stephen talks about Aristotle’s development of the first formal system of logic, one part of which is &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2014/02/aristotle-and-parametricity.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Aristotle and parametricity</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2014-02-18T23:30:00+11:00" pubdate data-updated="true">18 Feb 2014</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><!-- more -->
+<p>In <a href="http://stephenwestshow.net/philosophize-this/2013/7/25/episode-006-aristotle">episode 6 of the Philosophize This! podcast</a> Stephen talks about <a href="http://en.wikipedia.org/wiki/Aristotle">Aristotle’s</a> development of the first formal system of logic, one part of which is the <a href="http://en.wikipedia.org/wiki/Syllogism">syllogism</a>. A common example of a syllogism is “Socrates is a man, all men are mortal, therefore Socrates is mortal”.</p>
+<p>Stephen points out that Aristotle would not have put it like that<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. Aristotle preferred to use variables to abstract away the details, rather than concrete examples whose details can obscure the meaning.</p>
+<p>Without abstraction I guess we could try and argue details (Socrates’ ideas have been immortalised; does that affect the conclusion?), but abstraction makes the logical inference clear: “<code>A</code> is a <code>B</code>, all <code>B</code>s are <code>C</code>s, therefore <code>A</code> is a <code>C</code>”. The conclusion follows from the premises for all values of <code>A</code>, <code>B</code>, and <code>C</code>, irrespective of other concrete details.</p>
+<p>To me this echoes the idea we explored last post, where we <a href="http://davesquared.net/2014/02/splitting-responsibilities.html">introduced type variables in place of concrete types</a> to help us infer information about a function.</p>
+<p>Which makes me think that if we were to go back two and a bit millennia and chat to Aristotle he’d be quite comfortable with the idea of parametricity<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>. :)</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>This is discussed from 32:05 - 33:05 in <a href="http://stephenwestshow.net/philosophize-this/2013/7/25/episode-006-aristotle">Episode #0006 - Aristotle Pt. 2</a> of “Philosophize This!”<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Well, some more recent advances in the development of logic aside. :)<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2014-02-19T08:20:00+11:00" class="updated">Updated 19 Feb 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/misc/'>misc</a>, <a class='category' href='/categories/silly/'>silly</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2014/02/aristotle-and-parametricity.html" data-via="" data-counturl="http://davesquared.net/2014/02/aristotle-and-parametricity.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2014/02/splitting-responsibilities.html" title="Previous Post: Splitting responsibilities by abstracting type details">&laquo; Splitting responsibilities by abstracting type details</a>
+      
+      
+        <a class="basic-alignment right" href="/2014/03/dotnet-gc-keepalive.html" title="next Post: Stayin' alive with .NET GC">Stayin' alive with .NET GC &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2014/02/aristotle-and-parametricity.html';
+        var disqus_url = 'http://davesquared.net/2014/02/aristotle-and-parametricity.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

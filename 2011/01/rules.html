@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Rules - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="I was exchanging tweets today with Liam on how to decide when to use private methods and when to put the logic in a new class. This got me thinking &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2011/01/rules.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Rules</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-01-28T00:16:00+11:00" pubdate data-updated="true">28 Jan 2011</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I was exchanging tweets today with <a href="http://twitter.com/#!/liammclennan">Liam</a> on how to decide when to use private methods and when to put the logic in a new class. This got me thinking about rules, or at least, rules as applied to software development.</p>
+
+<p>I love rules. I&#8217;m a rules addict. I find them strangely liberating; they restrict my options so that I can better focus on the creative aspect of whatever I&#8217;m doing. They seem to promise repeatability, predictability, and a degree of mechanical perfection that just needs to be nudged together by the developer.</p>
+
+<p>Luckily for me there&#8217;s no shortage of rules. There&#8217;s <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">SOLID</a>, the <a href="http://c2.com/cgi/wiki?XpSimplicityRules">4 rules of simple design</a>, <a href="http://en.wikipedia.org/wiki/Don't_repeat_yourself">DRY</a>, <a href="http://en.wikipedia.org/wiki/Hollywood_Principle">Tell Don&#8217;t Ask</a> and a whole bunch of step-by-step patterns and refactorings to mindlessly apply. ;)</p>
+
+<p>Of course, it&#8217;s never quite that simple. Rules should come with a disclaimer, <em>WARNING: Some assembly required</em>.</p>
+
+<p>No matter how many books I read, how many blogs I subscribe to, or how many patterns I memorised, a nice design never really seemed to naturally emerge from all that knowledge. So I tried quizzing <a href="http://davesquared.net/2007/11/are-no-smart-guys-there-only-us.html">experts</a> on the rules they use. And pretty much without fail the answer was &#8220;it depends&#8221;. You give them a specific case, they give you an answer. You ask for a rule, and they tend to reply with words like &#8220;generally&#8221; and &#8220;favour&#8221;, not a specific procedure.</p>
+
+<p>At a course a few years back I even quizzed the instructor until I managed to distil the <a href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-4.html">procedure for getting beautiful designs from BDD</a>. The instructor himself couldn&#8217;t explain the procedure, as he said much of the decisions are based on context developed from experience. Of course, that didn&#8217;t stop me trying to get to the rules at the heart of it. Nor did those rules assure my success at producing good designs.</p>
+
+<h2>Rules are the question, not the answer</h2>
+
+<p>Much as I generally dislike some of the grandiose metaphors that are typically attributed to software development by software developers, one that sticks out as quite relevant here is the Japanese martial art concept of <a href="http://c2.com/cgi/wiki?ShuHaRi">Shu Ha Ri</a>, which describes the three stages of learning required to master a discipline. (At least as I understand it. Please correct any egregious errors I make :))</p>
+
+<p>The first stage, Shu, is all about rules. The beginner memorises the rules and applies them dogmatically. They may not see opportunities, or be able to take advantage of them, because they are sticking to the rigid forms they are learning.</p>
+
+<p>The second stage, Ha, is when the beginner gains enough experience and has internalised the rules enough to start pondering the reasons behind the rules. They slowly begin straying from the rules as they start to notice the shortcomings when applying them to the myriad of situations the world throws at them. They also start to gain a better sense of appraising the relative success or failure of these experiments, and so start to apply rules on a case-by-case basis.</p>
+
+<p>The final stage, Ri, is when the practitioner has risen above the rules. Every situation is dealt with on its merits. An observer may notice many elements of the rules in action, but the practitioner is merely doing what is required of the situation as governed by their experience; the context they have built up by applying and deviating from the rules.</p>
+
+<p>While all this may seem a little twee, I can&#8217;t count the large number of times I have talked to people that really seem to know their stuff, and found they seem to have this uncanny knack of seeing straight to the heart of a problem and solving it in an elegant, seemingly effortless way. I can see many of the rules present in their approach, yet their solution never seems to be one I could simply derive by applying the rules or a specific formula. In hindsight, the solution tends to seem obvious; but never before I&#8217;ve seen it.</p>
+
+<p>This has led me to believe that rules are the question, not the answer. They are what starts us on a path of enlightenment. It is only once we have memorised the rules and start noticing their limitations that we start asking ourselves why the rules are there and how they work. Once we start this questioning, we start gaining some mastery of the discipline. And it is only after we no longer need the rules that we are truly proficient, and we have uncovered the answer of how to write good software.</p>
+
+<p>And, as many consultants will tell you, that answer is &#8220;it depends&#8221;. ;)</p>
+
+<h2>So now what?</h2>
+
+<p>Well, I&#8217;m trying to break my rules addiction. I like to think I&#8217;ve spent way too much time in the Shu phase due to it&#8217;s inherent safety (rather than as the result of fundamental incompetence), and that it&#8217;s time to start looking past the safe-haven of those rules. More than anything I think this comes down to writing loads of code, trying out new approaches, <a href="http://davesquared.net/2007/11/are-no-smart-guys-there-only-us.html">taking risks</a> and questioning the meanings and motivations behind the rules.</p>
+
+<p>How much time do you spend looking for rules on how to develop software right? If the answer is &#8220;lots&#8221;, maybe it&#8217;s time to let go of them?</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-01-28T00:16:00+11:00" pubdate data-updated="true">28 Jan 2011</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/dev-practices/'>dev practices</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2011/01/rules.html" data-via="" data-counturl="http://davesquared.net/2011/01/rules.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/01/finding-functional-neatness-with.html" title="Previous Post: Finding functional neatness with Haskell">&laquo; Finding functional neatness with Haskell</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/02/changing-previously-stubbed-calls-with.html" title="next Post: Changing previously stubbed calls with Rhino Mocks">Changing previously stubbed calls with Rhino Mocks &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2011/01/rules.html';
+        var disqus_url = 'http://davesquared.net/2011/01/rules.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

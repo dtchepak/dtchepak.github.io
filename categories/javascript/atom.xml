@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: javascript | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/javascript/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[D3 newbie updates a bar chart]]></title>
+    <link href="http://davesquared.net/2014/09/d3-update-a-bar-chart.html"/>
+    <updated>2014-09-01T00:01:00+10:00</updated>
+    <id>http://davesquared.net/2014/09/d3-update-a-bar-chart</id>
+    <content type="html"><![CDATA[<p>I've been trying to learn <a href="http://d3js.org/">D3.js</a> via Mike Bostock's excellent <a href="http://bost.ocks.org/mike/bar/">"Let's make a bar chart"</a> tutorial series. This post is my attempt to extend that example to handle data updates.</p>
+
+<!-- more -->
+
+
+<h2>Starting point</h2>
+
+<p><a href="http://bost.ocks.org/mike/bar/3/">Part 3</a> of the tutorial ends with a bar chart that shows the relative frequency of letters used in the English language.</p>
+
+<p>The creation of each bar per datum is handled by this code:</p>
+
+<pre><code class="javascript">    chart.selectAll(".bar")
+          .data(data)
+      .enter().append("rect")
+        .attr("class", "bar")
+        .attr("x", function(d) { return x(d.name); })
+        .attr("y", function(d) { return y(d.value); })
+        .attr("height", function(d) { return height - y(d.value); })
+        .attr("width", x.rangeBand());
+</code></pre>
+
+<p>This says we're dealing with chart elements of the CSS class <code>.bar</code> for each datum. The <code>.enter()</code> call tells D3 we want to perform the operations that follow for any new data (<a href="http://bost.ocks.org/mike/join/">data that has entered source</a>). We can also use <code>.exit()</code> for data that is no longer in the source. If we want to handle updated data we can add properties directly (outside of <code>enter()</code> / <code>exit()</code>).</p>
+
+<h2>Adjusting the bars for new data</h2>
+
+<p>To specify updates I had to change the data join so D3 knows how to differentiate added, removed and updated data. In this case we will use the <code>name</code> property, which is a letter from <code>A</code> to <code>Z</code>.</p>
+
+<pre><code class="javascript">    var bar = chart.selectAll(".bar")
+            .data(data, function(d) { return d.name; });
+</code></pre>
+
+<p>Next we'll modify the code to specify how to handle updated and removed data, instead of just what to do on <code>enter()</code> for new data.</p>
+
+<pre><code>    // new data:
+    bar.enter().append("rect")
+       .attr("class", "bar")
+       .attr("x", function(d) { return x(d.name); })
+       .attr("y", function(d) { return y(d.value); })
+       .attr("height", function(d) { return height - y(d.value); })
+       .attr("width", x.rangeBand());
+    // removed data:
+    bar.exit().remove();
+    // updated data:
+    bar
+       .attr("y", function(d) { return y(d.value); })
+       .attr("height", function(d) { return height - y(d.value); });
+       // "x" and "width" will already be set from when the data was
+       // first added from "enter()".
+</code></pre>
+
+<h2>Updating the axes</h2>
+
+<p>This was enough to update the chart, but the y-axis would draw the new axis over the top of the previous axis, so both values would show. This <a href="http://stackoverflow.com/a/13550144/906">answer on StackOverflow</a> suggested removing the axis and redrawing it each time, which worked well.</p>
+
+<pre><code class="javascript">    // Remove previous y-axis:
+    chart.select(".y.axis").remove(); // &lt;&lt; this line added
+    // Existing code to draw y-axis:
+    chart.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Frequency");
+</code></pre>
+
+<h2>Basic transition</h2>
+
+<p>The next thing I wanted to try was animating changes to existing data. This turned out to be trivial thanks to D3's <code>transition()</code> method, which I just dumped prior to the code we used to update each bar.</p>
+
+<pre><code class="javascript">    bar
+      .transition().duration(750)  // &lt;&lt;&lt; added this
+        .attr("y", function(d) { return y(d.value); })
+        .attr("height", function(d) { return height - y(d.value); });
+</code></pre>
+
+<p>And that's it!</p>
+
+<h2>End result</h2>
+
+<p>Here's an example of the update in action. Use the radio buttons to alternate between the chart showing frequencies of letters in English and the frequencies of letters used in the source for this post.</p>
+
+<p><form>
+<input type="radio" name="inputsrc" id="defaultInput" value="default" checked/><label for="defaultInput">English</label>
+<input type="radio" name="inputsrc" id="thisPostInput" value="post"/><label for="thisPostInput">This post</label>
+</form>
+<svg id="d3newbie-chart"></svg></p>
+
+
+
+<script src="http://davesquared.net/javascripts/d3.min.js" charset="utf8=-8"></script>
+
+
+<script>
+var outerWidth = 600, outerHeight = 400;
+var margin = { top: 20, right: 30, bottom: 30, left: 40 },
+    width  = outerWidth - margin.left - margin.right,
+    height = outerHeight - margin.top - margin.bottom;
+
+var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+var x = d3.scale.ordinal()
+          .rangeRoundBands([0, width], .1)
+          .domain(chars);
+var y = d3.scale.linear()
+          .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+              .scale(x)
+              .orient("bottom");
+var yAxis = d3.svg.axis()
+              .scale(y)
+              .orient("left")
+              .ticks(10, "%");
+var chart = d3.select("#d3newbie-chart")
+              .attr("width", outerWidth)
+              .attr("height", outerHeight)
+            .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+// x-axis
+chart
+    .append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")") 
+      .call(xAxis);
+
+function type(d) {
+    d.value = +d.value;
+    return d;
+}
+function updateDefault() {
+    d3.tsv("/downloads/data-chars.tsv", type, update);
+}
+function updateThisPost() {
+    d3.text(".", function(err, data) { update(err, freqs(data)); });
+}
+function update(err, data) {
+    y.domain([0, d3.max(data, function(d) { return d.value; })]);
+    // y-axis
+    chart.select(".y.axis").remove();
+    chart.append("g")
+          .attr("class", "y axis")
+          .call(yAxis)
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Frequency");
+
+    var bar = chart.selectAll(".bar")
+            .data(data, function(d) { return d.name; });
+
+    // new data:
+    bar.enter().append("rect")
+       .attr("class", "bar")
+       .attr("x", function(d) { return x(d.name); })
+       .attr("y", function(d) { return y(d.value); })
+       .attr("height", function(d) { return height - y(d.value); })
+       .attr("width", x.rangeBand());
+    // removed data:
+    bar.exit().remove();
+    // updated data:
+    bar
+       .transition()
+       .duration(750)
+           .attr("y", function(d) { return y(d.value); })
+           .attr("height", function(d) { return height - y(d.value); });
+};
+
+document.getElementById("defaultInput")
+        .onclick = updateDefault;
+document.getElementById("thisPostInput")
+        .onclick = updateThisPost;
+updateDefault();
+
+function freqs(str) {
+    var s = str.toUpperCase()
+    var n = s.length
+    var x = {}
+    for (var i = 0; i<chars.length; i++) {
+        x[chars[i]] = 0;
+    }
+    for (var i=0; i<s.length; i++) {
+        if (/[A-Z]/.test(s[i])) {
+            x[s[i]]++;
+        }
+    }
+    var f = []
+    for (var c in x) {
+        f.push( { name: c, value: x[c]/=n });
+    }
+    return f;
+}
+</script>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Write out the fields of a JavaScript object]]></title>
+    <link href="http://davesquared.net/2008/07/write-out-fields-of-javascript-object.html"/>
+    <updated>2008-07-02T14:04:00+10:00</updated>
+    <id>http://davesquared.net/2008/07/write-out-fields-of-javascript-object</id>
+    <content type="html"><![CDATA[<p>I've found myself writing this bit of code a few times now, so thought I'd dump it here for future copy-and-paste.</p>
+
+
+
+
+<pre>
+function writeObj(obj, message) {
+  if (!message) { message = obj; }
+  var details = &quot;*****************&quot; + &quot;\n&quot; + message + &quot;\n&quot;;
+  var fieldContents;
+  for (var field in obj) {
+    fieldContents = obj[field];
+    if (typeof(fieldContents) == &quot;function&quot;) {
+      fieldContents = &quot;(function)&quot;;
+    }
+    details += &quot;  &quot; + field + &quot;: &quot; + fieldContents + &quot;\n&quot;;
+  }
+  console.log(details);
+}
+</pre>
+
+
+
+
+<p>This just dumps all the object's fields into the debugging console provided by the <a href="http://getfirebug.com">Firebug</a> extension for Firefox (the <code>console.log(...)</code> call). If you don't have Firebug, you can easily create a custom <code>console</code> object to provide an alternative log method. For example, put this snippet at the top of the script to use <code>window.alert(...)</code> when <code>console</code> is undefined:</p>
+
+
+
+
+<pre>
+if (!console) {
+  var console = {log: function(details) { window.alert(details); }}
+}
+</pre>
+
+
+
+
+<p>There are probably better ways of doing this, but I find this handy so I can quickly mash <code>writeObj(myObject)</code> into the console and get a list of all the object's fields. For more fun with simple JavaScript reflection have a look at my <a href="http://davesquared.net/2007/11/reflecting-on-javascript-objects.html">earlier post on the subject</a>.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Lexical scope for closures in JavaScript]]></title>
+    <link href="http://davesquared.net/2007/12/lexical-scope-for-closures-in.html"/>
+    <updated>2007-12-13T12:11:00+11:00</updated>
+    <id>http://davesquared.net/2007/12/lexical-scope-for-closures-in</id>
+    <content type="html"><![CDATA[<p>Ayende has a post on <a href="http://ayende.com/Blog/archive/2007/12/13/Javascript-lexical-scopes-and-what-your-momma-thought-you-about.aspx">working with closures in JavaScript</a>. Basically, when looking at capturing variables in a closure, you need to be careful with lexical scope. In JS the scope is a function, so if you want to capture a variable that will change values during&nbsp;the scope of the function, you will need to reference it via another function.</p>
+
+
+<p> <p>From Ayende's example, where i is set in a loop, this:</p><pre>if( nums[i] % 2 == 0)
+    {
+      var tmpNum = nums[i];
+      <b>alertLink.onclick = function() { alert('EVEN: '+ tmpNum ); };</b>
+      //tmpNum will be bound to its value when the loop exits.
+    } ...
+</pre></p>
+
+<p>Needs to become this:</p>
+
+
+<pre>if( nums[i] % 2 == 0)
+    {
+      <b>var act = function(tmpEVEN)
+      {
+        alertLink.onclick = function() { alert('EVEN: '+tmpEVEN); };
+      };
+      act(nums[i]);</b>
+      //tmpEVEN will be bound to nums[i] at the point where act(nums[i]) is called.
+    } ...
+</pre>
+
+
+<p>Ayende notes that in C#, the first example will work as its lexical scope is the current block (I think :S). In JavaScript, we need to use a function to get the correct scope.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Reflecting on JavaScript objects]]></title>
+    <link href="http://davesquared.net/2007/11/reflecting-on-javascript-objects.html"/>
+    <updated>2007-11-30T11:59:00+11:00</updated>
+    <id>http://davesquared.net/2007/11/reflecting-on-javascript-objects</id>
+    <content type="html"><![CDATA[<p>I have been doing some more playing around with JavaScript recently, and wanted to do some <a href="http://en.wikipedia.org/wiki/Reflection_(computer_science)">reflection</a> over JavaScript objects to see what functions they had, and then execute some of those functions. This is made fairly easy for us due to JavaScript's use of associative arrays&nbsp;(from&nbsp;<a href="http://en.wikipedia.org/wiki/Reflection_(computer_science)">Wikipedia's example</a>:&nbsp;<code>obj.x = 10;</code> is the same as <code>obj["x"] = 10;</code>).</p>
+
+
+<p> <p>First let's embed some JavaScript into a local HTML file:</p><pre>&lt;script&gt;
+  var MyClass = function() {}
+  MyClass.prototype = {
+    aFunction: function() { return 1; },
+    anotherFunction: function() { return 2; }      <br/>
+  }
+&lt;/script&gt;
+</pre></p>
+
+<p>Here we have a basic MyClass class. We can use the <code>for..in</code> statement to enumerate through the items in this class:</p>
+
+
+<pre>for (var member in MyClass) {
+  document.write(member + "&lt;br/&gt;");        
+}
+</pre>
+
+
+<p>This writes "prototype" (plus line break) to the page in FireFox (not in IE7, but haven't looked into why), which is the only&nbsp;thing defined for MyClass. You can also enumerate over MyClass.prototype to see what's there. In my case I wanted to check and run methods from an instance of MyClass (which is initialised from the prototype):</p>
+
+
+<pre><strong>var instanceOfMyClass = new MyClass();</strong>
+for (var member in instanceOfMyClass) {
+ document.write(member);
+ document.write(": " + <strong>instanceOfMyClass[member]()</strong>);
+ document.write("&lt;br/&gt;");
+}                 
+</pre>
+
+
+<p>Which displays the following (in both FireFox and IE7):</p>
+
+
+<pre>aFunction: 1
+anotherFunction: 2
+</pre>
+
+
+<p>Here we access the functions in <code>instanceOfMyClass</code> by looking up the value associated with&nbsp;each <code>member</code>. One quick gotcha: the <code>for..in</code> enumeration in this case returns strings, not pointers to the member itself (so you can't&nbsp;use <code>member()</code> to evaluate it).</p>
+
+
+<p>Another option is to use the <code>eval</code> function to execute the method, but that isn't quite as pretty as it involves building up strings&nbsp;(<code>eval("instanceOfMyClass." + member + "()")</code>).</p>
+
+
+<p>Note we aren't accounting for argument lists here. You might want to look at the <a href="http://developer.mozilla.org/en/docs/Core_JavaScript_1.5_Reference:Objects:Function">Function class</a> for getting more data about functions and their arguments. We also are not catering for members that are not functions. You can use <code>typeof</code> to filter out other values.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Passing an arbitrary number of arguments to a JavaScript function]]></title>
+    <link href="http://davesquared.net/2007/10/passing-arbitrary-number-of-arguments.html"/>
+    <updated>2007-10-05T15:28:00+10:00</updated>
+    <id>http://davesquared.net/2007/10/passing-arbitrary-number-of-arguments</id>
+    <content type="html"><![CDATA[<p>In C# you can specify that an arbitrary number of arguments / parameters&nbsp;can be passed to a function using the <code>params</code> keyword. This looks something like this:</p>
+
+
+<pre>bool areAllChecked(params CheckBox[] checkBoxes) {
+  foreach (CheckBox checkBox in checkBoxes) {
+    if (!checkBox.Checked) return false;
+  }
+  return true;
+}
+...
+bool areAllChecked = areAllChecked(checkBox1, checkBox2, ..., checkBoxN);</pre>
+
+
+<p>Unsurprisingly (being a <a href="http://en.wikipedia.org/wiki/Dynamic_language">dynamic language</a> and all), <a title="you can do this in JavaScript as well" href="http://www.devguru.com/Technologies/ecmascript/QuickRef/arguments.html">you can do this in JavaScript as well</a> using the <code>arguments</code> object:</p>
+
+
+<pre>function areAllChecked() {
+  for (var i=0; i&lt;arguments.length; i++) {
+    if (!arguments[i].checked) return false;
+  }
+  return true;
+}
+var areAllChecked = areAllChecked(checkBox1, checkBox2, ..., checkBoxN);
+</pre>
+
+]]></content>
+  </entry>
+  
+</feed>

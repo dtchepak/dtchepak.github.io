@@ -1,0 +1,330 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Continuing adventures in adding methods to Ruby instances - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="In the last post we looked at the hoops we had to go through to redefine a method on a single instance using a closure. In this post we&#8217;ll look &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Continuing adventures in adding methods to Ruby instances</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-11-13T23:55:00+11:00" pubdate data-updated="true">13 Nov 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>In the <a href="http://davesquared.net/2010/11/replacing-ruby-instance-method-with.html">last post</a> we looked at the hoops we had to go through to redefine a method on a single instance using a closure. In this post we&#8217;ll look at ways to make this easier on ourselves.</p>
+
+<p>I should stress that I&#8217;m a Ruby n00bie, so take this all with a grain of salt. Please let me know if I&#8217;ve got it wrong.</p>
+
+<h2>First attempt</h2>
+<p>We found out last time that to add an instance method to a single object using a closure we had to obtain a reference to that instance&#8217;s <i>metaclass</i> (or <i>eigenclass</i> as it is also known) using the <code>class &lt;&lt; instance</code> syntax. We could then use the metaclass&#8217;s private <code>define_method</code> via the <code>send</code> method.</p>
+<pre class="brush: ruby">
+class Greeter
+    def say_hello
+        puts "Hello World!"
+    end
+end
+greeters_metaclass = class &lt;&lt; greeter; self; end
+greeters_metaclass.send(:define_method, :say_hello) do
+    puts "G'day #{name}"
+end
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+</pre>
+
+<p>We can make this a bit easier by extracting this into a method. If we put it in a Ruby <i>module</i>, we can open up any class or instance and import this code as required.</p>
+
+<pre class="brush: ruby">
+module Meta
+    def define(name, &block)
+        meta = class &lt;&lt; self; self; end
+        meta.send(:define_method, name, block)
+    end
+end
+</pre>
+
+<p>And this works the same way as the previous code, just a bit neater:</p>
+
+<pre class="brush: ruby">
+# Open up Greeter class and import the Meta module:
+class Greeter
+    include Meta
+end
+
+# Our greeter gains the new syntax:
+name = "Anonymous Dave"
+greeter.define(:say_hello) do
+    puts "G'day #{name}"
+end
+
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+</pre>
+<p>We can do better.</p>
+
+<h2>Second attempt</h2>
+<p>It would be really nice to be able to just write <code>greeter.define.say_hello { puts "blah" }</code>. Let&#8217;s make it work. We&#8217;ll need to make a <code>define</code> method that returns some sort of object that responds to any method, whether it exists or not. Ruby has a handy <code>method_missing</code> method we can define which will be invoked in the event it cannot resolve a particular method. We can just move the method creation into there:</p>
+
+<pre class="brush: ruby">
+module Meta
+    def define
+        meta = class &lt;&lt; self; self; end
+        Creator.new(meta)
+    end
+    class Creator
+        def initialize(meta)
+            @meta = meta
+        end
+        def method_missing(symbol, *args, &block)
+            @meta.send(:define_method, symbol, block)
+        end
+    end
+end
+</pre>
+
+<p>This then gives us a nicer syntax whenever we import the module:</p>
+
+<pre class="brush: ruby">
+name = "Anonymous Dave"
+greeter.define.say_hello do
+    puts "G'day #{name}"
+end
+greeter.say_hello
+#=&gt; G'day Anonymous Dave
+
+
+greeter.define.say_hello do
+    puts "Howdy!"
+end
+greeter.say_hello
+#=&gt; Howdy!
+</pre>
+
+<h2>Parting thoughts</h2>
+<p>Like I said, I&#8217;m new to this stuff and have absolutely no idea if this is completely terrible. I do know that I&#8217;m really impressed with how easily even a newbie like me could add the syntax I wanted to absolutely everywhere in Ruby I could possibly need it, in a fairly neat and reusable way.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-11-14T13:03:44+11:00" class="updated">Updated 14 Nov 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/ruby/'>ruby</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html" data-via="" data-counturl="http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2010/11/replacing-ruby-instance-method-with.html" title="Previous Post: Replacing a Ruby instance method with a closure">&laquo; Replacing a Ruby instance method with a closure</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/12/four-years.html" title="next Post: Four years">Four years &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html';
+        var disqus_url = 'http://davesquared.net/2010/11/continuing-adventures-in-adding-methods.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

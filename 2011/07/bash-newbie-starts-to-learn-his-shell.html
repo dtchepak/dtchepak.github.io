@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Bash newbie starts to learn his shell for git and profit - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Since I&#8217;ve started using git I do a lot more work in the bash console for Windows it installs with, and recently I&#8217;ve been trying to lean &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2011/07/bash-newbie-starts-to-learn-his-shell.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Bash newbie starts to learn his shell for git and profit</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-07-27T22:23:00+10:00" pubdate data-updated="true">27 Jul 2011</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Since I&#8217;ve started using git I do a lot more work in the bash console for Windows it installs with, and recently I&#8217;ve been trying to lean a bit more on bash to make my life easier. Here&#8217;s a couple of basic commands to help use git (et al.) from the command line. It will all be old news for people that have used bash in anger before, but it might help those who, like me, have not yet found the time to really start trying to learn it.</p>
+
+<h2>Find</h2>
+
+<p>One problem I&#8217;ve had is specifying files to pass to git commands when they&#8217;re defined somewhere deep within my solution&#8217;s folder structure. One option is to use the <code>find</code> command for this:</p>
+
+<pre>git gui blame `find . -name MyFile.cs`
+</pre>
+
+<p>This will evaluate <code>find . -name MyFile.cs</code>, which will recursively search from the current path for a file with that name (use <code>-iname</code> for case-insensitive matching). Assuming there is only one match, this works great. If we want to keep operating on that file we can store it in a variable:</p>
+
+<pre>f=`find . -name MyFile.cs`
+echo $f #check which files we matched. Good idea before destructive cmds ;)
+git annotate $f
+git gui blame $f
+</pre>
+
+<h2>Loops and filtering</h2>
+
+<p>If we want to match multiple files, we can iterate over the output of <code>find</code>:</p>
+
+<pre>for match in `find . -name *File.cs`; do git gui blame $match; done
+
+# Same thing, but in multiple steps and expanding the loop over multiple lines
+# to show what's happening:
+$matches=`find . -name *File.cs`
+for match in $matches
+do 
+    git gui blame $match
+done
+</pre>
+
+<p>We can also do filtering within this loop. The following example deletes all WIP branches: (<em>use with caution!</em>):</p>
+
+<pre>for b in `git branch`; do if [[ $b == WIP* ]]; then git branch -D $b; fi; done
+</pre>
+
+<h2>xargs</h2>
+
+<p>I always struggle to remember the loop syntax, and it&#8217;s not exactly aesthetically pleasing. There is another option: <a href="http://en.wikipedia.org/wiki/Xargs">xargs</a>. <code>Xargs</code> is used to build-up lists of argument and execute commands using those arguments. Say we want to delete all our WIP branches again (again: <em>this deletes stuff! Use with caution!</em>):</p>
+
+<pre>git branch | grep 'WIP' | xargs -n1 git branch -D
+</pre>
+
+<p>Here we pipe the output of <code>git branch</code> through grep and just pick the branches that contain &#8216;WIP&#8217;. We then pipe this into <code>xargs</code>. The <code>-n1</code> option tells <code>xargs</code> to execute our <code>git branch -D</code> command once for each argument received (we could pass 3 args into the command using <code>-n3</code>, so the command would execute once for every 3 args). This is a more functional approach, and starts to show the strength of the Unix philosophy of composing many small utilities that all do their jobs well.</p>
+
+<p>I&#8217;m only just beginning to get to grips with <code>xargs</code>, but if you read through <a href="http://www.cyberciti.biz/faq/linux-unix-bsd-xargs-construct-argument-lists-utility/">Things you (probably) didn&#8217;t know about xargs</a> and <a href="http://www.cyberciti.biz/faq/linux-unix-bsd-xargs-construct-argument-lists-utility/">xargs: How to control and use command line arguments</a> you should get more of an idea of what it can do.</p>
+
+<h2>Get to know your shell</h2>
+
+<p>I recall <a href="http://pragprog.com/the-pragmatic-programmer">The Pragmatic Programmer</a> advising to learn a shell really well to help you get more productive. While I&#8217;ve only just started looking at this, the more I look the more doors seem to open for automation and getting trivial little operations done more quickly (and importantly, without causing much of a mental context switch from what you are currently working on). Whether you use bash, zsh, PowerShell or even lowly old cmd, I&#8217;d really recommend getting better acquainted with what your shell has to offer.</p>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2011-07-27T22:23:00+10:00" pubdate data-updated="true">27 Jul 2011</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2011/07/bash-newbie-starts-to-learn-his-shell.html" data-via="" data-counturl="http://davesquared.net/2011/07/bash-newbie-starts-to-learn-his-shell.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2011/06/abstraction-and-oo.html" title="Previous Post: Abstraction and OO">&laquo; Abstraction and OO</a>
+      
+      
+        <a class="basic-alignment right" href="/2011/08/technical-debt.html" title="next Post: Technical debt">Technical debt &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2011/07/bash-newbie-starts-to-learn-his-shell.html';
+        var disqus_url = 'http://davesquared.net/2011/07/bash-newbie-starts-to-learn-his-shell.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

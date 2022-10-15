@@ -1,0 +1,320 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Lessons learned from an Agile project - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Update 2010-11-17: This post was included in the third instalment of David Burela&#8217;s Developer Blog Banter series. You can check there for other &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Lessons learned from an Agile project</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-01-31T23:44:00+11:00" pubdate data-updated="true">31 Jan 2010</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><div class="note"><b>Update 2010-11-17: </b> This post was included in the <a href="http://davidburela.wordpress.com/2010/11/14/developer-blog-banter-3-project-retrospective/">third instalment of David Burela&#8217;s Developer Blog Banter series</a>. You can check there for other project post-mortems, and read <a href="http://en.wordpress.com/tag/developer-blog-banter/">developer conversations about other topics too</a>.</div>
+
+<p>We&#8217;re at a pretty important milestone of my current project at the moment, so I thought it would be a good time to look back on some of the lessons I&#8217;ve learned about Agile projects over the last 18 months or so.</p>
+
+<p>Just to provide some context for this post, the project has been run from the outset as an Agile project based on Scrum and XP practices. We&#8217;ve been using 2 week iterations, user stories on index cards which are also recorded in Jira, and many, many whiteboards. </p>
+
+<p>Overall I&#8217;d have to say our process gave us a tremendous insight as to how we were tracking against features and timelines from very early on, and the iterative approach to development has resulted in the most pleasant code base I have ever worked on (this is not actually saying much ;)). Even after 18 months the code has proved very resilient to the code rot that I&#8217;ve normally seen on projects after just a couple of weeks.</p>
+
+<p>I won&#8217;t go in to all the details of what worked and what didn&#8217;t, but I would like to pick out the key things I&#8217;ve learned during the project.</p>
+
+<h2>Short stories</h2>
+<p>This has been the single most important thing I&#8217;ve learned during this project. Stories need to be short &#8211; the shorter the better. I&#8217;m sure there&#8217;s some theoretical minimum story size that is useful, but I&#8217;ve only ever seen stories that are right-sized or too big. Ideally each story can be done-done (i.e. developed, reviewed, tested, closed) in one or two days.</p>
+
+<p>We were pretty militant that, except under exceptional circumstances, all stories must have a clear value to our users. I still consider this an essential part of a feature or user story (if it is not valuable to the user then why are you doing it?), but where we went wrong was where we set the bar for &quot;valuable&quot;.</p>
+
+<p>As a contrived example, say the application needs to display a screen for entering the operator&#8217;s details. This should include name, birth date, phone and address details. The entry fields should prefill based on the country, postcode, state etc. the operator enters. The screen also needs some validation to ensure the operator has entered the information properly before they can proceed. At first glance all aspects of this feature are very important and our users consider it all essential to the value of the feature.</p>
+
+<p>If you can get all this done in a day then it might be worth a shot, but we can actually divide this feature into smaller pieces that still provide <i>some</i> value to the users, even if it is not the entirity. Maybe our first story is just to enter a name and continue. The second might be to add the other fields, but with no autocompletion. Third might be to add validation. And forth might be some sub-set of the autocomplete. Some of these may only bear a tenuous link to the full value the user requires, but even the smallest amount of relevance is enough when story size is on the line.</p>
+
+<p>We started off with more of the former approach, and ended up at the latter. The difference was amazing. Although there were other contributing factors at work (maturity of the codebase, clarity of requirements etc), I&#8217;m pretty comfortable in ascribing much of the success later in the project with our shift to very short stories.</p>
+
+<p>Why is story size so important? For lots of reasons, but two big ones are momentum and feedback.</p>
+
+<h2>Momentum</h2>
+
+<p>This probably sounds a bit touchy-feely, but I think dismissing it on those grounds is ignoring a fairly fundamental part of human nature. If every day, every task is a thankless struggle, the intertia will pull down your team&#8217;s morale, motivation, concentration, and reduce their creativity and ability to innovate. On the flip side, once the team gets up a bit of steam and starts churning through stories, seeing visible progress as they move across the task board and into the Done column, the team&#8217;s enthusiasm and creativity soars. They start kicking around new ideas on how to remove some duplication from the code and reduce some overhead for future stories. </p>
+
+<p>It is really important to cultivate momentum early in the project, and work hard to sustain it. A great way of doing this is to make progress visible. Small stories and a task board and/or burn down chart really help with this.</p>
+
+<h2>Feedback</h2>
+
+<p>Agile revolves around rapid feedback cycles. The sooner you get feedback, the sooner you can adjust and improve. It is vitally important to ensure that you have feedback on as many of your decisions as possible, and the most important, difficult to change decisions should be deferred until you have enough feedback to make an informed decision.</p>
+
+<p>We had a very, very long Sprint 0, which sort of mushed up the envisioning phase of the project with a whole lot of process decisions, story identification, risk analysis and more. The problem was we did all this in a complete vaccuum &#8211; we had little if any feedback to be able to sanity check the decisions being made. It turned out that alot of these decisions became irrelevant once we hit the trenches, and many of the good decisions could quite adequately been made just-in-time at the frontline, rather than behind a whiteboard several weeks prior.</p>
+
+<p>This is the other big reason to keep stories short &#8211; you can get rapid feedback from your testers, users, PM, and/or fellow devs.</p>
+
+<h2>Acceptance testing</h2>
+
+<p>I don&#8217;t think we had a clear idea of exactly what we wanted to achieve with acceptance tests. Instead of deciding what we needed them, and then running with it and refining it over subsequent iterations (based on the feedback we would get from trying it), we picked a wiki-based acceptance testing tool and tried to bludgeon it into some sembalance of what we actually needed.</p>
+
+<p>We had a fair bit of trouble moving between the application world and the acceptance test world.  Expressing what we wanted in the tool, and then piping that through a path in the application became a bit of a nightmare. I think this could have been alleviated by having our acceptance tests closer to the code, maybe even written in NUnit.</p>
+
+<p>Part of the reason for using a wiki-based tool was to let users write and review the acceptance tests. I am really skeptical of the idea that users are generally going to be intimately involved in authoring acceptance tests. I think it is great for the conversations to take place, and to have the resulting specifications in a format where users can easily review them, but the writing itself I think needs to be done by a programmer-type person. I am sure this isn&#8217;t the case everywhere, but I think it is a reasonable guess that this best suits the majority. In our case it was great get the tests in a reviewable format, but I don&#8217;t think we got any benefit from having user-editable specs.</p>
+
+<p>Another problem we faced was defining how deep we needed our tests to go. Because we were working with a few different bits of hardware returning non-deterministic results, we had to fake out some important behaviour to get tests to work. This led us to write tests which only went through sub-sections of the application, which made them less-than-reliable as integration tests. Sometimes the tests told us something was working which wasn&#8217;t actually working when going through the real application path.</p>
+
+<p>I am still not sure how to do these right, but I think as close to end-to-end as you can get would be a good aim. If you need to fake external dependencies, spend a bit of time to do it effectively rather than avoid the issue until it is too late.</p>
+
+<h2>Do what works</h2>
+
+<p>The end goal of getting feedback is to respond to it. If you are getting feedback that something isn&#8217;t working &#8211; change it!</p>
+
+<p>At one point we realised that our stories were too large to get much done in a single, two week sprint. We tried to break them up, but couldn&#8217;t (at that stage of our learning anyway). It wasn&#8217;t until a few sprints later that someone suggested the simple, practical solution of increasing the sprint length to 3 weeks. The process is not sacred. You are not a slave to it. If it is not working, change it. :)</p>
+
+<p>As an aside, the three weeks worked well, but we ended up figuring out how to break up our stories better and reverting to two weeks.</p>
+
+<p>Another place this approach served us well was in moving to <a href="http://davesquared.net/2009/06/moving-to-scenario-based-unit-testing.html">scenario-based unit tests</a>. We had existing tests in place that did not follow this format, but the feedback we were getting was pushing us toward the scenario approach. We chose to do what works instead of keep consistency with the existing tests (consistently painful isn&#8217;t a good thing :)), and it worked very well. When we touched some of the older tests we often ended up upgrading them to the new approach.</p>
+
+<p>We probably should have done this with our approach to acceptance testing and in a few other areas, but we had invested a too much to make it worth our while. If you don&#8217;t respond to feedback early enough then sometimes you miss the boat.</p>
+
+<h2>Stay close to your domain</h2>
+<p>One of the hazards I found with trying to do the &#8220;simplest thing that could work&#8221; was straying too far from the domain. In our application we had to run through a number of different tests (where test is a domain concept, not a unit test test), but we held off from adding a <code>Test</code> class because we just didn&#8217;t need it. Once we did, the concepts relating to tests were so scattered that it was not worth the redesign to put it right. Funnily enough, the <code>Test</code> concept would have been just as easy to implement at the start, but because it wasn&#8217;t demanded by our current requirements we avoided it.</p>
+
+<p>More recently I&#8217;ve started following JP Boodhoo&#8217;s alternative: &#8220;simplest thing that makes <i>sense</i>&#8221;. When you&#8217;re not sure where to put some behaviour or what to name it, pick the options that makes sense to your domain.</p>
+
+<h2>End-to-end as fast as possible</h2>
+<p>At the start of our project we took one small slice of the application and started getting it to a state we were happy with. I think the &#8220;happy with&#8221; part was our undoing. We were polishing up one slice without taking it end-to-end, and without the feedback of other slices to guide us (there&#8217;s that need for feedback again).</p>
+
+<p>By end-to-end, I mean from the spot where the users fires off some behaviour, to the point where it is processed and back again. Not with any faked pieces. If the user fires up the application then the slices needs to function correctly. This doesn&#8217;t mean polished, it just means working correctly.</p>
+
+<p>I think we would have faired better by keeping our slices thinner, making them completely end-to-end, and then not bloating them by unguided polish. Once you start bloating your slices then there is less room to slot in your remaining slices. </p>
+
+<p>And remember that until you get there, end-to-end is generally further than you think. There can be all sorts of nasty surprises lurking in the unreached parts of your slice of functionality. If you are basing future decisions on the feedback you&#8217;ve received from an incomplete slice then you are going to compound the problem.</p>
+
+<h2>Final thoughts</h2>
+
+<p>This project has been a fantastic and educational experience. I still can&#8217;t believe that after 18 months the code is still malleable. I&#8217;m looking forward to trying to apply some of these lessons to future projects, and make a whole lot of new mistakes to learn from. :)</p>
+
+<p>Have you encountered any of the same problems in your Agile projects? What has been the most valuable lesson you&#8217;ve taken away from a recent project? Would love to get your comments. :)</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2010-11-17T11:55:01+11:00" class="updated">Updated 17 Nov 2010</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/agile/'>agile</a>, <a class='category' href='/categories/imho/'>imho</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html" data-via="" data-counturl="http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/12/key.html" title="Previous Post: The "http://www." key">&laquo; The "http://www." key</a>
+      
+      
+        <a class="basic-alignment right" href="/2010/02/refactor-or-redesign.html" title="next Post: Refactor or redesign?">Refactor or redesign? &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html';
+        var disqus_url = 'http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: .net | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/-net/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[F# assertion libraries]]></title>
+    <link href="http://davesquared.net/2014/07/fsharp-assertion-libraries.html"/>
+    <updated>2014-07-22T21:30:00+10:00</updated>
+    <id>http://davesquared.net/2014/07/fsharp-assertion-libraries</id>
+    <content type="html"><![CDATA[<p>There are a few different libraries that provide test assertions for F#. I went through a couple today and tried a trivial example in each.</p>
+
+<!-- more -->
+
+
+<p>I'm using xUnit for these examples, but all of this should apply to NUnit (and other test runners) too. I've put all the code in a <a href="https://gist.github.com/dtchepak/62fe3c689700180777c2">Sample.fs gist</a> if you want to see it all in one place.</p>
+
+<h2>xUnit assertions</h2>
+
+<p>I've written about <a href="http://www.davesquared.net/2013/03/hello-world-testing-in-fsharp.html">getting started with NUnit in F#</a> before. We can also use <a href="https://github.com/xunit/xunit">xUnit</a> and its built in assertions.</p>
+
+<pre><code class="fsharp">open Xunit
+
+[&lt;Fact&gt;]
+let ``map (+1) over list using Xunit`` () =
+    let result = List.map incr [1;2;3]
+    Assert.Equal&lt;int list&gt;([2;3;4], result)
+</code></pre>
+
+<p>I needed to specify the <code>int list</code> type explicitly to get F# to resolve the correct overload.</p>
+
+<p>Here's an example of an assertion failure (when I change the expected value to <code>[2;3;5]</code>):</p>
+
+<pre><code>Position: First difference is at position 2
+Expected: FSharpList&lt;Int32&gt; { 2, 3, 5 }
+Actual:   FSharpList&lt;Int32&gt; { 2, 3, 4 }
+</code></pre>
+
+<h2>FsUnit</h2>
+
+<p><a href="https://github.com/fsharp/FsUnit">FsUnit</a> provides helpers for NUnit, xUnit,  MbUnit, and MSTest assertions to make them play nicely with F# syntax and type inference. I installed the <code>FsUnit.Xunit</code> package.</p>
+
+<pre><code class="fsharp">open FsUnit.Xunit
+
+[&lt;Fact&gt;]
+let ``map (+1) over list using FsUnit.Xunit`` () =
+    let result = List.map incr [1;2;3]
+    result |&gt; should equal [2;3;4]
+</code></pre>
+
+<p>Sample failure:</p>
+
+<pre><code>Position: First difference is at position 0
+Expected: Equals [2; 3; 5]
+Actual:   was [2; 3; 4]
+</code></pre>
+
+<p>(I'm not sure why first difference is at position 0 here?)</p>
+
+<h2>Unquote</h2>
+
+<p><a href="https://code.google.com/p/unquote/">Unquote</a> lets us use quoted expressions for assertions.</p>
+
+<pre><code class="fsharp">open Swensen.Unquote
+
+[&lt;Fact&gt;]
+let ``map (+1) over list using Unquote`` () =
+    test &lt;@ List.map incr [1;2;3] = [2;3;4] @&gt;
+</code></pre>
+
+<p>If the test fails, Unquote shows each step in reducing the expression so you can see where they start to differ:</p>
+
+<pre><code>List.map Sample.incr [1; 2; 3] = [2; 3; 5]
+[2; 3; 4] = [2; 3; 5]
+false
+</code></pre>
+
+<p>This case only shows 3 steps, but more complex expressions will show more.</p>
+
+<h2>FsCheck</h2>
+
+<p><a href="https://fsharp.github.io/FsCheck/">FsCheck</a> is influenced by Haskell's QuickCheck and Scala's scalacheck. Rather than asserting a specific input and output, we define a property that should hold for all values of a type (optionally requiring they meet certain criteria, such as being a positive integer).</p>
+
+<p>The FsCheck.Xunit package has specific support for xUnit through a <code>PropertyAttribute</code> that let us run properties directly as an xUnit test (otherwise a little more boilerplate is required, see <a href="https://fsharp.github.io/FsCheck/QuickStart.html">"Using FsCheck with other testing frameworks" in the Quick Start guide </a>).</p>
+
+<pre><code class="fsharp">open FsCheck
+open FsCheck.Xunit
+
+[&lt;Property&gt;]
+let ``map f . map g = map (f . g)`` (xs:int list) =
+    let f x = x*10
+    let g x = x+1
+    (List.map f &lt;&lt; List.map g) xs = List.map (f &lt;&lt; g) xs
+</code></pre>
+
+<p>If we modify the property to ensure it fails (for example, <code>(List.map f &lt;&lt; List.map g) xs = List.map (f &lt;&lt; g) (List.filter even xs)</code>), we get this output:</p>
+
+<pre><code>FsCheck.Xunit.PropertyFailedException
+Falsifiable, after 3 tests (2 shrinks) (StdGen (267259328,295888818)):
+[1]
+</code></pre>
+
+<p>This shows that given an input of <code>[1]</code> the property does not hold.</p>
+
+<h2>Fuchu</h2>
+
+<p><a href="https://github.com/mausch/Fuchu">Fuchu</a> is more focussed on test organisation than assertions, and can be used with any of the assertion-providing libraries above. If you'd like to try something different to the usual (N|x|Mb)Unit approaches for defining test cases then <a href="http://bugsquash.blogspot.com.au/2012/06/fuchu-functional-test-library-for-net.html">give it a look</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Some regex help from the F# compiler]]></title>
+    <link href="http://davesquared.net/2014/04/fsharp-regex-provider.html"/>
+    <updated>2014-04-19T21:45:00+10:00</updated>
+    <id>http://davesquared.net/2014/04/fsharp-regex-provider</id>
+    <content type="html"><![CDATA[<p><em>tl;dr: Make invalid regular expression strings and attempts to access non-existent capture groups a compile-time error, thanks to the <a href="http://fsprojects.github.io/RegexProvider/">Regex type provider</a>.</em></p>
+
+<!-- more -->
+
+
+<h2>Standard .NET regex</h2>
+
+<p>Say we want to parse out some information from basic <a href="https://github.com/Shopify/liquid">Liquid</a> tags, like this:</p>
+
+<pre><code class="csharp">[Test]
+public void GetInformationFromAllSampleTags() {
+    const string input =
+        @"This is a test. {% sample %}ABC{% endsample %}. Some {% other %} 123 {% endother %} tag.
+          {% sample %} DEF {% endsample %}";
+    GetSamples(input).ShouldBe(new [] { "ABC", "DEF" });
+}
+</code></pre>
+
+<p>We can give ourselves <a href="http://regex.info/blog/2006-09-15/247">two problems</a> and implement this using <code>System.Text.RegularExpressions</code> (it looks almost identical in C#, see <a href="https://gist.github.com/dtchepak/11083161">this gist</a> or footnote<a href="An">^csharp-example</a>):</p>
+
+<pre><code class="fsharp">// F#
+let getSamples s : string seq =
+    let re = @"\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}"
+    Regex.Matches(s, re)
+        |&gt; Seq.cast&lt;Match&gt;
+        |&gt; Seq.filter (fun m -&gt; m.Groups.["tag"].Value = "sample")
+        |&gt; Seq.map (fun m -&gt; m.Groups.["contents"].Value.Trim())
+</code></pre>
+
+<pre><code>&lt;div class="highlight"&gt;
+```csharp
+// C#
+public IEnumerable&lt;string&gt; GetSamples(string s) {
+    var re = @"\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}";
+    return Regex.Matches(s, re)
+                .Cast&lt;Match&gt;()
+                .Where(m =&gt; m.Groups["tag"].Value == "sample")
+                .Select(m =&gt; m.Groups["contents"].Value.Trim());
+}
+```
+&lt;/div&gt;
+</code></pre>
+
+<h2>F# type provider version</h2>
+
+<p>First up we need to add the <a href="http://fsprojects.github.io/RegexProvider/">RegexProvider</a> to our project via nuget: <code>PM&gt; Install-Package RegexProvider</code>.</p>
+
+<p>Now we can rewrite our previous implementation like this:</p>
+
+<pre><code class="fsharp">open FSharp.RegexProvider
+type LiquidTagRegex = Regex&lt; @"\{%\s*(?&lt;tag&gt;\w+)\s*\%\}(?&lt;contents&gt;(?s:.*?))\{%\s*end\1\s*%\}" &gt;
+
+let getSamples s : string seq =
+    LiquidTagRegex().Matches(s)
+        |&gt; Seq.filter (fun m -&gt; m.tag.Value = "sample")
+        |&gt; Seq.map (fun m -&gt; m.contents.Value.Trim())
+</code></pre>
+
+<p>This will compile equivalently to our previous implementation^[The type provider creates a type with the <code>tag</code> and <code>contents</code> properties, but this type gets erased in the final compiled output, replaced with the <code>Groups</code> accessor code from our original implementation.], but we've gained some nice static checks.</p>
+
+<p>We can access the <code>tag</code> and <code>contents</code> capture groups of our match as properties. This isn't a <code>method_missing</code>-style dynamic lookup -- if we rename the group in the regex to <code>(?&lt;notTag&gt;\w+)</code> then we get a compile-time error:</p>
+
+<pre><code>error FS0039: The field, constructor or member 'tag' is not defined
+</code></pre>
+
+<p>Also neat, if we completely muck up our regex, the compiler will let us know:</p>
+
+<pre><code>error FS3033: The type provider ... reported an error: parsing "[asd" -
+Unterminated [] set.
+</code></pre>
+
+<p>Tests would catch both these errors, but feedback doesn't get much faster than "as we're typing the code", plus we get precise line numbers for the errors as well. It also reduces code noise, dealing directly with the capture group names rather than having to specify particular collection lookups.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A hasty introduction to the Either type]]></title>
+    <link href="http://davesquared.net/2014/04/either.html"/>
+    <updated>2014-04-03T00:07:00+11:00</updated>
+    <id>http://davesquared.net/2014/04/either</id>
+    <content type="html"><![CDATA[<p>The <code>Either</code> type, also called <code>Choice</code> in F# parlance, is a way of representing a value that can be either one of two types. This can be extremely useful. For example, retrieving a date of birth from a textbox could be expressed as <code>Either&lt;ParseException, DateTime&gt;</code>. In other words, the result is a value that is either a valid <code>DateTime</code>, or is a <code>ParseException</code>.</p>
+
+<p>Being a hasty introduction this post is not going to do justice to how useful this type is, but hopefully some of its goodness will shine through despite my rambling prose. :)</p>
+
+<!-- more -->
+
+
+<h2>Implementation</h2>
+
+<p>In .NET we don't need to implement this ourselves. We can use F#'s <code>Choice</code> type from any .NET language including C# using the <a href="http://davesquared.net/2012/12/optional-fp-in-csharp.html#a-little-nuget">same steps as for <code>Option</code></a>, or use <code>Either</code> from the <a href="https://www.nuget.org/packages/Sasa/">Sasa library</a>^[Thanks to <a href="http://davesquared.net/2014/04/either.html#comment-1318913011">Sandro</a> for mentioning Sasa]. I think it's useful to look at how we could implement this ourselves though, so here goes...</p>
+
+<p>It's a bit clumsy to represent in C#, but here's one implementation:</p>
+
+<pre><code class="csharp">public class Either&lt;TLeft, TRight&gt; {
+    private readonly bool isLeft;
+    private readonly TLeft left;
+    private readonly TRight right;
+
+    private Either(bool isLeft, TLeft a, TRight b) {
+        this.isLeft = isLeft;
+        this.left = a;
+        this.right = b;
+    }
+
+    public static Either&lt;A, B&gt; Left&lt;A, B&gt;(A left) {
+        return new Either&lt;A, B&gt;(true, left, default(B));
+    }
+
+    public static Either&lt;TA, TB&gt; Right&lt;TA, TB&gt;(TB right) {
+        return new Either&lt;TA, TB&gt;(false, default(TA), right);
+    }
+}
+</code></pre>
+
+<p>F# makes things much easier:</p>
+
+<pre><code class="fsharp">type Either&lt;'a, 'b&gt; = Left of 'a | Right of 'b
+</code></pre>
+
+<p>Both implementations show two main points about <code>Either</code>:</p>
+
+<ul>
+<li>It has two generic parameters</li>
+<li>We can construct an <code>Either</code> that has a value of the first type, or a value of the second type, but not both.</li>
+</ul>
+
+
+<h2>Accessing either value</h2>
+
+<p>We've seen the basic <code>Either</code> structure, but so far have no way to use it. Everything we need to do with <code>Either</code> we can do by adding this function^[Everything you can do with a type can be expressed by its <a href="http://davesquared.net/2012/11/catamorphisms.html">catamorphism</a>.]:</p>
+
+<pre><code class="csharp">// Either.cs
+public T Fold&lt;T&gt;(Func&lt;TLeft, T&gt; onLeft, Func&lt;TRight, T&gt; onRight) {
+    return isLeft ? onLeft(left) : onRight(right);
+}
+</code></pre>
+
+<pre><code class="fsharp">// Either.fs
+let either f g = function
+    | Left a  -&gt; f a
+    | Right b -&gt; g b
+</code></pre>
+
+<p>If we have an <code>Either&lt;ParseException, DateTime&gt;</code> this will let us handle both cases.</p>
+
+<pre><code class="csharp">// Save the date, or show a validation error 
+result.Fold(ShowError, SaveDate);
+
+// Translate to ye olde exception
+result.Fold(ex =&gt; { throw ex; }, dateTime =&gt; dateTime);
+
+// Get value or some default
+result.Fold(ex =&gt; DateTime.Now, dt =&gt; dt);
+</code></pre>
+
+<p>We can <a href="https://gist.github.com/dtchepak/9818021">implement a number of helpful functions</a> that make dealing with <code>Either</code> values really convenient.</p>
+
+<h2>Why?</h2>
+
+<p>Because we are accurately communicating to people that a method can return two different types of results, or takes a value as an argument that can be one of two types. Importantly, we're also telling the compiler exactly what the possible values are, so it will tell us if we're not handling any cases.</p>
+
+<div class="note">**Aside:** If me-from-a-little-while-back was reading this post, I'd be thinking that placating the compiler everywhere we use this type would surely be more trouble than it's worth. After trying it out I vehemently disagree with myself. (Warning: unsubstantiated claims ahead) The majority of the time we can use `Fold` and [similar functions](https://gist.github.com/dtchepak/9818021) to use either value in very convenient, low friction ways. The only times it causes me any pain is when I've completely overlooked a possibility in my code, and the compiler keeps me honest and makes me handle the case. I much prefer this to getting a bug report or having silently failing code.</div>
+
+
+<p>Sticking with our <code>Either&lt;ParseException, DateTime&gt;</code> example, there is no way we can forget to handle the possibility our code could fail to parse out a <code>DateTime</code>. If we used a traditional exception we're relying on there being documentation, people reading that documentation, and people never making a mistaek.^[It's also a much more convenient mechanism than Java's checked exceptions. We can pass around and compose <code>Either</code> values without requiring special syntax like <code>try/catch</code>.]</p>
+
+<h2>An unexceptional example</h2>
+
+<p>Using <code>Either</code> to represent operations that can potentially fail is a convenient example, but we don't need to restrict its use to those cases. One example that came up on <a href="https://groups.google.com/forum/#!topic/nsubstitute/bgafuO8VAFs">the NSubstitute mailing list</a> was dealing with values that could be partially or fully loaded. Rather than relying on a boolean flag to indicate a load state (and hoping everyone remembers to check it before accessing unloaded fields), we can use something like <code>Either&lt;PersonSummary, Person&gt;</code>.</p>
+
+<p>If we need to display the person's name, regardless of whether the <code>Person</code> has been fully loaded, we can easily extract the information we need:</p>
+
+<pre><code class="csharp">void ShowName(Either&lt;PersonSummary, Person&gt; person) {
+    persionViewModel.Name = person.Fold(x =&gt; x.Name, x =&gt; x.Name);
+}
+</code></pre>
+
+<p>At some point we need to ensure the full entity is loaded, which we can express like this:</p>
+
+<pre><code class="csharp">public Person Load(Either&lt;PersonSummary, Person&gt; person) {
+  return person.Fold(LoadFromSummary, loadedPerson =&gt; loadedPerson);
+}
+</code></pre>
+
+<h2>Conclusion</h2>
+
+<p>The <code>Either</code> type lets us represent a value that can be one of two possible types. By using this as a return type or argument type, we communicate to readers and the compiler that there are two possibilities, which ensures we do not accidentally forget to handle particular cases. Using <code>Fold</code> and related functions gives us really convenient, low-friction ways of using, transforming and combining these values. I can't really see a downside to using this type (please comment if you can. Normally not seeing negatives to something means I don't understand it sufficiently).</p>
+
+<p>Don't forget, we can start using all this from C# right away <a href="http://davesquared.net/2012/12/optional-fp-in-csharp.html#a-little-nuget">by referencing FSharp.Core and FSharpx</a> or by grabbing <a href="https://www.nuget.org/packages/Sasa/">the Sasa library from Nuget</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Stayin' alive with .NET GC]]></title>
+    <link href="http://davesquared.net/2014/03/dotnet-gc-keepalive.html"/>
+    <updated>2014-03-06T23:50:00+11:00</updated>
+    <id>http://davesquared.net/2014/03/dotnet-gc-keepalive</id>
+    <content type="html"><![CDATA[<p>Most of the time .NET GC just works. Occasionally when dealing with things like interop with unmanaged code, things go wrong. Things I learned today from this aforementioned going wrong include:</p>
+
+<ul>
+<li>Variable scope can be greater than the lifetime of the object it points to</li>
+<li>Mark-and-sweep GC marks objects for survival, not for collection</li>
+<li><code>GC.KeepAlive(object)</code> is a no-op</li>
+<li>Finalisers from collected objects can break active objects</li>
+<li>Use a release configuration build for reproducing GC issues, running without the debugger attached</li>
+<li>Non-deterministic finalisation makes me confused</li>
+</ul>
+
+
+<p><img src="/images/2014/one_does_not_simply_gc.jpg" alt="One does not simply reason about .NET Garbage Collection" /></p>
+
+<!-- more -->
+
+
+<p>I know far less about this stuff than I should, so please post corrections in the comments and I'll update the post.</p>
+
+<h2>Scope vs. lifetime</h2>
+
+<p>I tend to think of an object's lifetime being at least equal to the scope of the single variable holding a reference to it. So the last reference goes out of scope, the GC comes along eventually and tidies up. This is not always the case. Take this fairly innocent-looking code:</p>
+
+<pre><code class="csharp">ILikeData GetData() {
+  IDataPointCollection dataPoints = source.GetPoints();
+  return processor.Process(dataPoints.GetHelpfulOnes());
+}
+</code></pre>
+
+<p>The <code>dataPoints</code> variable goes out of scope at the end of the method, but its object's lifetime could potentially be shorter or longer depending on the whims of the garbage collector and JIT. Once <code>dataPoints.GetHelpfulOnes()</code> starts executing <code>dataPoints</code> is no longer called and is therefore eligible for collection. Potentially even while <code>GetHelpfulOnes()</code> is still running.</p>
+
+<p>If the <code>IDataPointCollection</code> finaliser disposes of something <code>GetHelpfulOnes()</code> needs (like a handle to an unmanaged resource) or if it invalidates the object passed to <code>Process()</code>, then an ill-timed GC can cause <code>GetHelpfulOnes()</code> or <code>Process()</code> to fail. Intermittent failures are fun, right?</p>
+
+<h2>KeepAlive is a no-op to foil the JITter</h2>
+
+<p>We want to force the <code>dataPoints</code> instance to stay active until <code>Process</code> completes so the finaliser doesn't break everything. Maybe we include a call after <code>Process</code> to ensure this?</p>
+
+<pre><code class="csharp">ILikeData GetData() {
+  IDataPointCollection dataPoints = source.GetPoints();
+  var result = processor.Process(dataPoints.GetHelpfulOnes());
+  Log(dataPoints.Something());
+  return result;
+}
+</code></pre>
+
+<p>Now I have zero idea of how JIT compilation actually works, and my zero understanding includes the idea that it is possible for it to rearrange the code into what it thinks is an equivalent, more efficient form. For example, it might be able to inline <code>dataPoints.Something()</code>:</p>
+
+<pre><code class="csharp">ILikeData GetData() {
+  IDataPointCollection dataPoints = source.GetPoints();
+  var arg = dataPoints.GetHelpfulOnes();
+  //Boo, no more managed calls to dataPoints, so it's eligible for GC...
+  var result = processor.Process(x);
+  var arg2 = /* method body of dataPoints.Something(). No dataPoints reference required. */;
+  Log(arg2);
+  return result;
+}
+</code></pre>
+
+<p>Here <code>dataPoints</code> is still eligible for collection, and its finalisation continues breaking <code>GetHelpfulOnes()</code> and/or <code>Process</code>. Boo! Hiss!</p>
+
+<p>One solution is to use <a href="http://msdn.microsoft.com/en-us/library/system.gc.keepalive(v=vs.110"><code>GC.KeepAlive()</code></a>.aspx). <code>KeepAlive()</code> is a no-op method marked with a <a href="http://msdn.microsoft.com/en-us/library/system.runtime.compilerservices.methodimploptions.aspx"><code>[MethodImpl(MethodImplOptions.NoInlining)]</code></a> attribute, so the JITter can't inline it and knows it still needs to make a call with that reference, which means the GC has to mark it to live on to fight again another day.</p>
+
+<pre><code class="csharp">ILikeData GetData() {
+  IDataPointCollection dataPoints = source.GetPoints();
+  var result = processor.Process(dataPoints.GetHelpfulOnes());
+  GC.KeepAlive(dataPoints); // have to keep dataPoints around until this returns
+  return result;
+}
+</code></pre>
+
+<p>As soon as <code>GC.KeepAlive(dataPoints)</code> finishes doing nothing and returns, <code>dataPoints</code> is again eligible for collection, so we want to save this call until we know our object is ok to finalise.</p>
+
+<div class="note">**Aside:** I believe we're meant to use the [disposable pattern](http://stackoverflow.com/a/898867/906) with `using` blocks to keep objects alive, but if we're using one that isn't `IDisposable` I think we're stuck with `KeepAlive()`.</div>
+
+
+<h2>Debugging my GC issue</h2>
+
+<p>In the particular case I faced <code>dataPoints</code> finalised before/while <code>Process()</code> was running which broke the child object instance returned from <code>GetHelpfulOnes()</code> that <code>Process()</code> was using.</p>
+
+<p>To reproduce this scenario I modified the <code>Process()</code> method to try to persuade the GC and finalisers run:</p>
+
+<pre><code class="csharp">public ILikeData Process(IHelpfulData d) {
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
+    GC.Collect();
+    /* ... original method body ... */
+}
+</code></pre>
+
+<p>This was enough to make <code>GetData()</code> fail consistently, but only using a Release build rather than a Debug one. The debugger also changes GC behaviour, so running without the debugger is a good idea too. Using <code>GC.KeepAlive(dataPoints)</code> as described above made the problem go away.</p>
+
+<p>Of course, non-determinism being what it is, I can't be sure its fixed, but at least it seems to have shut down one particular avenue for this bug to occur.</p>
+
+<h2>Conclusion</h2>
+
+<p>Much of the time and for many project types we can get away with blindly trusting the GC. Once we have finalisers that can affect other live objects we lose this luxury.</p>
+
+<h2>References</h2>
+
+<ul>
+<li><a href="http://blogs.msdn.com/b/oldnewthing/archive/2010/08/13/10049634.aspx">Raymond Chen on "When do I need to use GC.KeepAlive?"</a></li>
+<li><a href="http://blogs.msdn.com/b/cbrumme/archive/2003/04/19/51365.aspx">Chris Brumme's post on "Lifetime, GC.KeepAlive, handle recyling"</a></li>
+<li><a href="http://stackoverflow.com/questions/5530118/c-sharp-an-objects-scope/5530869#5530869">Eric Lippert's SO answer about object scope</a></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Why not try F#?]]></title>
+    <link href="http://davesquared.net/2013/05/why-not-try-fsharp.html"/>
+    <updated>2013-05-26T21:30:00+10:00</updated>
+    <id>http://davesquared.net/2013/05/why-not-try-fsharp</id>
+    <content type="html"><![CDATA[<p>I have avoided seriously trying F# for years now, mainly because:</p>
+
+<ul>
+<li>F# was described as a "functional programming language", and I didn't know FP. I was keen to learn FP, but prioritised learning more about OO design and patterns that seemed more immediately applicable to my everyday work.</li>
+<li>The syntax looked really confusing.</li>
+<li>Whenever I heard F# mentioned it was in the same breath as "financial data processing" or some other niche area that seemed to have little to do with the types of applications I wrote.</li>
+</ul>
+
+
+<p>I carried these hastily-acquired preconceptions around for years, until this year I needed to do a small application for work, and decided to try it in F#. To my surprise I found that <em>none of these preconceptions were valid</em>! What's more, I actually quite enjoyed it. F# seemed to let me do everything I would normally do in C#, only with less code, and with more powerful features waiting in the wings should I want to dabble with them.</p>
+
+<p>So in this post I wanted to go through why these assumptions were false, just in case they are holding you back too. I think F# is well worth trying out for every developer that does anything with .NET, but rather than trying to sell you on why you should try F#, I'm going to focus on the reasons you may think that you shouldn't, and trust your natural developer curiosity to do the rest. ;)</p>
+
+<!-- more -->
+
+
+<h2>Misconception 1: We have to know FP to use F\</h2>
+
+<p>Functional programming is programming with pure functions. Functions return the same output whenever applied to a specific input, and they have no side-effects. With this in mind, here is a snippet of F#:</p>
+
+<pre><code class="fsharp">let mutable counter = 0
+let NotAFunction() = 
+    counter &lt;- counter + 1
+    printfn "%d" counter
+</code></pre>
+
+<p><code>NotAFunction</code> takes no input and produces no output, so it doesn't meet the first criterion for a function. It also has side-effects -- it mutates the <code>counter</code> variable (the <code>&lt;-</code> operator is for destructive assignment) and prints to the console. The first time we call <code>NotAFunction()</code> it prints <code>1</code>, then next call prints <code>2</code>.</p>
+
+<p>F# is more than capable of expressing mutable, imperative procedures. It has some features that can help if we want to do FP, just like C# does. We don't have to use them, nor do we have to be an applicative functor-toting, monad-wielding FP boffin in order to use either language.</p>
+
+<h2>Misconception 2: F# syntax is confusing</h2>
+
+<p>When I thought "confusing", what I really meant was "different". And what I should have meant was "a little different". F# is often terser than C# which threw off my brain's pattern matching a bit, but this disorientation didn't last much longer than my first hour of writing F#.</p>
+
+<p>F# has most of the C# constructs you've come to know and love, and in very similar forms. We still have equivalents to <code>for</code>, <code>while</code> and <code>foreach</code> loops (F# uses <code>for .. in</code> instead of <code>foreach</code>), <code>if .. else if .. else</code> conditionals, <code>try .. catch</code> (<code>with</code> instead of <code>catch</code>), <code>using</code> (<code>open</code>) etc. Nothing a quick trip to the <a href="http://msdn.microsoft.com/en-us/library/dd233181.aspx">F# language reference on MSDN</a> won't fix.</p>
+
+<p>Granted, we can (and should) write F# in a quite non-C#ish style which can result in more of a culture-shock^[I've also seen some C# written in a style that has taken me quite a while to parse, despite me knowing the language reasonably well.], but we don't have to start out like that. We can happily write C#ish F# code and get immediate benefits from the relative terseness of the language, with the added benefit of gaining access to more powerful features to explore later on if we choose to.</p>
+
+<h2>Misconception 3: F# is not for "normal" applications</h2>
+
+<p>F# seems more than capable of expressing the standard OO designs we tend to see in general C# applications, including <a href="http://www.growing-object-oriented-software.com/">GOOS-style</a>, class-with-injected-dependencies-style OO.</p>
+
+<pre><code class="csharp">public class MonadPolice {
+  private readonly ImDave _dave;
+  private readonly IEmailGateway _email;
+
+  public MonadPolice(ImDave dave, IEmailGateway email) {
+    _dave = dave;
+    _email = email;
+  }
+
+  public void Surveil() {
+    var overheard = _dave.RecentRamblings();
+    var zealotTalk = overheard.Where(x =&gt; x.Contains("monad"));
+    foreach (var outburstOfZealotry in zealotTalk) {
+      _email.Send("xerx", "the monad police", 
+                  "Lack of pragmatism detected", outburstOfZealotry);
+    }
+  }
+}
+</code></pre>
+
+<p>Here's one way to express this in F#:</p>
+
+<pre><code class="fsharp">type MonadPolice(dave : ImDave, email : IEmailGateway) = 
+  member this.Surveil() = 
+    let overheard = dave.RecentRamblings()
+    let zealotTalk = overheard.Where(contains "monad")
+    for outburstOfZealotry in zealotTalk do
+        email.Send "xerx" "the monad police" 
+                   "Lack of pragmatism detected" outburstOfZealotry
+</code></pre>
+
+<p>We get the same capabilities and style, in a similar albeit terser syntax. We provide the default constructor arguments in the type declaration, which gives us a constructor and what are effectively private, readonly fields for free. F# also has sensible defaults for member visibility, so much of the time we won't need to explicitly mark something as <code>public</code> or <code>private</code>. And we can test it in the same way as usual too.</p>
+
+<p>So F# is not just for modelling financial or scientific calculations. It's fine for querying repositories, sending emails, and doing whatever useful stuff our apps normally need to do.</p>
+
+<h2>The fine print</h2>
+
+<p>Not everything about my first F# project was positive. The main problems I had with F# were around tooling.</p>
+
+<ul>
+<li><del>No templates (as far as I could tell) for F#-backed WPF views (same for MVC?), so it may be easiest to stick a C# shell around a core F# project.</del> <em>Update July 2014:</em> This is no longer strictly true. There are quite a few <a href="http://blogs.msdn.com/b/fsharpteam/archive/2013/12/12/new-visual-f-templates-for-asp-net-web-api-mstest-and-nancy-now-available.aspx">templates in the VS gallery</a> and in the <a href="https://github.com/fsharp/FSharpCommunityTemplates">F# Community Templates site</a>.</li>
+<li><del>Many ReSharper and VS shortcuts and refactorings I reach for by reflex just weren't there.</del> <em>Update July 2014:</em> Still true of ReSharper and VS, but much less of an issue now that <a href="http://fsprojects.github.io/VisualFSharpPowerTools/">VS F# Power Tools</a> covers the main stuff I need.</li>
+<li><del>For some reason VS doesn't provide a way to add folders to an <code>fsproj</code>.</del> <em>Update July 2014:</em> This is also covered by <a href="http://fsprojects.github.io/VisualFSharpPowerTools/folderorganization.html">VS F# Power Tools</a>. Thanks to <a href="https://twitter.com/isaac_abraham/status/491575780015878144">Isaac</a> for pointing this out.</li>
+<li><del>And perhaps most disturbingly, I have to define members before they are referenced elsewhere, which means I actually have to explicitly order the files in my project (ugh!).</del> <em>Update July 2014:</em> Still true, but after using F# for a while now I'm surprised by just how little this bothers me. It actually has <a href="http://fsharpforfunandprofit.com/posts/cyclic-dependencies/">some advantages</a>.</li>
+</ul>
+
+
+<p>There are also a couple of things we lose that C# has, like combined <code>try .. catch .. finally</code> (we have to use nested <code>try/with</code> and <code>try/finally</code> for F#), and the <code>protected</code> modifier (it works for interop, but we can't declare a member <code>protected</code> as of F# 3). But F# offers a lot of features C# lacks to compensate.</p>
+
+<h2>Why bother?</h2>
+
+<p>I've attempted to argue we shouldn't ignore F# on the grounds that it can work similarly to C#. Why not just stick to C# then?</p>
+
+<p>For me, F# offers new opportunities to improve the way I develop software. We gain access to other sorts of types, like discriminated unions and records. We get usable tuples. We gain the ability to compose methods from existing methods, rather than requiring us to create new classes and plumb objects together. We get terser syntax and some interesting ways to create embedded DSLs. We get immutability by default, as well as non-nullable references.</p>
+
+<p>And perhaps best of all, we can choose when we start experimenting with this stuff. To me it seems we can start off using F# as a terser C# with some neat defaults, and slowly start exploring some of these other ideas that have been largely inaccessible to us C# devs, without the risk of having to learn a whole lot of new stuff before we can be productive.</p>
+
+<h2>Conclusion</h2>
+
+<p>My F# experience has admittedly been very limited so far, so I'm not sure what problems await for larger projects, but it has been more than enough to encourage me to spend more time with F#.</p>
+
+<p>I've learned we don't need to know FP to use F#, the syntax isn't really a problem and can actually be used as a terser form of what we already know, and that we can apply F# to the same problems and even using the same patterns as we normally do in .NET. In exchange, we gain the ability to try out new techniques and improve the way we develop software.</p>
+
+<p>I'm tempted to stick an F# project into every VS solution I work with, and see if it ends up accumulating loads of useful functionality, or whether it will need a more concerted effort at adoption.</p>
+]]></content>
+  </entry>
+  
+</feed>

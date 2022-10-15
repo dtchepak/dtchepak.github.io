@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: sharepoint | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/sharepoint/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Comment roundup: SharePoint as a development platform]]></title>
+    <link href="http://davesquared.net/2007/09/comment-roundup-sharepoint-as.html"/>
+    <updated>2007-09-21T10:02:00+10:00</updated>
+    <id>http://davesquared.net/2007/09/comment-roundup-sharepoint-as</id>
+    <content type="html"><![CDATA[<p>Looks like a couple of interesting posts on using SharePoint / WSS / MOSS as a development platform. I was originally going to send this as an email to a former colleague (hi mate!) but thought I would post it instead because I find the debate quite interesting. Remember, the discussion is about SharePoint as a <strong>development platform</strong>, not as a CMS or whatever else.</p>
+
+
+<p> <p>I first found <a title="Ayende's post" href="http://ayende.com/Blog/archive/2007/09/20/Development-Platforms-again.aspx">Ayende's post</a> on the topic, which is a response to <a href="http://blah.winsmarts.com/2007-9-SharePoint_is_a_terrific_development_platform.aspx">Sahil Malik's response</a> to <a href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/09/13/sharepoint-is-not-a-good-development-platform.aspx">Jeffrey Pallermo's post on the SharePoint development platform</a> :)</p> <p><a href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/09/13/sharepoint-is-not-a-good-development-platform.aspx">Jeffrey's post</a> raises the (IMHO) valid issue of the friction of using the SharePoint platform for development, particularly for deployment and builds. Unfortunately his point gets a bit diluted by focusing on the non-issue of being unable to install SharePoint on Vista/XP. </p> <p>I think one of the stars of the comment trail on <a href="http://codebetter.com/blogs/jeffrey.palermo/archive/2007/09/13/sharepoint-is-not-a-good-development-platform.aspx">Jeffrey's post</a> is <a href="http://www.andrewconnell.com/blog">Andrew Connell</a> (MOSS MVP, and pretty decent bloke if his blog, comments and presentation at the APAC SharePoint 2007 conference in Sydney are anything to go by), who has added some very constructive comments pointing out the strengths of the platform lie in the out-of-the-box navigation, security, search, Web Part framework, WF hosting etc, as well as acknowledging several weaknesses. One of the things I found really interesting (although not too surprising) is this part of Andrew's comment:</p> <blockquote> <p>"Over hyped? Really... so that's why it's the highest growth product ever in the history of the company and closing in on $1B in sales for the latest version in just a few months from now? That's ALL marketing hype with the other portal solutions and other content management applications out there? Um... I think business decision makers are a bit more savy than that."</p></blockquote> <p>For years now I have had the strong suspicion that people that look to things like <a href="http://www.openoffice.org/">OpenOffice.org</a> as potential Office-killers are missing the main point of Microsoft's Office strategy. I'm sure they are not too fussed about losing a few home users -- they are targeting the bigger end of town with volume licencing. The integration, no, <strong>dependency</strong> (they are part of the same platform after all) between Office 2007 on the client and MOSS 2007 on the server is where the action is. The complete platform is going to guarantee them a nice revenue stream from medium, big and giant businesses for as long as they can keep pumping up version numbers.</p> <p>As a further aside, Andrew also writes a&nbsp; "Not every application should be built on SharePoint... no one is advocating that (no reasonable person that is)." Marcus makes a similar observation: </p> <blockquote> <p>"I'm not sure you realize how many people right now are investing in SharePoint thinking that it is a "no-code" solution to replacing custom ASP.Net apps, or in some way making managability of those easier. ... It doesn't do that.&nbsp; Its a content management system (and a good one at that)."</p></blockquote> <p>(Sorry, gentle dig... bygones! ;) :P)</p> <p>The main complaints in the comments revolve around the poor tool support (agreed by pretty much everyone), the poor / barely existent documentation (ditto), and testability, deployment and configuration (over which there is much disagreement). The latter issue brings us back to one of Jeffrey's original points: the friction of using the platform.</p> <p>I have personally found SharePoint development (as a MOSS newbie anyway) to be very high friction. The minute you want to go "out-of-the-box" at all you run into all sorts of issues. Even talking to the experts at the recent APAC SharePoint 2007 conference in Sydney exposed so many work-arounds and compromises just to comply with the platform. The session on packaging and deploying custom applications (run by a bloke who really knew his stuff) was filled with advice like "this bit doesn't work properly, so you need to manually edit this XML, you can copy it from another file in the 12 folder, then adjust the package names and then...". </p> <p>Andrew suggests that this is simply a cost of using any platform:</p> <blockquote> <p>"So I want to build add-ins for Visual Studio. Is it easy? Nope... because I need this and that and have all this work to do just to get my environment ready to build a plugin.  <p>To me the issue isn't with SharePoint, it is jumping into working within and integrating with platform unlike pure ASP2 development where you building from the ground up."</p></blockquote> <p>I am unconvinced. Yes, I agree there will be a cost associated with using and complying with any platform, but a platform really exists to make your life easier. SharePoint's big failing in this department IMHO is that the compliance costs are very high, and the platform is too broad. By trying to do everything, it does some things well and some things badly, and in the latter cases it can be very difficult to go outside of the platform. In these cases you start wondering if the whole thing would have been better off in regular ASP.NET.  <p>There are a long list of great comments on Jeffrey's post, and they make a very good read, if you are interested in such things.</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Matching a business entity without using the address book]]></title>
+    <link href="http://davesquared.net/2007/07/matching-business-entity-without-using.html"/>
+    <updated>2007-07-11T15:48:00+10:00</updated>
+    <id>http://davesquared.net/2007/07/matching-business-entity-without-using</id>
+    <content type="html"><![CDATA[<p>In MOSS 2007 you can use Business Data Catalogs (BDCs) to expose business entities. For example, you can add a column type that&nbsp;lets you choose one of your company's products.</p>
+
+
+<p> <p>I had a BDC file that <em>almost</em> worked. It let you choose a product using the address book, but would not match the product when it was entered in the text area. In turns out you need to specify that the FilterDescriptor on your finder method is UsedForDisambigution. Clear as mud right? An extract from the BDC XML is shown below:</p><pre>&lt;Method Name="GetTradeProducts"&gt;
+  &lt;FilterDescriptors&gt;
+    &lt;FilterDescriptor Type="Wildcard" Name="TradeName"&gt;
+      &lt;Properties&gt;
+        <strong>&lt;Property Name="UsedForDisambiguation" Type="System.Boolean"&gt;true&lt;/Property&gt;
+</strong>      &lt;/Properties&gt;
+    &lt;/FilterDescriptor&gt;
+  &lt;/FilterDescriptors&gt;
+  &lt;Parameters&gt;
+    &lt;Parameter Direction="In" Name="tradeNameStartsWith"&gt;
+      &lt;TypeDescriptor TypeName="System.String" Name="TradeName" AssociatedFilter="TradeName" /&gt;
+    &lt;/Parameter&gt;
+    &lt;Parameter Direction="Return" Name="TradeProducts"&gt;
+      ...
+    &lt;/Parameter&gt;
+  &lt;/Parameters&gt;
+  &lt;MethodInstances&gt;
+    &lt;MethodInstance Type="Finder" ReturnParameterName="TradeProducts" ReturnTypeDescriptorName="ArrayOfTradeProduct" ReturnTypeDescriptorLevel="0" Name="GetTradeProductsInstance" /&gt;
+  &lt;/MethodInstances&gt;
+  ...</pre></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Sending an email to a group with a SharePoint workflow]]></title>
+    <link href="http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html"/>
+    <updated>2007-07-10T21:07:00+10:00</updated>
+    <id>http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint</id>
+    <content type="html"><![CDATA[<p><i><b>Update 2008-05-21:</b> <a href="http://www.dailycode.net/blog/">Mark Deraeve</a> left a <a href="http://davesquared.net/2007/07/sending-email-to-group-with-sharepoint.html?showComment=1211289540000#c331656639334109228">comment</a> about a <a href="http://www.dailycode.net/blog/post/Send-email-to-user-group-in-Sharepoint-Workflow.aspx">much better solution</a>... changing the group permissions to let SPD send the email natively. Thanks Mark! I've kept the rest of the post intact as it does give a walkthrough of creating custom designer actions.</i></p>
+
+
+<p>As you might be able to tell from my some of my recent posts, I have been mucking around with a SharePoint Designer (SPD) workflow. This post serves as a&nbsp;complete example, building on some of the information previously posted:</p>
+
+
+<p> <ul> <li><a href="http://davesquared.net/2007/07/emailing-form-links-using-sharepoint.html">Emailing form links using SharePoint Designer</a>  <li><a href="http://davesquared.net/2007/07/custom-sharepoint-designer-actions.html">Custom SharePoint Designer Actions using VS 2005</a>, which links to two examples of creating an action to send emails to multiple recipients  <li><a href="http://davesquared.net/2007/07/sharepoint-aware-workflow-activities.html">SharePoint aware workflow activities</a> by passing WorkflowContext to a custom activity  <li>Referencing the <a href="http://davesquared.net/2007/07/sharepoint-dlls-wss-30-moss-2007.html">SharePoint DLLs (WSS 3.0 / MOSS 2007)</a>  <li>Using an <a href="http://davesquared.net/2007/07/xsd-for-actions-file-intellisense.html">XSD for .ACTIONS file Intellisense</a>, as well as another custom activity example, this time writing a parameter to the event log.  <li>In addition to that research, a fair amount of the "bludgeoning myself into a semi-comatose state using my laptop" technique was employed to dull the pain :-)</li></ul> <p><strong>Background</strong></p> <p>We had managed to create a complete document approval workflow using only MOSS 2007 and SPD (part of project manager's aim for the project was to see how much could be done without coding). The workflow assigned tasks to a single user or a site group by looking up a custom list that mapped a field from the document list to the required approver/approvers. The aim was then to create a very simple notification workflow to email the user or group that was assigned the task to let them know they had work to do. The <a href="http://davesquared.net/2007/07/emailing-form-links-using-sharepoint.html">Send Email task</a> worked great for single users, but failed horribly when the task's AssignedTo property was a group.</p> <p>After a bit of research, talking to partners, and laptop bludgeoning, it was finally decided to implement this tiny bit of functionality using a custom task.&nbsp;</p> <p><strong>False start</strong></p> <p>The first attempt was to create a <a href="http://davesquared.net/2007/07/custom-sharepoint-designer-actions.html">custom email task that would send to multiple recipients</a>. This took a lot of mucking around. It sort of worked. It would send the appropriate email, but&nbsp;as <a href="http://www.sharepointblogs.com/tbaginski/archive/2007/03/08/how-to-create-a-custom-windows-workflow-activity-and-make-it-available-in-sharepoint-designer.aspx">Todd Baginski noted</a> it would not replace the lookup fields in the email body with the correct values. So I decided to try making a custom activity to lookup the user or group matching the AssignedTo property, and return the relevant email addresses to a workflow variable using an output parameter.</p> <p><strong>The GetEmailAddressActivity</strong></p>The first step in coding our activity is to expose the required properties, which is what the <code>GetEmailAddressActivity</code> class does. It delegates the real work to the <code>NameToEmailResolver</code> class (covered below).<pre>using System;<br>using System.Workflow.Activities;<br>using System.Workflow.ComponentModel;<br>using System.Workflow.ComponentModel.Compiler;<br>using Microsoft.SharePoint.WorkflowActions;<br><br>namespace MyCustomActivityLibrary {<br>  public partial class GetEmailAddressActivity : SequenceActivity {<br>    public GetEmailAddressActivity() {<br>      InitializeComponent();<br>    }<br><br>    public static DependencyProperty NameToLookupProperty =<br>      DependencyProperty.Register("NameToLookup", typeof(String), typeof(GetEmailAddressActivity));<br>    public static DependencyProperty TargetProperty =<br>      DependencyProperty.Register("Target", typeof(String), typeof(GetEmailAddressActivity));<br>    public static DependencyProperty <strong>ContextProperty =<br>      DependencyProperty.Register("</strong>Context", typeof(WorkflowContext), typeof(GetEmailAddressActivity));<br><br>    [ValidationOption(ValidationOption.Required)]<br>    public string NameToLookup {<br>      get { return (string) base.GetValue(NameToLookupProperty); }<br>      set { base.SetValue(NameToLookupProperty, value); }<br>    }<br><br>    [ValidationOption(ValidationOption.Required)]<br>    public string Target {<br>      get { return (string) base.GetValue(TargetProperty); }<br>      set { base.SetValue(TargetProperty, value); }<br>    }<br><br>    [ValidationOption(ValidationOption.Required)]<br>    public WorkflowContext <strong>Context {<br>      get {<br>        return (WorkflowContext) base.GetValue(</strong>ContextProperty);<br>      }<br>      set { base.SetValue(<strong>ContextProperty, value); }<br>    }<br><br>    protected override ActivityExecutionStatus Execute(ActivityExecutionContext executionContext) {     <br>      NameToEmailResolver resolver = new NameToEmailResolver(</strong>Context);<br>      Target = resolver.GetEmailAddressesFromName(NameToLookup);<br>      return ActivityExecutionStatus.Closed;<br>    }<br>  }<br>}</pre><p><strong>NameToEmailResolver</strong></p><p>Here is where the real work is done. It takes the a name, which could be a user's login name or a site group name, and puts it into a semi-colon delimited string of email addresses. If you wanted to provide a wrapper around the WorkflowContext this would be a great place to insert some unit tests.</p><pre>using System;<br>using System.Collections.Generic;<br>using System.Text;<br>using Microsoft.SharePoint;<br>using Microsoft.SharePoint.WorkflowActions;<br><br>namespace MyCustomActivityLibrary {<br>  public class NameToEmailResolver {<br>    private WorkflowContext context;<br>    public NameToEmailResolver(WorkflowContext context) {<br>      this.context = context;<br>    }<br><br>    public String GetEmailAddressesFromName(String name) {<br>      StringBuilder resolvedAddresses = new StringBuilder();<br>      IEnumerable<string> addresses = getEmailAddressesFromName(name);<br>      foreach (string address in addresses) {<br>        if (!String.IsNullOrEmpty(address)) {<br>          resolvedAddresses.AppendFormat("{0};", address);<br>        }<br>      }<br>      return resolvedAddresses.ToString();<br>    }<br><br>    private IEnumerable&lt;string&gt; getEmailAddressesFromName(string name) {<br>      SPGroup group = getGroup(name);<br>      if (group != null) {        <br>        return getEmailAddressesFromGroup(group);<br>      }<br>      SPUser user = getUser(name);<br>      if (user != null) {       <br>        return new string[] {user.Email};<br>      }<br>      return new string[0];<br>    }<br><br>    private IEnumerable&lt;string&gt; getEmailAddressesFromGroup(SPGroup group) {<br>      List&lt;string&gt; addresses = new List<string>();<br>      foreach (SPUser user in group.Users) {<br>        addresses.Add(user.Email);<br>      }<br>      return addresses;<br>    }<br><br>    private SPGroup getGroup(string name) {<br>      foreach (SPGroup group in context.Web.SiteGroups) {<br>        if (String.Equals(group.Name, name, StringComparison.InvariantCultureIgnoreCase)) {<br>          return group;<br>        }<br>      }<br>      return null;<br>    }<br><br>    private SPUser getUser(string name) {<br>      foreach (SPUser user in context.Web.SiteUsers) {<br>        if (String.Equals(user.LoginName, name, StringComparison.InvariantCultureIgnoreCase)) {<br>          return user;<br>        }<br>      }<br>      return null;      <br>    }<br>  }<br>}</pre></p>
+
+<p><strong>Create .ACTIONS file</strong></p>
+
+
+<p>To get SPD to recognise your activity you need an .ACTIONS file.</p>
+
+
+<pre>&lt;?xml version="1.0"?&gt;<br>&lt;workflowinfo language="en-us"&gt;<br>  &lt;!-- <br>  .ACTIONS files live here:<br>      C:\Program Files\Common Files\Microsoft Shared\web server extensions\12\TEMPLATE\1033\Workflow <br>  Recognised after iisreset.<br> --&gt;<br>  &lt;actions&gt;<br>    &lt;action name="Store Email Address" classname="MyCustomActivityLibrary.GetEmailAddressActivity" assembly="MyCustomActivityLibrary, Version=1.0.0.0, Culture=neutral, PublicKeyToken=&lt;strong&gt;(your token here)&lt;/strong&gt;" appliesto="all" category="My Custom Activities"&gt;<br>      &lt;ruledesigner sentence="Store email address for %1 in %2."&gt;<br>        &lt;fieldbind id="1" field="NameToLookup" text="this user or group" designertype="TextArea" operatortypefrom="FieldName"&gt;<br>        &lt;fieldbind id="2" field="Target" text="variable" designertype="ParameterNames" operatortypefrom="Variable"&gt;<br>      &lt;/ruledesigner&gt;<br>      &lt;parameters&gt;<br>        &lt;parameter name="NameToLookup" type="System.String, mscorlib" direction="In"&gt;<br>        &lt;parameter name="Target" type="System.String, mscorlib" direction="Out"&gt;<br>        &lt;parameter name="__Context" type="Microsoft.SharePoint.WorkflowActions.WorkflowContext, Microsoft.SharePoint.WorkflowActions" direction="In"&gt;<br>      &lt;/parameters&gt;<br>    &lt;/action&gt;<br>  &lt;/actions&gt;<br>&lt;/workflowinfo&gt;</pre>
+
+
+<p>The tricky parts (well, for me) was the DesignerType and OperatorTypeFrom values. The current values give you the lookup for the NameToLookup value, and the workflow variables UI selector for the Target parameter. The final parameter is the WorkflowContext. </p></p>
+
+<p><strong>Deployment</strong></p>
+
+
+<p><p>You need to install the DLL containing your activity into the GAC on your WSS/MOSS server, which means your assembly needs to be signed/strongly named. <a href="http://rapidapplicationdevelopment.blogspot.com/2007/04/multi-value-columns-solution-2-custom.html">Step 7 of Lee's post</a> has a good run down of how to do this if you are unfamiliar with it (in fact he covers the whole deplyoment thing really well). You can then drag your DLL into the GAC (C:\WINNT\ASSEMBLY). You also need to copy your .ACTIONS file to the ...12\TEMPLATE\1033\Workflow directory. Finally you need to tell SPD to trust the DLL in the application's web.config file. Here is the XML fragment:<pre>&lt;?xml version="1.0"?&gt;<br>&lt;!-- Add authorised type to relevant web.config:<br>      C:\Inetpub\wwwroot\wss\VirtualDirectories(dir for app)\web.config <br> --&gt;<br>&lt;configuration&gt;<br>  &lt;System.Workflow.ComponentModel.WorkflowCompiler&gt;<br>    &lt;authorizedTypes&gt;<br>      &lt;authorizedType Assembly="MyCustomActivityLibrary, Version=1.0.0.0, Culture=neutral, PublicKeyToken=(your public key)"<br>                      Namespace="MyCustomActivityLibrary" TypeName="*" Authorized="True" /&gt;<br>    &lt;/authorizedTypes&gt;<br>  &lt;/System.Workflow.ComponentModel.WorkflowCompiler&gt;<br>&lt;/configuration&gt;<br></pre><p>After an iisreset your activity is ready to go. </p><p><strong>Setting up the workflow in SPD</strong> </p><p>The final step is the SPD workflow itself. Create a new workflow and attach it to your task list, to be started whenever a new task is created.</p><p>The first task is to <a href="http://davesquared.net/2007/07/emailing-form-links-using-sharepoint.html">initialise the relevant variables</a>. In the screen shot below you can see the custom task highlighted / hovered over. Our custom task will map the name in Tasks:AssignedTo to a single email (when assigned to a single user), or a semi-colon delimited list of emails (when assigned to a group), and will then store this value in a variable.</p><p><img border="0" src="http://davesquared.net/images/fromblogger/s800-NotifyWorkflowStep1.png" /></p></p>
+
+<p><p>The final step in the workflow is to use the standard email task, but set the To: field to our workflow variable initialised in the previous step.</p></p>
+
+<p><p><img border="0" src="http://davesquared.net/images/fromblogger/s800-NotifyWorkflowStep2.png" /></p></p>
+
+<p><p><strong>Finished!</strong></p><p>The final result? You can assign a task to a single user or a site group in a different workflow, then ensure all users get notified when a task is assigned to them or a group they are in. A few disclaimers: there is no error handling in the code; the code will almost definitely break when a multi-valued field is used for the name (although this should be straight forward to support with a few modifications); the code is not particularly pretty and probably violates several laws of nature; the example is meant to be illustrative only and not fit for any specific purpose (i.e. you're crazy if you use it); and my head has a laptop-shaped bruise in it.</p><p>Hope this helps someone!</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[XSD for .ACTIONS file Intellisense]]></title>
+    <link href="http://davesquared.net/2007/07/xsd-for-actions-file-intellisense.html"/>
+    <updated>2007-07-10T14:41:00+10:00</updated>
+    <id>http://davesquared.net/2007/07/xsd-for-actions-file-intellisense</id>
+    <content type="html"><![CDATA[<p>John Holliday has a nice article on <a href="http://www.johnholliday.net/archive/2007/03/27/Add-Your-Own-Custom-Workflow-Activities-to-SharePoint-Designer-2007.aspx">Custom Workflow Activities to SharePoint Designer 2007</a>, which also includes a link to a WSSACTIONS.xsd file that enables Intellisense for .ACTIONS files in VS 2005. John's example is writing the value of a parameter to the event log.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[SharePoint DLLs (WSS 3.0 / MOSS 2007)]]></title>
+    <link href="http://davesquared.net/2007/07/sharepoint-dlls-wss-30-moss-2007.html"/>
+    <updated>2007-07-10T12:54:00+10:00</updated>
+    <id>http://davesquared.net/2007/07/sharepoint-dlls-wss-30-moss-2007</id>
+    <content type="html"><![CDATA[<pre>c:\Program Files\Common Files\Microsoft Shared\web server extensions\12\ISAPI</pre>
+
+
+<p>I always forget that :$ You can get your <code>Microsoft.SharePoint.dll</code>, <code>Microsoft.Office.Server.dll</code> (for MOSS), <code>Microsoft.SharePoint.WorkflowActions.dll</code> et al. from there.</p>
+
+]]></content>
+  </entry>
+  
+</feed>

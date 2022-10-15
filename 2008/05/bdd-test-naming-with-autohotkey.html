@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>BDD test naming with AutoHotKey - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="Updates: See change log at the bottom of this post for the most recent updates.
+Update 2008-05-29: JP has posted a much better version of this script &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">BDD test naming with AutoHotKey</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-28T09:14:00+10:00" pubdate data-updated="true">28 May 2008</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><i><b>Updates:</b> See change log at the bottom of this post for the most recent updates.</i></p>
+<p><i><b>Update 2008-05-29:</b> <a href="http://www.jpboodhoo.com/blog">JP</a> has posted a <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">much better version of this script</a> (with suggestions from a few of his readers). I&#8217;ve updated the script on this post to work more like JP&#8217;s version, but you&#8217;re probably best off grabbing it from <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">his post</a>, or searching <a href="http://www.jpboodhoo.com/blog">his site</a> for his latest version.</i></p>
+
+<p>Was having a chat earlier with my good mate <a href="http://www.jpboodhoo.com/blog">JP Boodhoo</a>&#8230; er, well, more accurately, I left a comment on his blog and he was nice enough to email me back. Anyway, JP has <a href="http://www.jpboodhoo.com/blog/SoLongBDDMacroHelloAutohotkey.aspx">started trying AutoHotKey rather than his previous macro</a> for BDD-style test naming.</p>
+
+<p>I thought I&#8217;d post an extremely over-engineering version of this <a href="http://www.autohotkey.com/">AutoHotKey</a> script, which has a toggle-approach similar to the <a href="http://davesquared.net/2008/02/emacs-key-bindings-everywhere.html">Emacs Everywhere script</a> I posted earlier.</p>
+
+<p>Once you have <a href="http://www.autohotkey.com/">AHK</a> installed, you can just extract the ZIP below and double click the .AHK file to load the script. The script will let you toggle &quot;test-naming mode&quot; (i.e. replacing spaces with underscores) using Ctrl + Shift + U. You can cancel out of test naming mode by pressing ENTER, ESCAPE, TAB, starting the method signature by typing a &#8216;(&#8216;, or typing a &#8216;{&#8217; or &#8216;:&#8217; for when you are naming a class. Pressing Ctrl + Alt + U will insert a new test template before switching on test naming mode (although you might be better off using R# templates for this). All this is simply to make it easier to type out tests like this:</p>
+
+<pre>[Test]
+public void Test_naming_mode_turns_spaces_to_underscores() {}
+</pre>
+
+
+<p>Version 2.2 of the script can be downloaded here: 
+<ul><li><a href="http://davesquared.googlecode.com/files/TestNamingMode-v2.2.zip">TestNamingMode-v2.2.zip</a></li></ul></p>
+
+<p>Feel free to change the hotkeys and the dodgy icons :). I haven&#8217;t had a good test of it yet so use at your own risk.</p>
+
+<p>If you&#8217;re happy with how it works you can add it to your Startup programs and have BDD-style test naming goodness whenever you like. Hope_this_helps! :-)</p>
+
+<p style="font-size: x-small"><b>Change log</b>
+<ul style="font-size: x-small">
+<li>2008-11-18: Uploaded v2.2, making TAB exit test naming mode. This is helpful when using Resharper live templates for tests.</li>
+<li>2008-08-13: Uploaded v2.1, making &#8216;{&#8217; and &#8216;:&#8217; exit test naming mode, based on <a href="http://scottcreynolds.com/archive/2008/08/11/tweak-of-bdd-naming-autohotkey-macro.aspx">Scott C Reynold&#8217;s script modification</a>. I should probably make it exit on any punctuation, but calling YAGNI on it for now.</li>
+<li>2008-05-29: Uploaded v2, synching with <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">JP&#8217;s version 2</a>, adding test templates, and made test mode exit after typing &#8216;(&#8217; for test method signature</li>
+<li>2008-05-28: Updated hotkeys to match JP&#8217;s version</li>
+<li>2008-05-28: Original post</li>
+</ul>
+</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-11-18T13:25:33+11:00" class="updated">Updated 18 Nov 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/downloads/'>downloads</a>, <a class='category' href='/categories/featured/'>featured</a>, <a class='category' href='/categories/tools/'>tools</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html" data-via="" data-counturl="http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2008/05/top-down-vs-bottom-up-design.html" title="Previous Post: Top-down vs. bottom-up design">&laquo; Top-down vs. bottom-up design</a>
+      
+      
+        <a class="basic-alignment right" href="/2008/05/nothin-but-net-heading-down-under.html" title="next Post: Nothin' but .NET heading down under">Nothin' but .NET heading down under &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html';
+        var disqus_url = 'http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

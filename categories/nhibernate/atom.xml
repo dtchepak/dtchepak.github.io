@@ -1,0 +1,798 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: nhibernate | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/nhibernate/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[NHibernate mappings using xml, attributes, and Fluent NHibernate]]></title>
+    <link href="http://davesquared.net/2008/09/nhibernate-mappings-using-xml.html"/>
+    <updated>2008-09-04T23:25:00+10:00</updated>
+    <id>http://davesquared.net/2008/09/nhibernate-mappings-using-xml</id>
+    <content type="html"><![CDATA[<p>A few of us at work have been looking at NHibernate 2.0 as a potential ORM tool for our next project. The initial reactions have included (but weren't limited to) shudders of horror at seeing the mass of angle brackets present in the <code>.hbm.xml</code> mapping files. I don't think this reaction is atypical -- I thought the same thing when I first tried NHibernate. However once I started using it (not for anything serious mind you, just for personal projects. I'm at pre-newbie stage still :)), I found the XML relatively painless. In fact once I'd set them up initially it was great to be able to deal with ordinary POCO (Plain Old C# Object) classes and only think about the persistence mappings when tweaking the DB.</p>
+
+
+
+
+<p>That said, there are alternatives hand coding the <code>.hbm.xml</code> mapping files. I thought I'd cover a few of the options here: NHibernate Mapping Attributes, and Fluent NHibernate.</p>
+
+
+
+
+<h2>Getting started</h2>
+
+
+<p></p>
+
+<p>I decided to reuse the extra-simple scenario from my <a href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">ORM roundup</a> posts. I have a table of suppliers, and a table of states (or provinces, territories, prefectures etc.). Both suppliers and states have names, which are stored as strings/varchars, and IDs, which are stored as Guids/uniqueidentifiers. Each supplier can service many states. So we have a simple many-to-many relationship between the two main entities. It looks a bit like this:</p>
+
+
+<p></p>
+
+<p><a href="http://davesquared.net/images/fromblogger/s1600-h-SampleSupplierSchema.png"><img id="BLOGGER_PHOTO_ID_5145922358406504498" style="cursor: pointer" alt="" src="http://davesquared.net/images/fromblogger/s400-SampleSupplierSchema.png" border="0"></a></p>
+
+
+<p></p>
+
+<p>Now let's create some POCOs for to model our suppliers and states. I've added these to an Entities folder in an otherwise blank C# Class Library project.</p>
+
+
+
+
+<pre>
+//State.cs
+using System;
+namespace Workshop.Entities {    
+    public class State {
+        public virtual Guid StateId { get; set; }        
+        public virtual String Name { get; set; }
+    }
+}
+//Supplier.cs
+using System;
+using System.Collections.Generic;
+namespace Workshop.Entities {
+    public class Supplier {
+        private IList&lt;State&gt; statesServiced = new List&lt;State&gt;();
+        
+        public virtual Guid SupplierId { get; set; }
+        public virtual String Name { get; set; }
+        public virtual IList&lt;State&gt; StatesServiced { get { return statesServiced; } set { statesServiced = value; } }
+    }
+}
+</pre>
+
+
+
+
+<p>These are nice ordinary classes, with no consideration given as to how they will be persisted. The only concession we have made is making everything <code>virtual</code> by default, so that it is easy for NHibernate to create proxies from these classes.</p>
+
+
+
+
+<p>I'll also throw in an App.config so NHibernate knows which database to talk to. This time around I'm using NHibernate 2.0, which has a <a href="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html">new configuration format</a> from the last time I looked at this example.</p>
+
+
+
+
+<h2>Hand coding Hibernate Mapping Files</h2>
+
+
+
+
+<p>Time to map our entity classes to our database. Let's start off with the standard, hand coded <code>.hbm.xml</code> approach. We'll create a <code>State.hbm.xml</code> file and a <code>Supplier.hbm.xml</code> file to hold our mappings. We'll also set these files to be compiled in as embedded resources so we can get NHibernate to load the mappings from our DLL (in VS, right click the files in the Solution Explorer and edit the Build Action property).</p>
+
+
+
+
+<pre>
+&lt;!-- State.hbm.xml --&gt;
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;hibernate-mapping xmlns=&quot;urn:nhibernate-mapping-2.2&quot; assembly=&quot;Workshop&quot; namespace=&quot;Workshop.Entities&quot;&gt;
+  &lt;class name=&quot;State&quot; table=&quot;State&quot;&gt;
+    &lt;id name=&quot;StateId&quot; type=&quot;guid&quot;&gt;
+      &lt;generator class=&quot;guid&quot; /&gt;
+    &lt;/id&gt;
+    &lt;property name=&quot;Name&quot; type=&quot;String&quot; /&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+
+&lt;!-- Supplier.hbm.xml --&gt;
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;hibernate-mapping xmlns=&quot;urn:nhibernate-mapping-2.2&quot; assembly=&quot;Workshop&quot; namespace=&quot;Workshop.Entities&quot;&gt;
+  &lt;class name=&quot;Supplier&quot; table=&quot;Supplier&quot;&gt;
+    &lt;id name=&quot;SupplierId&quot; type=&quot;guid&quot;&gt;
+      &lt;generator class=&quot;guid&quot; /&gt;
+    &lt;/id&gt;
+    &lt;property name=&quot;Name&quot; type=&quot;String&quot; /&gt;
+    &lt;bag name=&quot;StatesServiced&quot; table=&quot;Supplier_StatesServiced&quot;&gt;
+      &lt;key column=&quot;SupplierId&quot; /&gt;
+      &lt;many-to-many column=&quot;StateId&quot; class=&quot;State&quot; /&gt;
+    &lt;/bag&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+</pre>
+
+
+
+
+<p>Here we are just telling NHibernate how to map each bit of entity data to the database schema. The HBM files include which main table is used to persist each entity, describes each entity's primary key and standard properties, as well as how the entities relate to each other (in this case we have a many-to-many mapping, using a <code>bag</code> collection). These files are explained in more detail in my <a href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">Messing around with NHibernate</a> post.
+</p>
+
+
+
+
+<h2>Testing our mappings</h2>
+
+
+<p>I've populated my database with some sample data (I actually did it using NHibernate -- I find it easier to fill in the relationships that way than with hand written SQL). Let's create an NHibernateTests.cs file and add a test to make sure the entities are mapped correctly.</p>
+
+
+
+
+<pre>
+public class NHibernateTests {
+ protected static readonly ISessionFactory SessionFactory = getSessionFactory();
+ 
+ <b>private static ISessionFactory getSessionFactory() {
+  Configuration config = new Configuration();
+  config.AddAssembly(Assembly.GetExecutingAssembly());
+  return config.BuildSessionFactory();
+ }</b>
+ 
+ [Fact]
+ public void Get_suppliers_servicing_NSW() {
+  using (ISession session = SessionFactory.OpenSession()) {
+   var suppliers = session
+    .CreateCriteria(typeof(Supplier))
+    .CreateCriteria(&quot;StatesServiced&quot;)
+    .Add( Restrictions.Eq(&quot;Name&quot;, &quot;NSW&quot;) )
+    .SetProjection( Projections.Property(&quot;Name&quot;) )
+    .List&lt;String&gt;();
+   session.Close();
+   Assert.NotEmpty(suppliers);
+   Assert.Equal(4, suppliers.Count);
+   Assert.Contains(&quot;Tea Ah Maria&quot;, suppliers);
+   Assert.Contains(&quot;Teas'r'us&quot;, suppliers);   
+  }
+ } 
+}
+</pre>
+
+
+
+
+<p>This code intialises a new <code>ISessionFactory</code> using the configuration settings in the <code>App.config</code>, and the <code>config.AddAssembly(Assembly.GetExecutingAssembly());</code> line adds the <code>.hbm.xml</code> mappings embedded in our DLL.</p>
+
+
+
+
+<p>I've also used the <code>Get_suppliers_servicing_NSW()</code> test to run a query against all the mapped entities. I'll run this test for each configuration change I make to ensure I haven't broken anything. The details of the test itself aren't really important, but if you are interested it just asks NHibernate to get suppliers that service the state of NSW, and then uses a projection to only bring back the name of the supplier. The assertions check that the expected number of supplier names are returned, and makes sure the list of names includes a couple of the expected values.</p>
+
+
+
+
+<h2>NHibernate Mapping Attributes</h2>
+
+
+
+
+<p><a href="http://nhforge.org/media/p/8.aspx">NHibernate Mapping Attributes</a> (also know as NHMA) is a part of the NHibernate Contrib project, and can be used to declare mappings via attributes directly on your entities classes. This sort of spoils the whole POCO idea, but has the advantage of allowing you to make changes to the entity and it's mapping in the one spot. Let's see how this changes our <code>Supplier</code> and <code>State</code> classes.</p>
+
+
+
+
+<pre>
+//State.cs
+[Class]
+public class State {
+ [Id(0, Name=&quot;StateId&quot;, TypeType=typeof(Guid), Column=&quot;StateId&quot;)]
+ [Generator(1, Class=&quot;guid&quot;) ]
+ public virtual Guid StateId { get; set; }        
+
+ [Property]
+ public virtual String Name { get; set; }
+}
+
+//Supplier.cs
+[Class]
+public class Supplier {
+ private IList&lt;State&gt; statesServiced = new List&lt;State&gt;();
+ 
+ [Id(0, Name=&quot;SupplierId&quot;, TypeType=typeof(Guid))]
+ [Generator(1, Class = &quot;guid&quot;)]        
+ public virtual Guid SupplierId { get; set; }
+ 
+ [Property]
+ public virtual String Name { get; set; }
+ 
+ [Bag(0, Table=&quot;Supplier_StatesServiced&quot;)]
+ [Key(1, Column=&quot;SupplierId&quot;)]
+ [ManyToMany(2, Column=&quot;StateId&quot;, ClassType = typeof(State))]
+ public virtual IList&lt;State&gt; StatesServiced { get { return statesServiced; } set { statesServiced = value; } }
+} 
+</pre>
+
+
+
+
+<p>We no longer need our <code>.hbm.xml</code> files, and have instead translated the relevant mapping information to attributes on the classes themselves. By using attributes NHMA can infer some of the mapping information we previously had to enter explicitly (for example, <code>&lt;property name=&quot;Name&quot; type=&quot;String&quot; /&gt;</code> just becomes <code>[Property] public virtual String Name {...}</code>), and we have traded our angle brackets for square ones :). There are also a few strange things going on here. Look at this extract from Supplier.cs:</p>
+
+
+
+
+<pre>
+ [Id(<b>0</b>, Name=&quot;SupplierId&quot;, TypeType=typeof(Guid))]
+ [Generator(<b>1</b>, Class = &quot;guid&quot;)]        
+ public virtual Guid SupplierId { get; set; }
+</pre>
+
+
+
+
+<p>Notice the element indexes on the attributes (<code>ID</code> is 0, <code>Generator</code> is 1)? This is because NHMA is actually generating your <code>.hbm.xml</code> on the fly from the attributes, and it needs to know the order in which to write out the XML elements (attribute order isn't maintained using reflection). To further illustrate this attribute to XML translation, let's look at how this affects our <code>ISessionFactory</code> initialisation for our tests:</p>
+
+
+
+
+<pre>
+//In NHibernateTests.cs
+private static ISessionFactory getSessionFactory() {
+ var config = new Configuration();            
+ HbmSerializer.Default.Validate = true;                        
+ HbmSerializer.Default.Serialize(System.Environment.CurrentDirectory, Assembly.GetExecutingAssembly());
+ config.AddDirectory(new DirectoryInfo(System.Environment.CurrentDirectory));            
+ return config.BuildSessionFactory();
+}
+</pre>
+
+
+
+
+<p>This is using the NHMA default <code>HbmSerializer</code> class to generate <code>.hbm.xml</code> files in the current working directory. We then load in these mapping files just like before (except we are using the file system and not embedded assembly resources).</p>
+
+
+
+
+<p>So to my way of thinking all we have really achieved is simply rewritten all our original <code>.hbm.xml</code> logic as attributes rather than XML, and made our previously nice clean POCO entities cluttered with persistence information and subsequently less readable. I really loved the idea of NHMA at first, but after trying it out I can't really see it providing much benefit over ye olde hand coded XML. As an added deterrent I couldn't really find much documentation on NHMA, so I ended up having to translate from the fairly well documented <code>.hbm.xml</code> format anyway.</p>
+
+
+
+
+<h2>Fluent NHibernate</h2>
+
+
+
+
+<p><a href="http://code.google.com/p/fluent-nhibernate/">Fluent NHibernate</a>, like NHMA, offers a non-XML way to configure your mappings. Instead of using attributes though, we are using standard .NET code via a fluent interface. This provides lots of neat advantages like automated refactoring and some compile time support, as well as being able to eliminate duplicated information between <code>.hbm.xml</code> and the POCO entities themselves by using customisable conventions and inferring the relevant property types and names. Before we dive into this it's worth noting that Fluent NHibernate hasn't been released yet and so still has some rough edges. I'm using revision 80 from the <a href="http://code.google.com/p/fluent-nhibernate/">project's SVN repository</a>, so much of this will probably change before it hits version 1.0.</p>
+
+
+
+
+<p>I've reverted our <code>Supplier</code> and <code>State</code> classes back to Plain Old CLR Objects (removed all the NHMA attributes) and also taken out the <code>.hbm.xml</code> files. The first thing we need to do is create some Fluent Nhibernate <code>ClassMap</code> classes.</p>
+
+
+
+
+<pre>
+public class StateMap : ClassMap&lt;State&gt; {
+ public StateMap() {                
+  Id(x =&gt; x.StateId);
+  Map(x =&gt; x.Name);
+ }
+}
+
+public class SupplierMap : ClassMap&lt;Supplier&gt; {
+ public SupplierMap() {                
+  Id(x =&gt; x.SupplierId);
+  Map(x =&gt; x.Name);
+  HasManyToMany&lt;State&gt;(x =&gt; x.StatesServiced)
+   .AsBag()
+   .WithTableName(&quot;Supplier_StatesServiced&quot;)
+   .WithParentKeyColumn(&quot;SupplierId&quot;)
+   .WithChildKeyColumn(&quot;StateId&quot;);  
+ }
+}
+</pre>
+
+
+
+
+<p>Each mapping class configures the mapping for an entity within the constructor (um, ignore the evil calls to virtual methods in the constructors :-\). This looks much, much neater than the previously approaches, as Fluent NHibernate does most of the work for us. Let's check the configuration for our test:</p>
+
+
+
+
+<pre>
+private static ISessionFactory getSessionFactory() {
+ var config = new Configuration();
+ config.AddMappingsFromAssembly(Assembly.GetExecutingAssembly());
+ return config.BuildSessionFactory();
+}
+</pre>
+
+
+
+
+<p>Looks pretty good to me. :) But it gets better -- say I always name my identifiers in the form <code><i>EntityName</i>Id</code>. If Fluent NHibernate knew that, then I could reduce my supplier class map to this:</p>
+
+
+
+
+<pre>
+public class SupplierMap : ClassMap&lt;Supplier&gt; {
+ public SupplierMap() {                
+  Id(x =&gt; x.SupplierId);
+  Map(x =&gt; x.Name);
+  <b>HasManyToMany&lt;State&gt;(x =&gt; x.StatesServiced)
+   .AsBag()
+   .WithTableName(&quot;Supplier_StatesServiced&quot;);</b>
+ }
+}
+</pre>
+
+
+
+
+<p>After all, we know the keys used to map suppliers and states are going to be <code>SupplierId</code> and <code>StateId</code>, so the many-to-many mapping becomes trivial.  Fluent NHibernate currently assumes the names will in the form <code>supplier_id</code>, but that's no big deal, because it also let's me change the conventions used:</p>
+
+
+<pre>
+private static ISessionFactory getSessionFactory() {
+ var config = new Configuration();
+ var model = <b>getFluentNhibernatePersistenceModel()</b>;
+ model.Configure(config);            
+ return config.BuildSessionFactory();
+}
+
+private static PersistenceModel getFluentNhibernatePersistenceModel() {
+ var model = new PersistenceModel();
+ <b>model.Conventions.GetForeignKeyName = prop => prop.Name + "Id";</b> //By default assumes prop.Name + "_id"
+ <b>model.Conventions.GetForeignKeyNameOfParent = type => type.Name + "Id";</b>
+ model.addMappingsFromAssembly(Assembly.GetExecutingAssembly());
+ return model;
+}
+</pre>
+
+
+
+
+<p>Pretty neat, huh? You can imagine how trivial you could get the mappings if you set your conventions correctly.</p>
+
+
+
+
+<p>There is work under way to make this even easier using <a href="http://groups.google.com/group/fluent-nhibernate/browse_thread/thread/5d7a524fb6ffcae/769430df684265da">AutoMap</a> functionality, which will be used to auto-magically infer mappings for your entities. You can then customise any special cases (like the many-to-many relationship we have in this case -- it will probably assume the more common one-to-many case by default).</p>
+
+
+
+
+<h2>Tools not covered here</h2>
+
+
+
+
+<p>I also had a quick look at <a href="http://using.castleproject.org/display/Contrib/ActiveWriter">ActiveWriter</a>, but couldn't get it working (failed when trying to save the model and generate the correct files. Possibly because I was using NH 2.0, more likely that I had no idea what I was doing with it :)). It provides a designer within Visual Studio that you can use to generate your mapping files and .NET entity classes. It has the usual drag-and-drop designer goodness -- dragging database tables onto the surface or using toolbox items to create classes and adjust the properties to map to tables etc. It is meant to work with both Castle ActiveRecord and NHibernate.</p>
+
+
+
+
+<p>The reason I didn't persevere with trying to get it to work is that I am well and truly over designers. I hate mousing all over a design surface and repeatedly hunting for the property you want and then repeatedly setting it over multiple boxes. No matter how nice the designer, I always seem to end up cursing it once the demo has finished and I start using it for real work. Of course this may just be a reflection on my advanced age and grumpy demeanor - YMMV. :) Oh yeah, and get off my lawn! :P</p>
+
+
+
+
+<p>There are a number of <a href="http://www.hibernate.org/hib_docs/nhibernate/1.2/reference/en/html/toolsetguide.html">other tools mentioned in the NHibernate 1.2 docs</a>, including <code>hbm2net</code> (generate classes from HBM), as well as generation tools like CodeSmith and MyGeneration, but most of these seem to focus on generating the C# classes or SQL scripts for creating the database schema from the <code>.hbm.xml</code>. I think I'd prefer to control my entity and database creation, and instead try and make the mapping itself easier.</p>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>Fluent NHibernate looks absolutely fantastic, but is still in very early stages of development. If you don't like living on the bleeding edge, then the standard <code>.hbm.xml</code> files really aren't that bad once you've set up a couple of them. The good thing is you can switch between all these mapping methods without changing anything but the <code>ISessionFactory</code> initialisation code, which only occurs in one place within your application. All these changes were made with a continuously green test light. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Modifying the SQL generated by NHibernate]]></title>
+    <link href="http://davesquared.net/2008/08/modifying-sql-generated-by-nhibernate.html"/>
+    <updated>2008-08-26T16:56:00+10:00</updated>
+    <id>http://davesquared.net/2008/08/modifying-sql-generated-by-nhibernate</id>
+    <content type="html"><![CDATA[<p>Is it possible to modify the SQL generated by NHibernate? Yes:</p>
+
+
+
+
+<pre>public class BadInterceptor : EmptyInterceptor, IInterceptor {
+ SqlString IInterceptor.<b>OnPrepareStatement(SqlString sql)</b> {
+  return doHorribleThingsToSqlString(sql);            
+ }
+ private SqlString doHorribleThingsToSqlString(SqlString sql) { ... }
+}
+
+protected static readonly ISessionFactory SessionFactory = initialiseSessionFactory();
+private static ISessionFactory initialiseSessionFactory() {
+ var config = new Configuration();
+ config.AddAssembly(Assembly.GetExecutingAssembly());
+ <b>config.SetInterceptor(new BadInterceptor())</b>;
+ return config.BuildSessionFactory();
+}
+</pre>
+
+
+
+
+<p>Now don't! :) Seriously, it's evil.</p>
+
+
+
+
+<p>If anyone knows a nice way to get NHibernate to add some custom SQL as part of it's SQL generation process, rather than this brute-force approach, then please let me know. I was initially playing around with this code to add some calls to SQL Server's <code><a href="http://msdn.microsoft.com/en-us/library/ms173784.aspx">binary_checksum()</a></code> function when loading and saving entities, and I'd be interested if this is possible to do in a reasonably robust way.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Configuration changes in NHibernate 2.0]]></title>
+    <link href="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html"/>
+    <updated>2008-08-25T16:33:00+10:00</updated>
+    <id>http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20</id>
+    <content type="html"><![CDATA[<p>I downloaded <a href="http://ayende.com/Blog/archive/2008/08/23/NHibernate-2.0-Final-is-out.aspx">NHibernate 2.0</a> today and started to play around with it, only to be greeted by a host of configuration errors like <code>System.InvalidOperationException : Could not find the dialect in the configuration</code>. It was then I remembered reading somewhere about some changes to the configuration syntax, so I downloaded the source and looked at the examples (after a brief, ill-fated search for NHibernate 2.0-specific documentation*).</p>
+
+
+
+
+<div class="note">* <b>Update 2008-08-26</b>: Fabio has published a <a href="http://knol.google.com/k/fabio-maulo/nhibernate/1nr4enxv3dpeq/21">knol on NH2.0</a>. <a href="http://knol.google.com/k/fabio-maulo/nhibernate-chapter-3">Chapter 3 covers configuration.</a></div>
+
+
+
+
+<p>Here is an example of how an <code>App.config</code> looked for NHibernate 1.2:</p>
+
+
+
+
+<pre>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name=&quot;nhibernate&quot; type=&quot;System.Configuration.NameValueSectionHandler, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089&quot; /&gt;
+  &lt;/configSections&gt;
+  &lt;nhibernate&gt;
+    &lt;add key=&quot;hibernate.connection.provider&quot; value=&quot;NHibernate.Connection.DriverConnectionProvider&quot; /&gt;
+    &lt;add key=&quot;hibernate.dialect&quot; value=&quot;NHibernate.Dialect.MsSql2005Dialect&quot; /&gt;
+    &lt;add key=&quot;hibernate.connection.driver_class&quot; value=&quot;NHibernate.Driver.SqlClientDriver&quot; /&gt;
+    &lt;add key=&quot;hibernate.connection.connection_string&quot; value=&quot;Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=DbWorkshop;Integrated Security=True&quot; /&gt;
+  &lt;/nhibernate&gt;
+&lt;/configuration&gt;
+</pre>
+
+
+
+
+<p>And here is the equivalent for version 2.0:</p>
+
+
+<pre>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name=&quot;<b>hibernate-configuration</b>&quot; type=&quot;<b>NHibernate.Cfg.ConfigurationSectionHandler, NHibernate</b>&quot; /&gt;
+  &lt;/configSections&gt;
+  &lt;<b>hibernate-configuration</b> xmlns=&quot;urn:nhibernate-configuration-2.2&quot;&gt;
+    <b>&lt;session-factory&gt;</b>
+      &lt;<b>property</b> name=&quot;<b>connection.provider</b>&quot;&gt;NHibernate.Connection.DriverConnectionProvider&lt;/property&gt;
+      &lt;property name=&quot;dialect&quot;&gt;NHibernate.Dialect.MsSql2005Dialect&lt;/property&gt;
+      &lt;property name=&quot;connection.driver_class&quot;&gt;NHibernate.Driver.SqlClientDriver&lt;/property&gt;
+      &lt;property name=&quot;connection.connection_string&quot;&gt;Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=DbWorkshop;Integrated Security=True&lt;/property&gt;
+    <b>&lt;/session-factory&gt;</b>
+  &lt;/hibernate-configuration&gt;
+&lt;/configuration&gt;
+</pre>
+
+
+
+
+<p>The main changes are:</p>
+
+
+<ul>
+<li>We aren't using an <code>nhibernate</code> configuration section, it's <code>hibernate-configuration</code> now (yay for more typing! :P).</li>
+<li>We now have a <code>session-factory</code> child node for adding the configuration properties.</li>
+<li>We aren't adding properties using the <code>&lt;add key=&quot;...&quot; value=&quot;...&quot; /&gt;</code> syntax. Instead we are using <code>&lt;property name=&quot;...&quot;&gt;(property value)&lt;/property&gt;</code>.</li>
+<li>The property names aren't prefixed by &quot;hibernate&quot; anymore, so &quot;hibernate.connection.provider&quot; becomes &quot;connection.provider&quot;.</li></ul>
+
+
+
+
+<p>Moral of the story is to check the source first -- the NHibernate.Examples folder is filled with helpful goodies. :) Svend Tofte also has a helpful post on <a href="http://www.svendtofte.com/serverside/setting-up-nhibernate-20/">setting up NHibernate 2.0</a>.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Viewing the SQL generated by NHibernate]]></title>
+    <link href="http://davesquared.net/2008/01/viewing-sql-generated-by-nhibernate.html"/>
+    <updated>2008-01-16T15:59:00+11:00</updated>
+    <id>http://davesquared.net/2008/01/viewing-sql-generated-by-nhibernate</id>
+    <content type="html"><![CDATA[<p>There are at least a couple of ways to view the SQL generated by NHibernate. The easiest way is probably to use the <code>hibernate.show_sql</code> configuration property to dump it all to <code>Console.Out</code>:</p>
+
+
+<pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section
+       name=&quot;nhibernate&quot;
+       type=&quot;System.Configuration.NameValueSectionHandler, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089&quot;
+    /&gt;
+  &lt;/configSections&gt;  
+  &lt;nhibernate&gt;
+    &lt;add
+      key=&quot;hibernate.connection.provider&quot;
+      value=&quot;NHibernate.Connection.DriverConnectionProvider&quot;
+    /&gt;
+    ...
+    <b>&lt;add key=&quot;hibernate.show_sql&quot; value=&quot;true&quot; /&gt;</b>
+  &lt;/nhibernate&gt;
+&lt;/configuration&gt;
+</pre>
+
+
+<p>Another way is to configure log4net. NHibernate logs a wealth of information, but you can restrict it to just the generated SQL by doing the following:</p>
+
+
+<pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section
+       name=&quot;nhibernate&quot;
+       type=&quot;System.Configuration.NameValueSectionHandler, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089&quot;
+    /&gt;
+    &lt;section name=&quot;log4net&quot; type=&quot;log4net.Config.Log4NetConfigurationSectionHandler,log4net&quot;/&gt;
+  &lt;/configSections&gt;  
+  &lt;nhibernate&gt;
+    ...
+  &lt;/nhibernate&gt;  
+  &lt;log4net&gt;
+    &lt;appender name=&quot;ConsoleAppender&quot; type=&quot;log4net.Appender.ConsoleAppender&quot;&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;%date - %message%newline&quot;/&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    <b>&lt!-- NHibernate.SQL logs all generated SQL (see update below) --&gt;</b>
+    &lt;logger name=&quot;<b>NHibernate.SQL</b>&quot; additivity=&quot;false&quot;&gt;
+      &lt;level value=&quot;<b>DEBUG</b>&quot; /&gt;
+      &lt;appender-ref ref=&quot;ConsoleAppender&quot; /&gt;
+    &lt;/logger&gt;
+    &lt!-- 
+      NHibernate.Loader.Loader logs diagnostic stuff and SELECTs. 
+      You can use either logger, or both, depending on you needs.
+    --&gt;
+    &lt;logger name=&quot;<b>NHibernate.Loader.Loader</b>&quot; additivity=&quot;false&quot;&gt;
+      &lt;level value=&quot;<b>INFO</b>&quot; /&gt;
+      &lt;appender-ref ref=&quot;ConsoleAppender&quot; /&gt;
+    &lt;/logger&gt;
+  &lt;/log4net&gt;
+&lt;/configuration&gt;
+</pre>
+
+
+
+
+<p><i><b>Update:</b> <a href="http://kennethxu.blogspot.com">Kenneth Xu</a> helpfully pointed out in the comments that <a href="http://kennethxu.blogspot.com/2008/05/logging-sql-generated-by-nhibernate.html"><code>NHibernate.SQL</code> is better for this</a> than <code>NHibernate.Loader.Loader</code> (which this post originally used), providing more information on both the queries and the updates generated by NHibernate. Dave Perry also pointed out that <code>NHibernate.SQL</code> logs at <code>DEBUG</code> level rather than <code>INFO</code>. Thanks Kenneth and Dave!</i></p>
+
+
+
+
+<p>This configuration means that anything logged from the <code>NHibernate.SQL</code> class will go through the logger with the matching name. This class happens to log NHibernate-generated SQL as DEBUG messages. You can also use <code>NHibernate.Loader.Loader</code>, which logs various diagnostics and SELECTs.</p>
+
+
+
+
+<p>To get this log4net configuration to work, I had to make sure the following code was executed once in the relevant AppDomain: <code>log4net.Config.XmlConfigurator.Configure();</code>. In my case, I chucked it in the test fixture setup. Calling it multiple times doesn't seem to break anything, but you really only need to call it once to pickup your configuration.</p>
+
+
+
+
+<p>Unlike the <code>hibernate.show_sql</code> option, this does not show the values of the parameters passed for substitution in each SQL statement.</p>
+
+
+
+
+<h2>Viewing logs in NUnit</h2>
+
+
+<p>NUnit has a Log tab that lists log4net logging information, as well as displaying Console.Out and Console.Error. If you go to the Tools menu --&gt; Options --&gt;Text Output, you can get NUnit to "Display TestCase Labels" for each test. Combined with the logging options above, you can then get a nice view of the SQL used for each of your tests.</p>
+
+
+<p><a href="http://davesquared.net/images/fromblogger/s1600-h-NUnit_viewing_nhibernate_logs.png"><img src="http://davesquared.net/images/fromblogger/s400-NUnit_viewing_nhibernate_logs.png" border="0" alt="NUnit displaying NHibernate generated SQL" /></a></p>
+
+<h2>More information</h2>
+
+
+<p>I found <a href="http://geekswithblogs.net/opiesblog/archive/2006/09/29/92721.aspx">this post</a> from Mike Nichols a very helpful reference on NHibernate logging. There is also some <a href="http://www.hibernate.org/364.html">official documentation</a> on the subject.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Messing around with NHibernate]]></title>
+    <link href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html"/>
+    <updated>2007-12-21T12:06:00+11:00</updated>
+    <id>http://davesquared.net/2007/12/messing-around-with-nhibernate</id>
+    <content type="html"><![CDATA[<p><em>This post is part of a small series on .NET ORM tools. You can find the rest of them </em><a href="http://davesquared.net/2007/12/messing-around-with-various-orms.html"><em>here</em></a><em>.</em></p>
+
+
+<p> <p>After <a href="http://davesquared.net/2007/12/messing-around-with-subsonic.html">messing around with SubSonic</a>, I thought I'd run through the same scenario with NHibernate. A quick disclaimer: both tools are very different, so comparing them is a bit like comparing apples and oranges. As an example, a large part of SubSonic is the generation of DAL classes. There are ways of generating relevant NHibernate artifacts, but they aren't really an integral part of the tool. </p> <p>Still, I'm not going to let a simple thing like facts get in the way of proceeding. I was interested to see how to perform the same basic scenario as last time around using NHibernate. And as&nbsp;per last time, all of this is really quick and hacky, as it is just to get a little familiarity with the tool rather than to uncover any "best practices" or similar. So here goes...</p> <h2>Scene refresher</h2> <p>I have a table of suppliers, and a table of states (or provinces, territories, prefectures etc.). Both suppliers and states have names, which are stored as strings/varchars, and IDs, which are stored as Guids/uniqueidentifiers. Each supplier can service many states. So we have a simple many-to-many relationship between the two main entities. It looks a bit like this:</p> <p><a href="http://davesquared.net/images/fromblogger/s1600-h-SampleSupplierSchema.png"><img id="BLOGGER_PHOTO_ID_5145922358406504498" style="cursor: pointer" alt="" src="http://davesquared.net/images/fromblogger/s400-SampleSupplierSchema.png" border="0"> </a></p> <p>I am using Aussie states for my tests, so I have populated the State table with the following names: NSW, VIC, QLD, TAS, SA, WA, ACT, NT.</p> <h2>Setting up NHibernate</h2> <p>I created a new C# class library project and added a reference to <a href="http://www.hibernate.org/343.html">NHibernate</a>. I chucked in an app.config for NHibernate's benefit that ended up like this:</p></p>
+
+<div class="note">Note: This syntax has <a href="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html">changed for NHibernate 2.0</a>.</div>
+
+
+
+
+<pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name="nhibernate"
+       type="System.Configuration.NameValueSectionHandler, System, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"
+    /&gt;
+  &lt;/configSections&gt;
+  &lt;nhibernate&gt;
+    &lt;add key="hibernate.connection.provider" value="NHibernate.Connection.DriverConnectionProvider" /&gt;
+    &lt;add key="hibernate.dialect" value="NHibernate.Dialect.MsSql2005Dialect" /&gt;
+    &lt;add key="hibernate.connection.driver_class" value="NHibernate.Driver.SqlClientDriver" /&gt;
+    &lt;add key="hibernate.connection.connection_string" value="Data Source=127.0.0.1\SQLEXPRESS;Initial Catalog=SubSonicWorkshop;Integrated Security=True" /&gt;
+  &lt;/nhibernate&gt;
+&lt;/configuration&gt;
+</pre>
+
+
+
+
+<p>Rather than using any NHibernate auto-mapping or code generation, I manually created the classes I wanted. I am using the automatic property accessors in C# 3.0, so if you're still using 2.0 you'll need to manually add a backing store for these.</p>
+
+
+<pre>/* State.cs */
+public class State {
+  public Guid StateId { get; set; }
+  public String Name { get; set; }
+}
+/* Supplier.cs */
+public class Supplier {
+  public Guid SupplierId { get; set; }
+  public String Name { get; set; }
+  public IList&lt;State&gt; StatesServiced { get; set; }
+}
+</pre>
+
+
+<p>I then need to tell NHibernate how I want to map between these classes and my relational data. You can do this by creating Hibernate Mapping files (.hbm.xml), and setting them to be included as embedded resources in the compiled DLL. Again, I did this manually, but you specify use attributes on your classes to do this auto-magically, or generate the classes, database, and/or mapping files using a variety of tools.</p>
+
+
+<p><p>First let's look at the mapping for states (State.hbm.xml): <pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"
+                   assembly="NHibernateWorkshop.Tests"
+                   namespace="NHibernateWorkshop.Tests"&gt;
+  &lt;class name="State" table="State" lazy="false"&gt;
+    &lt;id name="StateId" type="guid"&gt;
+      &lt;generator class="guid" /&gt;
+    &lt;/id&gt;
+    &lt;property name="Name" type="String" /&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+</pre>
+<p>Here I am telling NHibernate that a State has a StateId, which is the primary key. I am also telling NHibernate that it can generate this ID as a new Guid. I also let it know it can persist the Name property as a String. By default NHibernate will match the property name with the column name, but you can also specify that a property matches to a different column name if you like.</p>
+<p>Now for the more interesting entity mapping, Supplier.hbm.xml:</p><pre>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"
+                   assembly="NHibernateWorkshop.Tests"
+                   namespace="NHibernateWorkshop.Tests"&gt;
+  &lt;class name="Supplier" table="Supplier" lazy="false"&gt;
+    &lt;id name="SupplierId" type="guid"&gt;
+      &lt;generator class="guid" /&gt;
+    &lt;/id&gt;
+    &lt;property name="Name" type="String" /&gt;
+    &lt;bag name="StatesServiced" table="Supplier_StatesServiced"&gt;
+      &lt;key column="SupplierId" /&gt;
+      &lt;many-to-many column="StateId" class="State" /&gt;
+    &lt;/bag&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+</pre>
+<p>This is very similar to the last mapping, with the exception of the &lt;bag&gt; property. This tells NHibernate that I have a many-to-many relationship between State and Supplier, and that it can navigate this relationship using the Supplier_StatesServiced table and the SupplierId and StateId keys.</p>
+<h2>Creating a test fixture for messing around</h2>
+<p>As I mentioned last time, I like working in test fixtures, so I created a new test fixture to run the remainder of the code in this post. Before I start using NHibernate within the fixture, I want to get access to the NHibernate <code>ISession</code>. I guess you could think of <code>ISession</code> as a conversation between NHibernate and the database. I'll do this by exposing a <code>ISessionFactory</code> property (note, there are optimal ways of doing this... this ain't it):</p><pre>protected static readonly ISessionFactory <strong>SessionFactory</strong> = initialSessionFactory();
+private static ISessionFactory initialSessionFactory() {
+  Configuration config = new Configuration();
+  <strong>config.AddAssembly("NHibernateWorkshop.Tests")</strong>;
+  return config.BuildSessionFactory();
+}
+</pre>
+<p>I am going to use this property to create sessions as required. The <code>AddAssembly(...)</code> call gets NHibernate to load in all the .hbm.xml mapping files we created earlier, so the sessions we create know how to persist our entities.</p>
+<h2>Populating the database</h2>
+<p>Now we can get to work populating our database (I cleaned it out from last time). We are now on par with the SubSonic example. The steps and method signatures are going to be very similar from here on in. So like last time, I'll write a method to encapsulate the process of creating a supplier and mapping the states it services:</p><pre>private static void createSupplier(String name, String[] statesServiced) {
+  using (ISession session = SessionFactory.OpenSession())
+  {
+    Supplier supplier = new Supplier();
+    supplier.Name = name;
+    IList&lt;State&gt; states = session
+      .CreateCriteria(typeof (State))
+      .Add(
+        Expression.In("Name", statesServiced)
+      )
+      .List&lt;State&gt;();
+    supplier.StatesServiced = states;
+    session.SaveOrUpdate(supplier);
+    session.Flush();
+    session.Close();
+  }
+}
+</pre>
+<p>Wow. To me all that additional setup now starts to seem worth it. I create a normal object and set the name property. I then create a criteria object that is going to query states, and add a restriction that the state's name must be in the array of <code>statesServiced</code> we passed in. I then assign the results to the supplier object, and ask the NHibernate session to <code>SaveOrUpdate</code> the supplier. (<code>SaveOrUpdate</code> means NHibernate will automatically determine whether it needs to INSERT or UPDATE the relevant database record.) As ISession represents a chat with a database, the whole thing is wrapping in a <code>using (...) { }</code> to ensure any resources used are cleaned up nicely.</p>
+<p>I then used the following code to insert the same data as last time:</p><pre>createSupplier("Dave<sup>2</sup> Quality Tea", new string[] { "NSW", "VIC" });
+createSupplier("ORMs'R'Us", new string[] { "NSW" });
+createSupplier("Lousy Example", new string[] { "TAS", "VIC" });
+createSupplier("Bridge Sellers", new string[] { "QLD" });</pre>
+<h2>Querying the data</h2>
+<p>Let's get a list of all the suppliers:</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers() {
+  using (ISession session = SessionFactory.OpenSession()) {
+    IList&lt;Supplier&gt; suppliers = session.CreateCriteria(typeof (Supplier)).List&lt;Supplier&gt;();
+    Assert.That(suppliers.Count, Is.EqualTo(4));
+  }
+}</pre>
+<p>That's pretty much on a par with the SubSonic equivalent. The test passes. Now let's get all the suppliers with an "s" in their name:</p><pre>[Test]
+public void Should_be_able_to_get_all_suppliers_with_s_in_their_name() {
+  using (ISession session = SessionFactory.OpenSession()) {
+    IList&lt;Supplier&gt; suppliers = session
+      .CreateCriteria(typeof (Supplier))
+      .Add(Expression.Like("Name", "%s%"))
+      .List&lt;Supplier&gt;();
+    Assert.That(suppliers.Count, Is.EqualTo(3));
+  }
+}</pre>
+<p>Again, pretty simple, and very similar to the SubSonic version. Now to the tricky example. We want to navigate over the supplier-state relationship and get all the suppliers that service NSW. This one wasn't pretty in SubSonic.</p><pre>[Test]
+public void Should_be_able_get_all_suppliers_that_service_NSW() {
+  using (ISession session = SessionFactory.OpenSession()) {
+    IList&lt;Supplier&gt; suppliers = session
+      .CreateCriteria(typeof (Supplier))
+      .CreateCriteria("StatesServiced")
+        .Add(Expression.Eq("Name", "NSW"))
+      .List&lt;Supplier&gt;();
+    Assert.That(suppliers.Count, Is.EqualTo(2));
+  }
+}
+</pre>
+<p>Again, wow. That was too easy. First we create a criteria that is going to return Supplier data. Then we want a sub-criteria that is going to use the StatesServiced property of the Supplier entity (not the table -- we are strictly dealing in domain objects here). We then say we only want the StatesServiced collection to include NSW. So what SQL ends up hitting the database?</p><pre>SELECT {fields for supplier and state}
+FROM Supplier
+  INNER JOIN Supplier_StatesServiced ON
+    Supplier.SupplierId=Supplier_StatesServiced.SupplierId
+  INNER JOIN State ON Supplier_StatesServiced.StateId=State.StateId
+WHERE State.Name = @p0
+</pre>
+<p>This is the query executed via a call to sp_executesql on SQL Server (slightly modified to better communicate the point, but the actual generated query is still very neat), with "NSW" passed as @p0.</p>
+<p>This was very different to the experience with SubSonic, which I couldn't get to sensibly navigate over the many-to-many relationship.</p>
+<h2>Vague semblance of a conclusion</h2>
+<p>Ignoring the initial setup and configuration (as this can all be generated, but to be honest it was all fairly quick), I really enjoyed working with NHibernate. While the querying looked a little daunting to me at first glance, after about 3 seconds I found it very intuitive. Sometimes when I was working with SubSonic I found myself scratching my head as to how to get back specific information. Not so with NHibernate, as the query options I needed<em> were all fairly discoverable, and I never felt like I was going to have to fight the tool to get stuff out.</p>
+<p>Again, there are vast differences between the SubSonic and NHibernate approaches, and there a probably situations to which one is better suited than the other. <a href="http://blog.wekeroad.com/">Rob Conery</a> has a good post about the <a href="http://blog.wekeroad.com/2007/12/14/aspnet-mvc-choosing-your-data-access-method/">strengths and weaknesses of both tools</a>, as well as LinqToSql.</p>
+<p>Here are a couple of chapters from the <a href="http://www.hibernate.org/hib_docs/nhibernate/html/index.html">official documentation</a> that I used to get NHibernate going:</p>
+<ul>
+<li><a href="http://www.hibernate.org/hib_docs/nhibernate/html/mapping.html">Mapping files</a>
+<li><a href="http://www.hibernate.org/hib_docs/nhibernate/html/querycriteria.html">Criteria queries</a>, and the <a href="http://www.hibernate.org/hib_docs/v3/reference/en/html/querycriteria.html">Hibernate version</a> of the same chapter</li></ul>
+<p style="font-size: xx-small"></em> Luckily I didn't need Projections or similar. That may have started to get a bit hairier.</p></p>
+]]></content>
+  </entry>
+  
+</feed>

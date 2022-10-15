@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: silly | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/silly/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Aristotle and parametricity]]></title>
+    <link href="http://davesquared.net/2014/02/aristotle-and-parametricity.html"/>
+    <updated>2014-02-18T23:30:00+11:00</updated>
+    <id>http://davesquared.net/2014/02/aristotle-and-parametricity</id>
+    <content type="html"><![CDATA[<!-- more -->
+
+
+<p>In <a href="http://stephenwestshow.net/philosophize-this/2013/7/25/episode-006-aristotle">episode 6 of the Philosophize This! podcast</a> Stephen talks about  <a href="http://en.wikipedia.org/wiki/Aristotle">Aristotle's</a> development of the first formal system of logic, one part of which is the <a href="http://en.wikipedia.org/wiki/Syllogism">syllogism</a>. A common example of a syllogism is "Socrates is a man, all men are mortal, therefore Socrates is mortal".</p>
+
+<p>Stephen points out that Aristotle would not have put it like that^[This is discussed from 32:05 - 33:05 in <a href="http://stephenwestshow.net/philosophize-this/2013/7/25/episode-006-aristotle">Episode #0006 - Aristotle Pt. 2</a> of "Philosophize This!"]. Aristotle preferred to use variables to abstract away the details, rather than concrete examples whose details can obscure the meaning.</p>
+
+<p>Without abstraction I guess we could try and argue details (Socrates' ideas have been immortalised; does that affect the conclusion?), but abstraction makes the logical inference clear: "<code>A</code> is a <code>B</code>, all <code>B</code>s are <code>C</code>s, therefore <code>A</code> is a <code>C</code>". The conclusion follows from the premises for all values of <code>A</code>, <code>B</code>, and <code>C</code>, irrespective of other concrete details.</p>
+
+<p>To me this echoes the idea we explored last post, where we <a href="http://davesquared.net/2014/02/splitting-responsibilities.html">introduced type variables in place of concrete types</a> to help us infer information about a function.</p>
+
+<p>Which makes me think that if we were to go back two and a bit millennia and chat to Aristotle he'd be quite comfortable with the idea of parametricity^[Well, some more recent advances in the development of logic aside. :)]. :)</p>
+]]></content>
+  </entry>
+  
+</feed>

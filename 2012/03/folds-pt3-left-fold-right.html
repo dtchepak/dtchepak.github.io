@@ -1,0 +1,468 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Folds Pt 3: Left fold, right? - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="This post is part 3 of a series on folds, which is my attempt to understand the topic. The examples are in Haskell, but hopefully you can follow &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/03/folds-pt3-left-fold-right.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Folds Pt 3: Left fold, right?</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-03-24T01:33:00+11:00" pubdate data-updated="true">24 Mar 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This post is part 3 of a <a href="/categories/-folds">series on folds</a>, which is my attempt to understand the topic. The examples are in Haskell, but hopefully you can follow along even if you&#8217;re not familiar with the language. If you find yourself getting lost in the syntax, I&#8217;ve written a <a href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quick start</a> that goes through all the bits we&#8217;ll use.</p>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we found that a fold is a way of abstracting recursive operations over lists. In <a href="/2012/02/folds-pt2-from-loops-to-folds.html">part 2</a> we saw that we could also express loops using recursion, which we could extract into a different type of fold. We learned that the loop-like fold is called a <em>left fold</em> (it accumulates its values on the left of the expression), and that our original fold was called a <em>right fold</em> (which accumulates to the right).</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">foldLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">foldLeft</span> <span class="n">f</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">foldLeft</span> <span class="n">f</span> <span class="p">(</span><span class="n">f</span> <span class="n">acc</span> <span class="n">head</span><span class="p">)</span> <span class="n">tail</span>
+<span class="nf">foldLeft</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+
+<span class="nf">foldRight</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+<span class="nf">foldRight</span> <span class="n">f</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">head</span> <span class="p">(</span><span class="n">foldRight</span> <span class="n">f</span> <span class="n">acc</span> <span class="n">tail</span><span class="p">)</span>
+<span class="nf">foldRight</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+</code></pre></div></figure>
+
+
+<p>We saw we could implement several functions using both left and right folds (like <code>sum</code>, <code>length</code>, and <code>mapFn</code>). As both folds abstract away explicit recursion, they seem capable of producing the same results, just with different orders of evaluation. It turns out these differences in evaluation have some important implications, so in this post we&#8217;ll take a closer look at them.</p>
+
+<!-- more -->
+
+
+<h2>Flipped arguments and evaluation order</h2>
+
+<p>Both our folds take as arguments a function, a seed/accumulator, and a list. If we look closely at the type definitions of each, we can see that the first arguments differ:</p>
+
+<pre><code>foldLeft :: (a -&gt; b -&gt; a) -&gt; a -&gt; [b] -&gt; a
+foldRight :: (a -&gt; b -&gt; b) -&gt; b -&gt; [a] -&gt; b
+</code></pre>
+
+<p>The function passed to <code>foldLeft</code> is called with the accumulator, then an item from the list (<code>f acc head</code>), but <code>foldRight</code> is called with the list item then the accumulator (<code>f head acc</code>). The function arguments are flipped. This can make some folds easier to write in one form than the other. In particular, folds that create lists seem to more naturally fit with <code>foldRight</code>:</p>
+
+<pre><code>addOneRight list = foldRight (\head acc -&gt; (head+1):acc) [] list
+</code></pre>
+
+<p>Here we add one to the list head, then prepend that onto the accumulated list using <code>(:)</code> (called <em>cons</em>, used for constructing lists).</p>
+
+<p>If we try and write this using a left fold, the order of the list head and accumulated list arguments passed to our lambda function gets flipped:</p>
+
+<pre><code>addOneLeft' list = foldLeft (\acc head -&gt; (head+1):acc) [] list
+</code></pre>
+
+<p>If we run these examples though, we get quite different results:</p>
+
+<pre><code>*Main&gt; addOneRight [1..5]
+[2,3,4,5,6]
+*Main&gt; addOneLeft' [1..5]
+[6,5,4,3,2]
+</code></pre>
+
+<p>This is due to the difference in evaluation order we identified between the fold types, although now it starts to have more impact than just where our parentheses end up. <code>foldRight</code> builds up an expression that evaluates from right to left, so our list gets built up like this:</p>
+
+<pre><code>addOneRight [1..5] 
+    = (1+1) : (addOneRight [2..5])
+    = (1+1) : (2+1) : (addOneRight [3..5])
+    = ...
+    = (1+1) : (2+1) : (3+1) : (4+1) : (5+1) : []
+    = [2,3,4,5,6]
+</code></pre>
+
+<p>Here our last list item <code>5</code> gets evaluated with our accumulator <code>[]</code> first. In other words, it is <a href="http://en.wikipedia.org/wiki/Operator_associativity">right-associative</a>; <code>foldRight (+) 0 [1..5]</code> will create the expression <code>1 + (2 + (3 + (4 + (5 + 0))))</code> which evaluates the right-most term first.</p>
+
+<p>But <code>foldLeft</code> works more like a loop, and evaluates from left to right (it is left-associative; <code>foldLeft (+) 0 [1..5]</code> creates <code>((((0 + 1) + 2) + 3) + 4) + 5</code>), so our first list item <code>1</code> gets evaluated with the accumulator <code>[]</code> first:</p>
+
+<pre><code>addOneLeft' [1..5]
+    = addOneLeft' ((1+1) : []) [2..5]            -- Evals 1 with accumulator [] first.
+    = addOneLeft' ((2+1) : (1+1) : []) [3..5]
+    = ...
+    = (5+1) : (4+1) : (3+1) : (2+1) : (1+1) : []
+    = [6,5,4,3,2]
+</code></pre>
+
+<p>To fix our <code>addOneLeft</code> function, we want to append the item to the end of the accumulated list, rather than add it to the front. We can do this by using <code>(++)</code> which concatenates lists, and use <code>[head+1]</code> to convert the list element to a list so we can concatenate it.</p>
+
+<pre><code>addOneLeft list = foldLeft (\acc head -&gt; acc ++ [head+1]) [] list
+{-
+addOneLeft [1..5]
+    = addOneLeft ([] ++ [1+1]) [2..5]
+    = addOneLeft ([] ++ [1+1] ++ [2+1]) [3..5]
+    = ...
+    = [] ++ [1+1] ++ [2+1] ++ [3+1] ++ [4+1] ++ [5+1]
+    = [2,3,4,5,6]
+-}
+</code></pre>
+
+<p>This gives us the <code>[2,3,4,5,6]</code> answer we expect.</p>
+
+<p>So not only do the functions we pass to both folds differ in argument order, but the order the accumulated value is populated is also reversed.</p>
+
+<h2>To infinity, and beyond!</h2>
+
+<p>In the last section we saw that <code>foldLeft</code> and <code>foldRight</code> evaluate in opposite orders. This difference in evaluation order has another important impact, and that is how the different folds handle infinite lists.</p>
+
+<h3>Taking just a bit of an infinite list</h3>
+
+<p>First we&#8217;ll need to take a small digression to explain how Haskell works with infinite lists. The <code>take</code> function in Haskell grabs a specified number of elements from the start of a list. We can implement a basic version of this function so we can trace exactly what&#8217;s happening when we call it.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">take&#39;</span> <span class="ow">::</span> <span class="kt">Num</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span>
+<span class="nf">take&#39;</span> <span class="mi">0</span> <span class="kr">_</span> <span class="ow">=</span> <span class="kt">[]</span>              <span class="c1">-- The underscore &#39;_&#39; matches any argument value.</span>
+<span class="nf">take&#39;</span> <span class="kr">_</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="kt">[]</span>
+<span class="nf">take&#39;</span> <span class="n">i</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">head</span> <span class="kt">:</span> <span class="p">(</span><span class="n">take&#39;</span> <span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="n">tail</span><span class="p">)</span>
+</code></pre></div></figure>
+
+
+<p>We can use our <code>take'</code> function like this:</p>
+
+<pre><code>*Main&gt; take' 0 [1..10]
+[]
+*Main&gt; take' 5 [1..10]
+[1,2,3,4,5]
+*Main&gt; take' 3 [1..]
+[1,2,3]
+</code></pre>
+
+<p>The first two calls take 0 and 5 elements respectively from a list of 10 numbers. The third call takes 3 elements from <code>[1..]</code>, which is Haskell for &#8220;an infinite list starting from 1&#8221;. We can get away with using infinite lists because Haskell uses <a href="http://en.wikipedia.org/wiki/Lazy_evaluation">lazy evaluation</a> (more precisely, it is <a href="http://www.haskell.org/haskellwiki/Lazy_vs._non-strict">non-strict</a>); it can evaluate only what it absolutely needs to in order to get a result from an expression.</p>
+
+<p>If you type <code>[1..]</code> into GHCi, the interpreter will try and print this list to the terminal. Because printing every element in a list requires evaluating every element, this will continually spit out numbers until you stop it with <code>Ctrl + c</code> or something catastrophic happens to the process (like being stopped by the heat death of the universe).</p>
+
+<p>If, instead of dumping <code>[1..]</code> to the terminal, we use it as an argument to our <code>take'</code> function, it will only evaluate the elements it needs from the list.</p>
+
+<pre><code>take' 3 [1..]
+    = 1 : take' 2 [2..]
+    = 1 : 2 : take' 1 [3..]
+    = 1 : 2 : 3 : take' 0 [4..]
+    = 1 : 2 : 3 : []        -- We defined take' 0 of any list as []
+</code></pre>
+
+<p>Because <code>take' 0 [4..]</code> can return <code>[]</code> without further evaluation of the infinite list <code>[4..]</code>, Haskell returns the result without getting stuck in an infinite loop.</p>
+
+<h3>Folding over infinite lists</h3>
+
+<p>Let&#8217;s apply this knowledge to folds. I&#8217;ll try adding one to each element of an infinite list using our addOne functions, and only taking the first three elements from the result:</p>
+
+<pre><code>*Main&gt; take' 3 (addOneRight [1..])
+[2,3,4]
+*Main&gt; take' 3 (addOneLeft [1..])
+^CInterrupted.
+</code></pre>
+
+<p>Hmm. The <code>addOneRight</code> call worked fine, but <code>addOneLeft</code> just hung until I interrupted it using <code>Ctrl + c</code>. We&#8217;ve already seen how the <code>addOneRight</code> and <code>addOneLeft</code> functions are evaluated, so let&#8217;s trace through how that pattern works with infinite lists.</p>
+
+<pre><code>addOneRight [1..]
+    = (1+1) : addOneRight [2..]
+    = (1+1) : (2+1) : addOneRight [3..]
+    = (1+1) : (2+1) : (3+1) : ...
+
+addOneLeft [1..]
+    = addOneLeft ([] ++ [1+1]) [2..]
+    = addOneLeft ([] ++ [1+1] ++ [2+1]) [3..]
+    = addOneLeft ([] ++ [1+1] ++ [2+1] ++ [3+1] ++ ...) ...
+</code></pre>
+
+<p>The right fold version is able to evaluate elements straight away; first <code>(1+1)</code>, then <code>(2+1)</code> and so on, so <code>take'</code> can start consuming them immediately. The recursive call keeps generating elements off to the right, but if we stop needing to use the next element, Haskell&#8217;s going to be lazy and not evaluate the next recursive step.</p>
+
+<pre><code>take' 3 (addOneRight [1..])
+    = take' 3 ((1+1) : addOneRight [2..])
+    = (1+1) : take' 2 (addOneRight [2..])
+    = (1+1) : take' 2 ((2+1) : addOneRight [3..])
+    = (1+1) : (2+1) : take' 1 (addOneRight [3..])
+    = (1+1) : (2+1) : take' 1 ((3+1) : addOneRight [4..])
+    = (1+1) : (2+1) : (3+1) : take' 0 (addOneRight [4..])
+    = (1+1) : (2+1) : (3+1) : []        -- take' 0 of any list is [], we don't need to eval it.
+</code></pre>
+
+<p>In contrast, the left fold version can&#8217;t start evaluating until its recursive call reaches the end of the list.</p>
+
+<pre><code>take' 3 (addOneLeft [1..])
+    = take' 3 (addOneLeft ([] ++ [1+1]) [2..])
+    = take' 3 (addOneLeft ([] ++ [1+1] ++ [2+1]) [3..])
+    = take' 3 (addOneLeft ([] ++ [1+1] ++ [2+1] ++ [3+1]) [4..])
+    = take' 3 (addOneLeft ([] ++ [1+1] ++ [2+1] ++ [3+1] ++ ...) ...)
+</code></pre>
+
+<p>So while <code>take'</code> was able to get a list of the form <code>(1+1) : rest</code> from <code>addOneRight</code> that it could start using straight away, the left fold has to completely evaluate <code>addOneLeft</code> before it gets access to a list in that form. And because that requires evaluating a function over every element in an infinite list, that&#8217;s going to take quite some time&#8230;</p>
+
+<h3>Strictly thwarting our conquest of infinity</h3>
+
+<p>So far we&#8217;ve seen that while left folds aren&#8217;t going to do us any favours when it comes to infinite lists, right folds seem to take them in their stride. There is a wrinkle here though; if the function we pass to our right fold needs to evaluate both its arguments (or its right argument first), then the recursion is not going to terminate and we&#8217;re going to end up hanging, just like our left fold.</p>
+
+<p>The arguments a function needs to evaluate to produce a result is described as its <a href="http://www.haskell.org/haskellwiki/Non-strict_semantics">strictness</a>. A function that always needs to evaluate both its arguments is said to be strict in both its arguments. If it can sometimes get away with only evaluating some of its arguments it is non-strict (or, for example, just strict in its first argument).</p>
+
+<p>An example of a function that is strict in both its arguments is <code>(+)</code>, which needs to evaluate both its left and right sides to return a result:</p>
+
+<pre><code>*Main&gt; foldRight (+) 0 [1..10]
+55
+*Main&gt; foldRight (+) 0 [1..]
+^CInterrupted.
+</code></pre>
+
+<p>While not being able to sum an infinite list does not come as a complete surprise, even code that we imagine could return a result early will not necessarily work. Let&#8217;s try and see if the sum of our list exceeds 5:</p>
+
+<pre><code>*Main&gt; (&gt;5) ( foldRight (+) 0 [1..10] )
+True
+*Main&gt; (&gt;5) ( foldRight (+) 0 [1..] )
+^CInterrupted.
+</code></pre>
+
+<p>Why doesn&#8217;t this stop as soon as the sum reaches 20?</p>
+
+<pre><code>(&gt;20) (foldRight (+) 0 [1..])
+    = (&gt;5) (1 + foldRight (+) 0 [2..])
+    = (&gt;5) (1 + (2 + foldRight (+) 0 [3..]))
+    = (&gt;5) (1 + (2 + (3 + foldRight (+) 0 [4..])))
+    = ...
+</code></pre>
+
+<p>Even though our total is now greater than 5, our <code>(+)</code> operator isn&#8217;t able to give us a result because it needs to evaluate both its left and right sides. When it looks at <code>(1 + rest)</code>, it tries to evaluate <code>rest</code> to give us an answer, which brings it to <code>(1 + (2 + rest))</code>. Again it needs to evaluate <code>rest</code> to finish evaluating the original <code>(1 + rest)</code> call. So before we can check <code>(&gt;5)</code>, we have to wait until the infinite number of right-hand sides have been evaluated. And so again we reach for <code>Ctrl + c</code>.</p>
+
+<p>This is different to our <code>take'</code> example which used the <code>(:)</code> and <code>(++)</code> operators, which are non-strict. If a function only needs the head of a list, it can grab that from <code>1:rest</code> without having to strictly evaluate the <code>rest</code> argument.</p>
+
+<h2>Left or right?</h2>
+
+<p>So how to we know when to choose a left fold over a right fold? I&#8217;m not entirely sure, but we can make some guesses based on what we&#8217;ve found so far.</p>
+
+<p>First, if we want to work with infinite lists we&#8217;re going to need a right fold. It can be quite handy to have functions like <code>map</code> (<code>mapFn</code> in previous posts) work with infinite lists, as they can give us elegant ways of writing some functions (for example, finding all square numbers less than 1000: <code>takeWhile (&lt; 1000) (map (^2) [0..])</code>. Thanks to <a href="https://twitter.com/puffnfresh">@puffnfresh</a> for this example). So we&#8217;d write <code>map</code> as a right fold. This also means we would pick the right fold version of our <code>addOne</code> function (as it is a mapping of <code>(+1)</code> over a list).</p>
+
+<p>If we can&#8217;t work with infinite lists (say, because we&#8217;re using a strict function like <code>(+)</code>), then we have a choice. We&#8217;ve seen arguments are passed in different orders to the function being folded, and the order of evaluation is reversed, either of which may better suit what we are trying to do with our fold. For example, reversing a list using <code>foldLeft (\acc h -&gt; h:acc) []</code>, or just <code>foldLeft (flip (:)) []</code>, seems quite neat.</p>
+
+<p>I&#8217;ve seen suggestions to consider <a href="http://stackoverflow.com/a/1446803/906">loop-like vs. list recursion</a> and <a href="http://stackoverflow.com/a/1446478/906">operator associativity</a> in making a choice, but I&#8217;m not entirely sure how to apply these suggestions yet, so at the moment I&#8217;m stuck considering infinite lists and which order of evaluation suits what I&#8217;m trying to achieve.</p>
+
+<p>When trying to work out how to write a fold and which variant to use, I find it useful to think about the accumulator (<code>acc</code>) argument in the function we&#8217;re folding as <em>delving</em> into the recursion. For left fold the function is <code>(\acc head -&gt; ...)</code>, while right is <code>(\head acc -&gt; ...)</code>, and the <code>acc</code> argument in both represents the result (or eventual result) of recursing over the rest of the list. This not only helps me to work out if a function can be folded right over an infinite list, but also helps me to work out how I need to implement or compose that function to give me the required result from my fold.</p>
+
+<p>There is one other important difference between the folds we haven&#8217;t covered yet, and that is the question of efficiency in time taken and space used. We&#8217;ll look at this in the next post.</p>
+
+<h2>Conclusion</h2>
+
+<p>We&#8217;ve now seen a few key differences between left and right folds that give us an idea as to why we&#8217;ve bothered coming up with different ways of abstracting away recursion, despite both folds initially looking as if they produced identical results.</p>
+
+<p>First we saw that <code>foldRight</code> takes a function with the accumulator passed in on the right, while <code>foldLeft</code> has it passed in on the left. Depending on the arguments required to the function being folded, this can make certain folds simpler to call in one direction than the other (such as being able to use <code>(:)</code> instead of <code>(++)</code> to build up lists while maintaining its order).</p>
+
+<p>More importantly, we saw that the order of evaluation was different for the folds. Left folds start combining the first element with the initial accumulator, whereas for right folds the last element is the first combined with the initial accumulator value. This causes folding <code>(:)</code> using left fold to reverse a list, while the right fold preserves the initial order.</p>
+
+<p>This evaluation order means left folds don&#8217;t work on infinite lists (it needs to get to the final element first before it can start evaluating the expression), while right folds (depending on a function&#8217;s strictness) can sometimes work happily with an infinite list. To determine whether a function will work with infinite lists, we need to think about whether that function can return a result without accessing its second parameter (<code>acc</code>, or accumulator).</p>
+
+<p>We can use these differences to decide which type of fold to use. If we need to handle infinite lists then a right fold is our only choice. Otherwise we can consider which evaluation order seems to best suit what we&#8217;re trying to achieve. We are also yet to cover a final discriminator, the efficiency of different folds, and this will give us a bit more of a clue as to when we want to use each type of fold. We&#8217;ll look at this aspect in the next post of this series, starting with finding a significant problem with our current <code>foldLeft</code> implementation.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-03-24T01:33:00+11:00" pubdate data-updated="true">24 Mar 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-folds/'>+folds</a>, <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/03/folds-pt3-left-fold-right.html" data-via="" data-counturl="http://davesquared.net/2012/03/folds-pt3-left-fold-right.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/02/folds-pt2-from-loops-to-folds.html" title="Previous Post: Folds Pt 2: From loops to folds">&laquo; Folds Pt 2: From loops to folds</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/03/function-strictness.html" title="next Post: Function strictness">Function strictness &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/03/folds-pt3-left-fold-right.html';
+        var disqus_url = 'http://davesquared.net/2012/03/folds-pt3-left-fold-right.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

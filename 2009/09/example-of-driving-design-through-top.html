@@ -1,0 +1,410 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>An example of driving design through top-down testing - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="My last post on anonymous delegates/lambdas being a source of hidden responsibilities included a test written using the guidelines I picked up from &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2009/09/example-of-driving-design-through-top.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">An example of driving design through top-down testing</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-09-01T23:53:00+10:00" pubdate data-updated="true">01 Sep 2009</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>My last post on <a href="http://davesquared.net/2009/08/coding-tiger-hidden-responsibility.html">anonymous delegates/lambdas being a source of hidden responsibilities</a> included a test written using the <a href="http://davesquared.net/2009/08/nothin-but-net-sydney-2009-day-4.html#aug2009_nbdn_day4_writingtestssteps">guidelines I picked up from Day 4 of Nothin&#8217; but .NET</a>. This prompted <a href="http://murrayon.net/">Mike</a> to leave me some interesting questions on how we get from responsibility identification to a test and on to the design and implementation. This post is my attempt to explain the discussion and basic approach that my <a href="http://twitter.com/guywithbeard">bearded pair</a> and I went through to write the test (as usual, <a href="http://twitter.com/guywithbeard">the bearded guy</a> got everything right, any mistakes written in this post are my own). It&#8217;s not the best example, but it&#8217;s something that came up as an actual requirement and so has the benefit of realism at the expense of the clarity of a contrivance.</p>
+
+<p>Just to be clear for anyone new to my blog: I have no idea what I&#8217;m doing. This was my first attempt at applying some of the stuff I extracted from <a href="http://davesquared.net/categories/-nbdn">Nothin&#8217;but .NET</a>. It could be completely wrong, cause your computer to spontaneously combust, and/or sell your kittens to a pack of hungry dogs and then gamble the profit away at the track without leaving you a cent.</p>
+
+<h2>Starting out</h2>
+
+<p>The start of the <a href="http://davesquared.net/2009/08/coding-tiger-hidden-responsibility.html">original post</a> includes a summary of the problem we are trying to solve and the approach we&#8217;re taking. We just need a <code>PersistenceService</code> that will save an array of ints to a file as serialised binary (something like <code>persistenceService.SaveResults(results, path)</code>). And we&#8217;re going to start by writing a test for this (i.e. the <code>PersistenceService</code> is out SUT, or Subject Under Test. Yes I know it&#8217;s meant to be System Under Test, but for unit tests I like thinking of it as our subject). At each step in the process of writing our test we&#8217;ll be making design decisions about both this concern and also decisions about the concerns one abstraction level beneath our SUT.</p>
+
+<p>I&#8217;ll try and show one decision at a time to make it easier to follow, but generally when writing these things I&#8217;d go back and forth between sections and make changes based on the feedback the test was giving me.</p>
+
+<h2>A single responsibility</h2>
+
+<p>What&#8217;s the responsibility of our SUT, the <code>PersistenceService</code>? In the previous section I mentioned it &quot;will save an array of ints to a file as serialised binary&quot;. So, being a touch more abstract, our SUT&#8217;s reason for existence is to save data. Let&#8217;s put that as our scenario name.</p>
+
+<pre class="brush:csharp">
+[TestFixture]
+public class When_saving_data {}
+</pre>
+
+<p>Now I&#8217;ve seen this name be very long and descriptive. The more descriptive it is, the more design hints this can give you later on. In our case, this is all I can really think of, so let&#8217;s move on.</p>
+
+<h2>Breaking down the responsibility</h2>
+
+<p>So we know our SUT&#8217;s responsibility is to save data. We started off with the more specific requirement that we need to &quot;save an array of ints to a file as serialised binary&quot;. What&#8217;s involved to meet that requirement? We need to serialise an array of ints. We also need to open a file for writing and dump our serialised array into it. We&#8217;ll also need to dispose of the file once we&#8217;re done. Now there is no way we can possibly put all that into our SUT and still conform to the <a href="http://davesquared.net/2009/01/introduction-to-solid-principles-of-oo.html">Single Responsibility Principle (SRP)</a>. So we&#8217;ll push these responsibilities down into our SUT&#8217;s dependencies and let them handle it.
+</p>
+
+<p>Being mindful of our current level of abstraction, our SUT is responsible for saving data. We&#8217;ve thought about all the sub-responsibilities this entails, but what&#8217;s a neat way to break these up that is abstract enough to keep a simple design, but more specific than our current level of abstraction? Essentially: what is the next level of abstraction down we can use?</p>
+
+<p>For this example, let&#8217;s decide to break our &quot;save data&quot; responsibility into managing the file stream we&#8217;re going to use for writing, and writing the serialised data to a stream. Now the managing file stream stuff will need to include opening a writeable stream to a file and disposing our stream when we&#8217;re done, but that&#8217;s at a different level of abstraction, so we don&#8217;t need to worry about that just yet.</p>
+
+<p>We haven&#8217;t really done much other than thought about the problem at this stage. But this will give us some valuable information we can use to make design decisions as we write the rest of the test.</p>
+
+<h2>How does the SUT meet its responsibility?</h2>
+
+<p>We&#8217;ve now got a better idea of what is involved in getting our SUT to do what it needs to do. Let&#8217;s add an assertion/test to our scenario that describes the required behaviour.</p>
+
+<pre class="brush:csharp">
+[TestFixture]
+public class When_saving_data {
+    [Test]
+    public void Should_write_serialised_results_to_file_stream_from_given_file_path() {        
+    }
+}
+</pre>
+
+<p>What are we going to assert for this test? Well we have broken down our responsibility and we know we&#8217;re going to do stuff with a file stream. In C# this looks a bit like this:</p>
+
+<pre>
+using (var stream = File.OpenWrite(path)) {
+    //do stuff using stream
+}
+</pre>
+
+<p>We&#8217;re into implementation details here. You could conceivably put this off and use another level of abstraction, but eventually you&#8217;ll have to touch the framework and you&#8217;ll need to start dealing with these concrete constraints.</p>
+
+<p>Now in the &quot;do stuff&quot; section we want to write data to that stream. Let&#8217;s pass in a delegate that takes a stream and does stuff do it. But from the last blog post remember that creating a delegate instance is a creational responsibility. So our SUT will need something that can create this delegate instance. We also know a sub-responsibility we have is to serialise some array data, so what ever is creating our delegate will have to be able to return a delegate that can do that. Let&#8217;s fill out our assertion based on a design we might like to have to cover all this:</p>
+
+<pre class="brush:csharp">
+[TestFixture]
+public class When_saving_data {
+    [Test]
+    public void Should_write_serialised_results_to_file_stream_from_given_file_path() {        
+        fileStreamer.AssertWasCalled(x => x.Write(path, streamProcessor));
+    }
+}
+</pre>
+
+<p>Now we&#8217;ve made loads of design decisions here. We&#8217;ve got a <code>fileStreamer</code> that will handle the stream lifecycle stuff, and we&#8217;re expecting it will have a write method that will take a path, and also a <code>streamProcessor</code> function of type <code>Action&lt;Stream&gt;</code> that will write the serialised data.</p>
+
+<p>Like I said at the start, this example is a bit odd. This is because of the decision we took to have a collaborator responsible for the lifetime of the stream: opening it and disposing it. This has a nice appeal to it, but dividing the responsibilities a different way gives a very different (and in some ways a cleaner) design. (Go ahead! Try it!)</p>
+
+<h2>Where did all these object references come from?</h2>
+
+<p>So where did we get the <code>fileStreamer</code>, <code>path</code> and <code>streamProcesser</code> that our test referred to? Well, nowhere currently. What we have written is what we would <i>like</i> to have. The details of where we get all this from will go in our context.</p>
+
+<p>Now writing the context is itself a design activity. Almost everything that goes into our context will be something we&#8217;ll need to drill down into for future tests.</p>
+
+<p>First let&#8217;s start with why this whole scenario is happening &#8211; it is because our <code>PersistenceService</code> (our SUT) has been told to save some results (I already have a <code>Results</code> class from a previous test).</p>
+
+<pre class="brush:csharp">
+[SetUp]
+public void Context() {
+    sut = new PersistenceService();
+    sut.SaveResults(new Results(data), path);
+}
+</pre>
+
+<p>Now the assertion we wrote previously is checking that a <code>fileStreamer</code> received a call to its <code>Write()</code> method, so we&#8217;ll need to add one of these to our context. It also needs a <code>path</code> to save it to, so we&#8217;ll create a fake path we can use for the purpose of our test.</p>
+
+<pre class="brush:csharp">
+[SetUp]
+public void Context() {
+    path = "some path"; 
+    fileStreamer = MockRepository.GenerateStub&lt;IFileStreamer&gt;();
+    sut = new PersistenceService(fileStreamer);
+    sut.SaveResults(new Results(data), path);
+}</pre>
+
+<p>The next bit is a tad trickier: we want a <code>streamProcessor</code> delegate of type <code>Action&lt;Stream&gt;</code> that will be able to serialise data to the stream it is given as an argument. Now because the creation of this delegate is a responsibility we don&#8217;t want to put this into the SUT itself, so let&#8217;s pretend we have a class with a factory method capable of doing this. Let&#8217;s call this class <code>IIntegerArrayDataSerialiser</code> (bad name, but it&#8217;s what I called it last post). We&#8217;ll need to be able to call a method on this so that, given some <code>data</code> it will return an <code>Action&lt;Stream&gt;</code>.</p>
+
+<pre class="brush:csharp">
+[SetUp]
+public void Context() {
+    streamProcessor = stream =&gt; { };
+    data = new[] { 1, 2, 3, 4, 5 };
+    path = &quot;some path&quot;; 
+    fileStreamer = MockRepository.GenerateStub&lt;IFileStreamer&gt;();
+    serialiser = MockRepository.GenerateStub&lt;IIntegerArrayDataSerialiser&gt;();
+    serialiser.Stub(x =&gt; x.GetStreamSerialiser(data)).Return(streamProcessor);
+
+    sut = new PersistenceService(fileStreamer, serialiser);
+    sut.SaveResults(new Results(data), path);
+}</pre>
+
+<p>Let&#8217;s quickly review the design decisions we have made here. Our SUT will have two dependencies injected, a <code>IFileStreamer</code> for managing the lifetime of a file stream, and a <code>IIntegerArrayDataSerialiser</code>, which will create an <code>Action&lt;Stream&gt;</code> to serialise data to the stream. By stubbing a call to our <code>IIntegerArrayDataSerialiser</code> we have determined it will have a method called <code>GetStreamSerialiser()</code> which takes some <code>data</code> and returns a delegate to write it out to the stream.</p>
+
+<div class="note"><b>Note: </b> We&#8217;ve chosen to violate the OCP here with a reference to a particular serialiser. We could have made the entire thing more generic but it wasn&#8217;t required. This should be fine provided we are happy to take the hit if this changes in future. With any luck the class will be small enough to refactor easily if this requirement emerges.</div>
+
+<h2>Passing our scenario</h2>
+
+<p>We obviously need a constructor that takes our two dependencies (Resharper helps here). We also need a <code>SaveResults(Results results, string path)</code> method.</p>
+
+<pre class="brush:csharp">
+public class PersistenceService {
+    IFileStreamer _fileStream;
+     IIntegerArrayDataSerialiser _serialiser;
+
+    public PersistenceService(IFileStreamer fileStream, IIntegerArrayDataSerialiser serialiser) {
+        _fileStream = fileStream;
+        _serialiser = serialiser;
+    }
+
+    public void SaveResults(Results results, string filePath) {
+        //TODO
+    }    
+}
+</pre>
+
+<p>Now let&#8217;s have a look at our assertion, as well as a line within our test context:</p>
+
+<pre class="brush:csharp">
+//Assertion:
+fileStreamer.AssertWasCalled(x => x.Write(path, streamProcessor));
+
+//Context, stubbed IIntegerArrayDataSerialiser call:
+serialiser.Stub(x =&gt; x.GetStreamSerialiser(data)).Return(streamProcessor);
+</pre>
+
+<p>This means our SUT&#8217;s <code>SaveResult()</code> method needs to get a stream processor from its <code>IIntegerArrayDataSerialiser</code>, then use it in a call to the <code>IFileStreamer.Write()</code> method.</p>
+
+<pre class="brush:csharp">
+public void SaveResults(Results results, string filePath) {
+    _fileStream.Write(filePath, _serialiser.GetStreamSerialiser(results.GetData()));
+}    
+</pre>
+
+<p>And we&#8217;re done!</p>
+
+<h2>Wrap up and next steps</h2>
+
+<p>Notice how when we go to the trouble to break down our responsibilities our implementation becomes trivial, and the test becomes pretty simple too. We didn&#8217;t need to dig deep into the capabilities of our mocking framework, as we already had references to all the arguments being used and could easily stub out the call we needed. The hardest bit was breaking down the problem. And this wasn&#8217;t a particularly nice breakdown (the use of delegates made it a bit uglier than necessary), but even still it made things very simple.</p>
+
+
+<p>Better yet, we have a clear idea of the next steps to take. We have two interfaces, <code>IFileStreamer</code> and <code>IIntegerArrayDataSerialiser</code>, that do not have implementations. But our test has told us exactly what methods they need so far, and how they are to behave. Our <code>IFileStreamer</code> will need a write method and it should open a file stream, call the stream processor, and dispose of the stream (we can work out how many responsibilities this actually is while writing the test &#8211; we may choose to push some of it out into other dependencies). Our <code>IIntegerArrayDataSerialiser</code> will need a <code>GetStreamSerialiser()</code> method that given the data, will create an <code>Action&lt;Stream&gt;</code> delegate that will serialise the data to the stream (again, we&#8217;ll design this via the test, but an easy way to do it is to wrap <code>BinaryFormatter</code> from the .NET Framework<).</p>
+
+<p>One thing that probably isn&#8217;t clear from this post is that both the test and the implementation took only a few minutes to write. The hardest bit is decomposing the problem and figuring out what abstractions to use, but the very act of writing the test helps give you immediate feedback as to how well you are going with this. And better yet, there&#8217;s no stopping to think &quot;what&#8217;s next?&quot;, we just jump straight to the next lot of tests.</p>
+
+<p>For the record, we ended up with a change in requirements and refactored this approach, including scrapping the stream processor delegate and using something simpler. The good thing about having such small pieces was that this was really easy to do.</p>
+
+<p>I hope this has helped give people some ideas as to how tests can be used to drive out design and keep classes small and focussed.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2009-09-02T22:15:41+10:00" class="updated">Updated 02 Sep 2009</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/tdd/'>tdd</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2009/09/example-of-driving-design-through-top.html" data-via="" data-counturl="http://davesquared.net/2009/09/example-of-driving-design-through-top.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2009/08/coding-tiger-hidden-responsibility.html" title="Previous Post: Coding tiger, hidden responsibility">&laquo; Coding tiger, hidden responsibility</a>
+      
+      
+        <a class="basic-alignment right" href="/2009/09/configuring-dependencies-dependencies.html" title="next Post: Configuring dependencies' dependencies with StructureMap 2.5.1 [.NET,C#]">Configuring dependencies' dependencies with StructureMap 2.5.1 [.NET,C#] &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2009/09/example-of-driving-design-through-top.html';
+        var disqus_url = 'http://davesquared.net/2009/09/example-of-driving-design-through-top.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,456 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>A lengthy approach to Haskell fundamentals - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="At my work a few of us developers are learning Haskell, starting with some exercises from Tony Morris’s YOW workshop last year. One of these &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/05/lengthy-approach-to-haskell.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">A lengthy approach to Haskell fundamentals</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-05-06T20:50:00+10:00" pubdate data-updated="true">06 May 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>At my work a few of us developers are learning Haskell, starting with some exercises from <a href="http://twitter.com/dibblego">Tony Morris’s</a> YOW workshop last year. One of these exercises involves re-implementing some common operations on lists, and this has proved a great way to learn some of the basics of Haskell.</p>
+<p>For this post we’ll be working through implementing our own version of the <code>length</code> function, which takes a list and returns a integer reflecting the length of that list.</p>
+<p>We’ll start with this non-functioning implementation, which we’ll call <code>length'</code> so it doesn’t collide with Haskell’s built-in function (<code>'</code> is a legal character to have in Haskell identifiers):</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; = error &quot;todo&quot;</code></pre>
+<!-- more -->
+<p>To run our function, save it in <code>length.hs</code>, and run <code>ghci length.hs</code> to load it into GHCi, the Haskell REPL. If you update the file, run <code>:r</code> to reload it. See “Loading a Haskell file” in my <a href="http://davesquared.net/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quickstart</a> for more information on setting this up.</p>
+<p>If we run this with GHCi we get:</p>
+<pre><code>ghci&gt; length&#39; [1,2,3]
+*** Exception: todo</code></pre>
+<p>Great, let’s get started.</p>
+<h2 id="type-signatures">Type signatures</h2>
+<p>The first line is the type signature of our function. The <code>::</code> means “has type”<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. To the right of <code>::</code> are the function argument types, and the return type. In this case we can see that <code>length'</code> takes <code>[a]</code> (a list of <code>a</code>) and returns an <code>Int</code>.</p>
+<p><code>Int</code> is pretty clear, but what’s <code>a</code>? It is a <em>type parameter</em>, which means it can stand in for any type. We don’t mind what kind of type is in the list passed to <code>length'</code>, just so long as we get a list. This is analogous to <code>List&lt;T&gt;</code> in C#.</p>
+<p>Regardless of whether we have <code>[1,2,3]</code>, <code>["hello", "world"]</code> or the empty list <code>[]</code>, we can still work out the length of the list without knowing what type of elements are in it.</p>
+<h2 id="functions-with-multiple-arguments">Functions with multiple arguments</h2>
+<p>Our <code>length'</code> function only takes one argument. When we have multiple arguments we separate them with multiple <code>-&gt;</code> operators. One example is the built-in <code>const</code> function. We can implement our own version like this:</p>
+<pre><code>const&#39; :: a -&gt; b -&gt; a
+const&#39; first second = first</code></pre>
+<p>This takes an <code>a</code> and a <code>b</code> as an argument, and returns an <code>a</code>. The type signature gives us a fair idea of what it is doing without reading the implementation: <code>const'</code> takes two arguments, and returns the first one. This is exactly what the implementation does. The left-hand side of the <code>=</code> is the function name and argument names, and the right-hand side is the value that the function will evaluated to.</p>
+<div class="note">
+<strong>Aside:</strong> I wrote ‘evaluated’ rather than ‘it returns’ to highlight an at first subtle difference between imperative and functional programming. In imperative programs we step through a series of instructions in a procedure and return a value. In functional programming, functions get evaluated and reduced according to their definitions. It’s a lot like algebra: if we have <code>y = x^2</code>, and <code>x = 2*z</code>, we can evaluate <code>y</code> as <code>4*z^2</code>. We’re not executing instructions so much as substituting rules to evaluate functions to their simplest form.
+</div>
+<p>Notice that the first argument to <code>const'</code> is some type <code>a</code>, while the second is some type <code>b</code>. Again, this means that <code>a</code> and <code>b</code> can be any types, but it also means that they don’t have to have any particular relationship. If the type was <code>a -&gt; a -&gt; a</code>, then all the arguments and the return value would have to be of the same type. By having <code>a</code> and <code>b</code>, we’re saying that while they could both be the same type, they could also vary independently. We could pass an <code>Int</code> and <code>String</code> for example. We’ve also said the return value is an <code>a</code>, so that means it will have to return a value that is the same type as the first argument.</p>
+<p>Let’s experiment a little with our <code>const'</code> function:</p>
+<pre><code>ghci&gt; const&#39; 42 100
+42
+ghci&gt; const&#39; &quot;hello&quot; 12
+&quot;hello&quot;
+ghci&gt; const&#39; &#39;a&#39; [1,2,3]
+&#39;a&#39;</code></pre>
+<p>We can see that arguments are separated by spaces when passed to functions. Rather than writing <code>f(x,y,z)</code>, we write <code>f x y z</code>.</p>
+<h2 id="pattern-matching">Pattern matching</h2>
+<p>Let’s get back to our <code>length'</code> function. To start, let’s consider the length of an empty list <code>[]</code>.</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; [] = 0</code></pre>
+<p>We’re telling Haskell that when it needs to evaluate an expression <code>length' []</code>, it can replace it with <code>0</code>.</p>
+<pre><code>ghci&gt; length&#39; []
+0
+ghci&gt; length&#39; [42]
+*** Exception: lengthy.hs:2:1-14: Non-exhaustive patterns in function length&#39;</code></pre>
+<p>This works fine with the empty list, but Haskell doesn’t know how to evaluate the expression when it has a list that doesn’t match the pattern we gave it (in this case, it fails to match a list with a single element in it). We can make our function handle additional cases by providing other patterns it can match. Haskell will try each pattern, from top to bottom, and evaluate the first one that matches (or raise an exception about non-exhaustive patterns if there is no match).</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; [] = 0
+length&#39; [a] = 1
+length&#39; [b,a] = 2
+
+ghci&gt; length&#39; [42]
+1
+ghci&gt; length&#39; [42,24]
+2
+ghci&gt; length&#39; [42,24,37]
+*** Exception: lengthy.hs:(2,1)-(4,17): Non-exhaustive patterns in function length&#39;</code></pre>
+<p>This seems to be working, but this approach isn’t exactly going to scale well to all possible inputs. Luckily for us, Haskell can do some more advanced matching based on the structure of the data type being passed to the function.</p>
+<h2 id="the-list-type">The list type</h2>
+<p>The list data type we’re using is made up of two different types of values. <code>[a]</code> can either be the empty list <code>[]</code>, or be an element joined to the front of a <code>[a]</code> using a <code>:</code>, or <em>cons</em> operator (for <em>construct</em> I think). Its definition would probably look a bit like this (where the <code>|</code> means <code>or</code>).</p>
+<pre><code>data [a] = [] | a : [a]</code></pre>
+<p>At first this sounds a bit strange: a list is either empty or an element and a list? But if we step through it, it actually makes a lot of sense. <code>[]</code> is a valid list, so <code>1:[]</code> is also a valid list (an element <em>cons’d</em> on to another list). Which means we could also do <code>2:(1:[])</code>, and <code>3:(2:(1:[]))</code>, and so on. This is a <em>recursive</em> definition; a list is defined by an element cons’d on to a list. The recursion terminates when we get to the empty list <code>[]</code>.</p>
+<div class="note">
+<strong>Aside:</strong> GHCi prints <code>1:(2:(3:[]))</code> as <code>[1,2,3]</code>, the latter just being a prettified version of the former. Because <code>:</code> is <a href="/2012/04/associativity.html/">right-associative</a>, we can also write it as <code>1:2:3:[]</code>. Finally, because lists are so common, Haskell has some short-hand forms for defining lists, such as <code>[1,2,3]</code> as we’ve already seen, but also <code>[1..10]</code> for a list from one to ten, <code>[2,4..10]</code> gives even numbers from two to ten, and <code>[10..]</code> gives a list that starts at ten and goes on toward infinity.
+</div>
+<p>We now know enough to be able to specify all the patterns we need for our <code>length'</code> function. Our input list will either be <code>[]</code>, or in the form <code>a : [a]</code>. Together these two patterns cover every list that can be passed to our function (in other words, they <em>exhaustively</em> cover all the inputs).</p>
+<p>The first element in the pattern <code>a : [a]</code> is called the <em>head</em> of the list, while the second is called the <em>tail</em> (i.e. the rest). We can think of list <code>[1,2,3]</code> as <code>1:[2,3]</code> (or <code>1:(2:(3:[]))</code>). In this case <code>1</code> is the head, and <code>[2,3]</code> is the tail. We can also have <code>3:[]</code>, so <code>3</code> is the head, and the empty list <code>[]</code> is the tail.</p>
+<h2 id="recursion">Recursion</h2>
+<p>So how do we put our knowledge of lists together to work out the length of a list. We saw that lists themselves are defined <a href="https://www.google.com.au/search?q=recursion">recursively</a> (a list is defined in terms of itself), and we can use that same approach to define a list’s length.</p>
+<p>Let’s take another look at our current version of <code>length'</code>:</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; [] = 0
+length&#39; [a] = 1
+length&#39; [b,a] = 2</code></pre>
+<p>We can rewrite the last line in the head / tail pattern:</p>
+<pre><code>length&#39; (b:[a]) = 2</code></pre>
+<p>The second last line says that <code>length' [a] = 1</code>, so combining those two lines gives us:</p>
+<pre><code>length&#39; (b:[a]) = 1 + length&#39; [a]</code></pre>
+<p>Here we’ve defined the length of a two element list as one plus the length of a one element list. We can generalise this to any list: the length of a list is one plus the length of the tail of the list. Using this fact, we can finally get a working version of our function:</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; [] = 0
+length&#39; (head:tail) = 1 + length&#39; tail</code></pre>
+<p>Let’s trace through an example:</p>
+<pre><code>length&#39; [1,2,3]
+  = length&#39; 1:[2,3]
+  = 1 + length&#39; 2:[3]
+  = 1 + 1 + length&#39; 3:[]
+  = 1 + 1 + 1 + length&#39; []
+  = 1 + 1 + 1 + 0
+  = 3</code></pre>
+<p>Our <code>length'</code> function keeps calling itself until it gets to <code>length' []</code>, which equals <code>0</code>. This is called the <em>stopping case</em> (also known as the <em>base</em> or <em>terminating</em> case), which does not make any further recursive calls and so causes the chain of function calls stop. And now we can handle all kinds of lists:</p>
+<pre><code>ghci&gt; length&#39; []
+0
+ghci&gt; length&#39; [1,2,3,4,5]
+5
+ghci&gt; length&#39; [1..2001]
+2001</code></pre>
+<h2 id="the-end-of-the-beginning">The end of the beginning</h2>
+<p>The current version of our function is fine, and we’d be quite entitled to stop here. But we can take this example quite a bit further to help us understand more about Haskell, and also to give us a glimpse into more idiomatic Haskell style. I think I’m right in saying that it would be quite rare for an experienced Haskeller to write a function like this (I’m a novice still, so I can’t say for sure). So let’s press on!</p>
+<h2 id="folds">Folds</h2>
+<p>The recursive pattern we’ve defined for <code>length'</code> crops up all over the place when dealing with lists. It’s so common that this way of traversing a list has been <a href="http://davesquared.net/categories/-folds">abstracted into dedicated functions, called <em>folds</em></a>. Folds reduce the amount of code we need to write, have mathematical properties that can help us prove things about our code, and provide instantly recognisable patterns of recursion. At first I found folds much harder to read than the equivalent explicit recursive code, but after a bit of practice I find them as least as clear as their explicit or imperative equivalents, and generally prefer them to long-hand recursion.</p>
+<p>To work out the length of our list we’re going to have to traverse every element in our list, which means our function is never going to work on an infinite list. This is a clue that we want a left fold (to work on infinite lists we have to use a right fold. For everything else we’ll pretty much use a left fold).</p>
+<div class="note">
+<strong>Aside:</strong> How can we work with infinite lists? One example is mapping a function over an infinite list, then only taking the first 10 elements. In Haskell this works fine. But getting the length of an infinite list then taking a piece of the answer is never going to work.
+</div>
+<p>I’ve <a href="http://davesquared.net/categories/-folds">cataloged my attempts to understand folds in excruciating detail</a>, so take a look at that if you’re keen to see how explicit recursion translates to folds, but for now let’s write an imperative version of left fold using C# to illustrate how it works:</p>
+<div class="bogus-wrapper">
+<notextile>
+<figure class="code">
+<figcaption>
+<span></span>
+</figcaption>
+<div class="highlight">
+<pre><code class='csharp'><span></span><span class="k">public</span> <span class="k">static</span> <span class="n">TResult</span> <span class="n">FoldLeft</span><span class="p">&lt;</span><span class="n">TItem</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;(</span>
+    <span class="n">Func</span><span class="p">&lt;</span><span class="n">TResult</span><span class="p">,</span> <span class="n">TItem</span><span class="p">,</span> <span class="n">TResult</span><span class="p">&gt;</span> <span class="n">combine</span><span class="p">,</span>
+    <span class="n">TResult</span> <span class="n">initialValue</span><span class="p">,</span>
+    <span class="n">IEnumerable</span><span class="p">&lt;</span><span class="n">TItem</span><span class="p">&gt;</span> <span class="n">items</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">accumulator</span> <span class="p">=</span> <span class="n">initialValue</span><span class="p">;</span>
+    <span class="k">foreach</span> <span class="p">(</span><span class="kt">var</span> <span class="n">item</span> <span class="k">in</span> <span class="n">items</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">accumulator</span> <span class="p">=</span> <span class="n">combine</span><span class="p">(</span><span class="n">accumulator</span><span class="p">,</span> <span class="n">item</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">accumulator</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+</div>
+</figure>
+</notextile>
+</div>
+<p>The first argument is itself a function that combines a list item with the value accumulated during the previous calls. The second argument gives the case for the empty list (the stopping case for the recursion). Finally, we return the accumulated result.</p>
+<p>Here’s our rewritten function:</p>
+<pre><code>import Data.List
+
+length&#39; :: [a] -&gt; Int
+length&#39; list = foldl&#39; onePlusLengthOfTail 0 list
+    where onePlusLengthOfTail tailLength listElement = 1 + tailLength</code></pre>
+<p>Despite looking completely different, this works exactly the same as our previous <code>length'</code> function. Let’s look at some key features.</p>
+<p>First, we’ve added <code>import Data.List</code> so that we can use the <code>foldl'</code> (fold left) function.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a> We’ll omit this line from later code samples, but be aware when you see <code>foldl'</code> you’ll need to have the correct <a href="http://www.haskell.org/haskellwiki/Import">import</a> in the source file.</p>
+<p>Next, we now only need the one input pattern, as our fold will take care of the empty list case and the head/tail recursion stuff. The empty list case returns <code>0</code>, and you can see that is the second parameter to <code>foldl'</code>.</p>
+<p>We’re also using a <code>where</code> clause. This defines a function called <code>onePlusLengthOfTail</code>, but it can only be called from our <code>length'</code> function. It is like a little private function for the sole use of its parent function. <code>onePlusLengthOfTail</code> combines a list element with the accumulated result of the recursion. In this case we’re saying that for each list element we want to add one plus whatever the result was of recursively calling the previous calls, which is exactly what our previous implementation did.</p>
+<h2 id="lambdas">Lambdas</h2>
+<p>Pulling out helper functions like <code>onePlusLengthOfTail</code> is often helpful, but in some cases it adds little but noise. Often with Haskell the types will often tell us more information than names do, so once we’re familiar with the fold syntax naming the combining function will typically give us little benefit.</p>
+<p>Instead, we can include the function in-line using lambda notation. Haskell’s syntax for lambdas is quite similar to C#’s. In C# we’d write <code>x =&gt; x + 1</code>, in Haskell <code>\x -&gt; x + 1</code>.</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; list = foldl&#39; (\acc x -&gt; 1+acc) 0 list</code></pre>
+<p>The <code>\</code> symbol was chosen for its slight resemblance to the lambda symbol ‘λ’. After that are the function arguments, which I’ve called <code>acc</code> for accumulator (it is the accumulated value of our recursion) and <code>x</code> for whatever list element we’re looking at. Now we don’t actually use the value of <code>x</code>, so Haskellers would generally replace it with an underscore like this: <code>\acc _ -&gt; 1+acc</code>. This isn’t actually an argument name, it is Haskell’s symbol for a catch-all pattern. It will match anything, a bit like the <code>*</code> wildcard character typically used for searches.</p>
+<h2 id="partial-function-application">Partial function application</h2>
+<p>Remember our <code>const'</code> function which takes two arguments, ignores the second and returns the first? What happens when we call it with one argument?</p>
+<p>Let’s use GHCi’s <code>:t</code> command to check it’s type:</p>
+<pre><code>ghci&gt; :t const&#39;
+const&#39; :: a -&gt; b -&gt; a
+ghci&gt; :t const&#39; &#39;a&#39;
+const&#39; &#39;a&#39; :: b -&gt; Char</code></pre>
+<p>Normally <code>const'</code> is type <code>a -&gt; b -&gt; a</code>, but <code>const' 'a'</code> is type <code>b -&gt; Char</code>. What’s going on?</p>
+<p>Well, all functions in Haskell are <em>curried</em>, which means they only take one argument, and return a function that takes the rest. So the real type of <code>const'</code> is actually <code>a -&gt; (b -&gt; a)</code>; it takes an <code>a</code> and returns a function which takes a <code>b</code> and returns an <code>a</code>. Because of the <a href="/2012/04/associativity.html">associativity</a> of the <code>-&gt;</code> operator and of function application, we can write it either way. This also means we can call Haskell functions with as many or as few of the required arguments as we like, and we’ll get back a function to finish the job as soon as we provide the remainder of the arguments.</p>
+<p>This is known as partial application. We can partially apply the arguments to a function to get back another function. Once all the arguments have been passed in we’ll get the final value.</p>
+<p>The best example I can think of to illustrate this is the <code>(+)</code> function. Normally this would take 2 arguments (such as <code>4 + 1</code>, or <code>(+) 4 1</code>, both are legal in Haskell. The former is called <em>infix</em> position, and the latter is <em>function notation</em>.) Let’s just apply one argument to <code>(+)</code>:</p>
+<pre><code>ghci&gt; let addOne = (1+)
+ghci&gt; :t addOne
+addOne :: Integer -&gt; Integer
+ghci&gt; addOne 4
+5
+ghci&gt; addOne 72
+73</code></pre>
+<p>Here we’ve partially applied the argument <code>1</code> to <code>(+)</code>, which has returned a function that takes the next argument and returns the result. We can then call <code>addOne</code> as a single argument function.</p>
+<h2 id="back-on-topic-please-dave">Back on topic please Dave!</h2>
+<p>But we are still on topic! Look at our <code>length'</code> function:</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; list = foldl&#39; (\acc _ -&gt; 1+acc) 0 list</code></pre>
+<p>It takes a <code>[a]</code> and returns an <code>Int</code>. Now the <code>foldl'</code> on the right hand side takes a function, an <code>Int</code> and a <code>[a]</code> and returns an <code>Int</code>. If we think back to partial application, that means that <code>foldl' (\acc _ -&gt; 1+acc)</code> takes an <code>Int</code> and a <code>[a]</code> and returns an <code>Int</code>. Which means that <code>foldl' (\acc _ -&gt; 1+acc) 0</code> takes a <code>[a]</code> and returns an <code>Int</code>.</p>
+<p>Hold on, read the last sentence again! Both <code>length'</code> and <code>foldl' (\acc _ -&gt; 1+acc) 0</code> are of type <code>[a] -&gt; Int</code>. So really:</p>
+<pre><code>length&#39; = foldl&#39; (\acc _ -&gt; 1+acc) 0 </code></pre>
+<p>We don’t need to explicitly add the <code>list</code> argument, as <code>foldl' (\acc _ -&gt; 1+acc) 0</code> is going to return a function which takes a list anyway. Just as we were able to write <code>let addOne = (1+)</code>, we can assign the name <code>length'</code> to <code>foldl' (\acc _ -&gt; 1+acc) 0</code>.</p>
+<p>The general rule is whenever an argument appears on the end of both the left and right hand sides of our function definition, we can drop it off thanks to partial application. (The one catch is when the last argument is surrounded by parentheses such as <code>f (g x)</code>. We need to change that a little before we can drop off the <code>x</code>. We’ll see how to do that shortly.)</p>
+<p>This may initially seem a little pointless, but we’ll rarely see Haskell code that keeps an unrequired argument on both sides so it is a good idea to get familiar with it. Once we get comfortable with partial application keeping the arguments just appears wasteful, and will stick out like a sore thumb.</p>
+<h2 id="point-free">Point free</h2>
+<p>Not explicitly referencing arguments is called <a href="http://buffered.io/posts/point-free-style-what-is-it-good-for">point-free style</a>. While the particular case mentioned above (dropping an argument referenced on both sides of a function definition) is pretty essential for idiomatic Haskell, there is a little more debate over point-free style, where every effort is made to not reference any arguments at all. (Hence why it is also known, mainly jokingly, as “point-less” style :).)</p>
+<p>Much like folds, I initially couldn’t see why anyone would want to write in point-free style as it seems to make code so much more difficult to read. Again, after a little time adjusting to it, I found that I could start to read it quite naturally, with the added benefit of being concise, and making the all-important composition and chaining of functions much neater. That said, I’d guess that even the most ardent point-free fans would acknowledge that there are some cases where having explicit arguments is clearer, so the aim is not to dogmatically pursue point-free functions, but to keep an eye out for where heading in that direction will help our code. Love it or hate it, I’d suggest getting comfortable with reading point-free style as you’ll see lots of Haskell code written like this, and it is one of those things you need to give yourself a chance to get used to.</p>
+<p>To move a bit closer to a point-free function, let’s get rid of the reference to the unused second argument of our lambda.</p>
+<pre><code>(\acc _ -&gt; 1+acc)</code></pre>
+<p>This is a function which takes an <code>Int</code> and an <code>a</code>, ignores that <code>a</code> and returns a new <code>Int</code>. Ignores the second argument huh? That sounds a lot like our <code>const'</code> function:</p>
+<pre><code>(\acc x -&gt; const&#39; (1+acc) x)</code></pre>
+<p>We’ve had to put the <code>x</code> back in for now so we can reference it on the right hand side of our function definition, but now we have the <code>x</code> as the last argument on both sides. And from our work with partial application we know that means we can drop it:</p>
+<pre><code>(\acc -&gt; const&#39; (1+acc))</code></pre>
+<p>Now we’re partially applying one argument to <code>const'</code>, so it will return a function which takes another argument, ignores it and return the first argument it was initially called with (<code>1+acc</code>).</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; = foldl&#39; (\acc -&gt; const&#39; (1+acc)) 0 </code></pre>
+<h2 id="function-composition">Function composition</h2>
+<p><a href="http://en.wikipedia.org/wiki/Function_composition_(computer_science)">Function composition</a> is a way of combining functions that each take one argument. Say we have two functions, <code>f :: b -&gt; c</code> and <code>g :: a -&gt; b</code>. We can compose <code>f</code> and <code>g</code> such that:</p>
+<pre><code>(f . g) x = f (g x)</code></pre>
+<p>The <code>(.)</code> operator means composition. Notice that <code>g x</code> returns a <code>b</code>, and <code>f</code> takes a <code>b</code> and returns a <code>c</code>. So <code>f . g :: a -&gt; c</code>. Again, initially confusing, ultimately awesome. Composition means we can wire up lovely pipelines of functions that values flow through, without the traditional imperative steps of call this, assign to that, call another, assign to new variable and so on.</p>
+<p>Now we’ve now got this little <code>const' (1+acc)</code> expression which is just pleading with us to use function composition, but it’s a little hard to see at the moment. It would be clearer if we used our <code>addOne</code> function from earlier. Remember we wrote <code>let addOne = (1+)</code>? Well in Haskell this function already exists, and is called <code>succ</code> for <em>successor</em>.</p>
+<pre><code>const&#39; (succ acc)</code></pre>
+<p>This is now in the form <code>f (g x)</code>, where <code>f = const'</code> and <code>g = succ</code>. So substituting in for <code>f . g</code>:</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; = foldl&#39; (\acc -&gt; (const&#39; . succ) acc) 0 </code></pre>
+<p>And look what’s appeared on both sides of our lambda: <code>\acc -&gt; (const' . succ) acc</code>. Thanks to partial application we can drop off the <code>acc</code> argument and we have:</p>
+<pre><code>length&#39; :: [a] -&gt; Int
+length&#39; = foldl&#39; (const&#39; . succ) 0 </code></pre>
+<p>It’s small, it’s beautiful, it actually works, and if you’re just starting out it’s probably utterly incomprehensible. Give it a little while though. With a bit of practice it’ll be second nature to you in next to no time. (I didn’t believe this either, but after a couple of months I’ve been suitably warped by the small amount of functional programming I’ve done that I’m actually starting to prefer this. :))</p>
+<h2 id="wat">Wat?</h2>
+<p>While we’re waiting for our brains to warp enough to be able to read this fluently, let’s look at some quick tips to help us decipher it.</p>
+<p>First, we have our function name <code>length'</code> and the type signature. It takes a list of <code>a</code> and returns an <code>Int</code>. It’s a pretty safe bet that it is intended to return the length of a list.</p>
+<p>Next, we can see it’s using a fold, which means it is recursing over the list. It has a <code>0</code> as the second parameter to the fold, so that means when given the empty list the length will be <code>0</code>.</p>
+<p>Now we have this strange point-free function passed to <code>foldl'</code>. I find it easiest to read composed functions is to go from right to left. Our composed function will call <code>succ</code> on an argument (add one to it), and call <code>const'</code> on the result, which will take two arguments but ignore the second. So we’re adding one to the first argument passed in. (Another approach is to translate back to <code>acc -&gt; const' (succ acc)</code>, and take as many steps reversing the process we went through to get to the point it becomes clear.)</p>
+<p>Finally, we know (or can look up via <a href="http://www.haskell.org/hoogle/">Hoogle</a> or using <code>:t</code> in GHCi) that <code>foldl'</code> calls the <code>const'.succ</code> function with first the accumulated value of the fold, and the current list item. So we’re going to start with our base case of 0, and for each list item we’re going to add 1 to it. Which will give us the length of the list.</p>
+<h2 id="learning-cliff">Learning cliff</h2>
+<p>I found these topics quite confusing when I first encountered them. If you’re feeling similarly, it’s worth keeping in mind that most of us have been trained to think of programming imperatively rather than functionally, so it is naturally going to take some time to adjust to ideas like reducing expressions, folds, function composition and point-free style. I really believe it is worth persisting with. Even if you don’t end up using it regularly, it is worth it to get a different way of looking at programming problems.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this post we’ve seen some of the basics of Haskell’s type system and function syntax, and applied pattern matching on lists and recursion to implement our own <code>length'</code> function.</p>
+<p>We’ve then seen how to replace the explicit recursion code with a fold, before applying partial application and function composition to make the code very concise.</p>
+<p>These techniques are very powerful (more so than this simple example suggests), and by learning to use them we can get real, safe reuse of code by partially applying and composing small, very cohesive functions in a myriad of ways. Even in this small example we used <code>foldl'</code>, <code>const</code> and <code>succ</code>; we wrote almost no code, and instead just wired together existing pieces. Coupling to something as fundamental as “adding one” is a much safer kind of reuse than I’m used to being bitten with in other programming paradigms.</p>
+<p>I hope you enjoyed this post. As you can probably tell, I’m really enjoying learning a different perspective on programming, and I hope I’ve managed to pass some of that along. Please let me know any parts are unclear so I can try and improve them.</p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p> <a href="http://www.haskell.org/haskellwiki/Pronunciation">Pronounciation guide</a>, HaskellWiki<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>Haskell provides a <code>foldl</code> function in the default module it loads, but in practice the <code>foldl'</code> variant is almost always preferred for left folds as it is more space efficient and can prevent stack overflows when working with large lists. See <a href="http://www.haskell.org/haskellwiki/Foldr_Foldl_Foldl&#39;">Foldr Foldl Foldl’</a> on HaskellWiki for a detailed explanation.<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2012-05-08T10:23:00+10:00" class="updated">Updated 08 May 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/05/lengthy-approach-to-haskell.html" data-via="" data-counturl="http://davesquared.net/2012/05/lengthy-approach-to-haskell.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/05/fp-newbie-learns-functors.html" title="Previous Post: FP newbie learns a little about functors">&laquo; FP newbie learns a little about functors</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/05/towards-point-free-in-csharp.html" title="next Post: Towards point-free in C#">Towards point-free in C# &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/05/lengthy-approach-to-haskell.html';
+        var disqus_url = 'http://davesquared.net/2012/05/lengthy-approach-to-haskell.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

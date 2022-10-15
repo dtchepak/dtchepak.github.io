@@ -1,0 +1,477 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Folds Pt 2: From loops to folds - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="This post is part 2 of a series on folds. Folds seem to crop up quite often in functional programing, and this series is my attempt to learn a little &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Folds Pt 2: From loops to folds</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-02-25T15:35:00+11:00" pubdate data-updated="true">25 Feb 2012</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This post is part 2 of a <a href="/categories/-folds">series on folds</a>. Folds seem to crop up quite often in functional programing, and this series is my attempt to learn a little about the topic.</p>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we found that a fold is a way of abstracting recursive operations over lists. In this post we&#8217;ll look at a different way of folding; one that traverses lists in a similar way to a <code>for</code>/<code>foreach</code> loop.</p>
+
+<!-- more -->
+
+
+<p>The examples are in Haskell, but I&#8217;m not going to assume you&#8217;ve had a chance to try it and so I&#8217;ll try to explain it as I go. Hopefully the concepts will make sense even if you&#8217;re not familiar with Haskell. If you find yourself getting lost in the syntax, I&#8217;ve written a <a href="/2012/02/haskell-newbie-attempts-a-haskell-quick-start.html">Haskell quick start</a> that goes through all the bits we&#8217;ll use.</p>
+
+<h2>Previously, on davesquared.net&#8230;</h2>
+
+<p><a href="/2012/02/folds-pt1-from-recursion-to-folds.html">Last time</a> we looked at recursive functions over lists like this one:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">add</span> <span class="ow">::</span> <span class="kt">Num</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>    <span class="c1">-- Take a list of numbers, return a number</span>
+<span class="nf">add</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">head</span> <span class="o">+</span> <span class="n">add</span> <span class="n">tail</span>
+<span class="nf">add</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="mi">0</span>
+</code></pre></div></figure>
+
+
+<p>We defined our <code>add</code> function as returning the head of the list added to the result of recursively calling <code>add</code> on the rest of the list (known as the tail). We also defined a stopping condition for our recursion: when <code>add</code> is called with an empty list <code>[]</code>, it returns <code>0</code>. Tracing through a call to this function showed something like this:</p>
+
+<pre><code>add [1,3,5]
+    = add (1:[3,5])         -- split list into head and tail: 1 and [3,5]
+    = 1 + (add [3,5])
+    = 1 + (3 + (add [5]))
+    = 1 + (3 + (5 + (add [])))
+    = 1 + (3 + (5 + 0))     -- recursive calls now stopped. Time to evaluate the expression.
+    = 1 + (3 + 5)
+    = 1 + 8
+    = 9
+</code></pre>
+
+<p>Here we evaluate the head of the list, and add it to the result of the expression accumulating on the right. Once the recursion reaches the stopping condition we&#8217;ve got a long line of brackets accumulated on the right, and we can start evaluating them all until they reduce back to our answer.</p>
+
+<p>In the last post we looked at a few recursive functions like this, and found they all had a few things in common: a seed value to return for the empty list case, and a two argument function that is applied to the head of the list and the accumulated result of calling the original function on the tail of the list. Using this realisation we abstracted the common bits of these recursive operations into a <code>fold</code> function:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">fold</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+<span class="nf">fold</span> <span class="n">f</span> <span class="n">seed</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">head</span> <span class="p">(</span><span class="n">fold</span> <span class="n">f</span> <span class="n">seed</span> <span class="n">tail</span><span class="p">)</span>
+<span class="nf">fold</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+
+<span class="c1">-- Re-writing add function using fold:</span>
+<span class="nf">addWithFold</span> <span class="ow">::</span> <span class="kt">Num</span> <span class="n">a</span> <span class="ow">=&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">addWithFold</span> <span class="n">list</span> <span class="ow">=</span> <span class="n">fold</span> <span class="p">(</span><span class="o">+</span><span class="p">)</span> <span class="mi">0</span> <span class="n">list</span>
+    <span class="c1">-- (+) is a two arg function. In lambda syntax: (\x y -&gt; x + y)</span>
+</code></pre></div></figure>
+
+
+<p>And this <code>addWithFold</code> function worked exactly the same as our original <code>add</code> function, except we no longer have to explicitly use recursion, it&#8217;s abstracted away in our <code>fold</code> function. Tracing through a call to <code>addWithFold</code> showed it expands out exactly as per our original <code>add [1,3,5]</code> example above, including the expressions accumulating on the right (you can see an example of tracing through a fold in <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a>).</p>
+
+<p>And that&#8217;s where we left things last post.</p>
+
+<h2>Writing <code>add</code> using a loop</h2>
+
+<p>What if we rewrote our original, recursive version of <code>add</code> using a standard, imperative loop? Let&#8217;s see how that would look in a C-like language (in this case, C#):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='csharp'><span></span><span class="kt">int</span> <span class="nf">Add</span><span class="p">(</span><span class="kt">int</span><span class="p">[]</span> <span class="n">numbers</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">acc</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="p">=</span><span class="m">0</span><span class="p">;</span> <span class="n">i</span> <span class="p">&lt;</span> <span class="n">numbers</span><span class="p">.</span><span class="n">Length</span><span class="p">;</span> <span class="n">i</span><span class="p">++)</span> <span class="p">{</span>
+        <span class="n">acc</span> <span class="p">+=</span> <span class="n">numbers</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">acc</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></figure>
+
+
+<p>We initialise an accumulator <code>acc</code> to 0, then keep adding each member of the list of numbers to it before returning the final value of <code>acc</code>.</p>
+
+<p>Let&#8217;s use a little bit of imagination now. Say C# was actually a language with <a href="http://en.wikipedia.org/wiki/Lazy_evaluation">lazy evaluation</a> like Haskell, so it does not actually evaluate any functions like <code>(+)</code> until it absolutely has to. If we were to trace through the execution of the loop in this lazy world we&#8217;d see something like this:</p>
+
+<pre><code>Add(new[] { 1, 3, 5 });
+    acc = 0                     // Initial value
+    acc = (0 + 1)               // 1st iteration
+    acc = ((0 + 1) + 3)         // 2nd iteration
+    acc = (((0 + 1) + 3) + 5)   // 3rd iteration and end of loop
+    acc = ((1 + 3) + 5)         // Start evaluating...
+    acc = (4 + 5)
+    acc = 9                     // ... return result
+</code></pre>
+
+<p>Notice that the here our expression is building up on the left side, instead of on the right-hand side we saw for our version which used <code>fold</code>?</p>
+
+<pre><code>    -- Loop version:
+    ((0 + 1) + 3) + 5
+
+    -- Fold version:
+    1 + (3 + (5 + 0))
+</code></pre>
+
+<p>Well, we could also write a Haskell function that uses an accumulator too. But Haskell doesn&#8217;t have imperative-style loops, so we&#8217;ll need to go back to recursion.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">add&#39;</span> <span class="n">list</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">accumulate</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">accumulate</span> <span class="p">(</span><span class="n">acc</span><span class="o">+</span><span class="n">head</span><span class="p">)</span> <span class="n">tail</span>
+        <span class="n">accumulate</span> <span class="n">acc</span> <span class="kt">[]</span>          <span class="ow">=</span> <span class="n">acc</span>
+    <span class="kr">in</span> <span class="n">accumulate</span> <span class="mi">0</span> <span class="n">list</span>
+</code></pre></div></figure>
+
+
+<p>Here we&#8217;ve used <code>let</code> to introduce a kind of nested function <code>accumulate</code> within <code>add'</code>. It includes an extra variable <code>acc</code> to store our accumulated value. The <code>accumulate</code> function recursively calls itself until it stops at the empty list. Our <code>add'</code> function kicks off this recursion with the initial accumulator value by calling <code>accumulate 0 list</code>.</p>
+
+<p>Now look at what happens when we trace through a call to <code>add'</code>:</p>
+
+<pre><code>add' [1,3,5]
+    = accumulate 0 [1,3,5]
+    = accumulate (0 + 1) [3,5]
+    = accumulate ((0 + 1) + 3) [5]
+    = accumulate (((0 + 1) + 3) + 5) []  -- stopping condition for recursion, returns acc
+    = (((0 + 1) + 3) + 5)                -- recursive calls now stopped. Time to evaluate
+    = ((1 + 3) + 5)
+    = (4 + 5)
+    = 9
+</code></pre>
+
+<p>Look familiar? This results in the same <code>((0 + 1) + 3) + 5</code> expression that is produced by the looping version of the function. We&#8217;re accumulating our values in parentheses on the left hand side of our expression.</p>
+
+<h2>More examples of loop-style recursions</h2>
+
+<p>In <a href="/2012/02/folds-pt1-from-recursion-to-folds.html">part 1</a> we implemented a few different functions using recursion that built up expressions on their right hand sides. We can also implement these using loop-like recursion as we did for <code>add'</code>. Here are <code>len</code> and <code>mapFn</code> from the previous post, rewritten to accumulate values on the left hand side:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">len</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">len</span> <span class="n">list</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">accumulate</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">accumulate</span> <span class="p">(</span><span class="n">acc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="n">tail</span>
+        <span class="n">accumulate</span> <span class="n">acc</span> <span class="kt">[]</span>          <span class="ow">=</span> <span class="n">acc</span>
+    <span class="kr">in</span> <span class="n">accumulate</span> <span class="mi">0</span> <span class="n">list</span>
+
+<span class="nf">mapFn</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span>
+<span class="nf">mapFn</span> <span class="n">f</span> <span class="n">list</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">accumulate</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">accumulate</span> <span class="p">(</span><span class="n">acc</span> <span class="o">++</span> <span class="p">[</span><span class="n">f</span> <span class="n">head</span><span class="p">])</span> <span class="n">tail</span>  <span class="c1">-- (++) concats lists</span>
+        <span class="n">accumulate</span> <span class="n">acc</span> <span class="kt">[]</span>          <span class="ow">=</span> <span class="n">acc</span>
+    <span class="kr">in</span> <span class="n">accumulate</span> <span class="kt">[]</span> <span class="n">list</span>
+
+<span class="cm">{-</span>
+<span class="cm">*Main&gt; len [1..10]</span>
+<span class="cm">10</span>
+<span class="cm">*Main&gt; mapFn (*2) [1,3,5,7]</span>
+<span class="cm">[2,6,10,14]</span>
+<span class="cm">-}</span>
+</code></pre></div></figure>
+
+
+<p>All these functions look strikingly similar. They perform an operation with the <code>acc</code> accumulator and the <code>head</code> of the list, and make a recursive call with this value as the new accumulator. And they all start off with an initial case, commonly called a <em>seed</em>. For <code>add'</code> and <code>len</code> the seed is 0, for <code>mapFn</code> it&#8217;s <code>[]</code>.</p>
+
+<p>Last post we were able to generalise the common parts of recursive functions into a <code>fold</code> function that accumulated values on the right hand side. Can we write a fold function that evaluates in this loop-like way instead?</p>
+
+<h2>Looping using a fold</h2>
+
+<p>They key areas of difference between all these functions is the initial seed used for the accumulator, and the operation we perform on the accumulator <code>acc</code> and the head of the list. This means that, similar to the last time we wrote fold, we&#8217;re going to have to pass in a seed and a function to operate on <code>acc</code> and head. And we&#8217;ll need to pass in a list to fold over.</p>
+
+<h3>Type detective work</h3>
+
+<p>Let&#8217;s try and work out what the types of these arguments need to be. Here&#8217;s the types we need to figure out, with placeholders (indicated by question marks) for the argument types and the return type:</p>
+
+<pre><code>foldLeft :: (function?) -&gt; seed? -&gt; list? -&gt; return?
+</code></pre>
+
+<p>First let&#8217;s take a look at the seed. For <code>add'</code> and <code>len</code> we passed in <code>0</code>, an <code>Int</code>, and this is the type we ended up returning from the functions. For <code>mapFn</code> we passed in a list <code>[]</code>, and we ended up returning a list which was the result of applying the mapping to each element. So it looks like the seed and the return value have to be the same type, but it doesn&#8217;t really matter what that type is. Let&#8217;s just call it type <code>a</code> for now.</p>
+
+<pre><code>foldLeft :: (function?) -&gt; a -&gt; list? -&gt; a
+</code></pre>
+
+<p>Next let&#8217;s look at the list we pass in. For <code>add'</code> this was <code>[Int]</code>, a list of <code>Int</code>. For <code>len</code> and <code>mapFn</code> it was any type of list. So this can really be any type of list, and it doesn&#8217;t have to be the same type that is used for the seed or the function return value (for example <code>len</code> takes any list <code>[a]</code> and returns an <code>Int</code> which represents the length of the list). So we&#8217;ll say the list elements are of any type <code>b</code>, which means it can be any type, but that it does not have to be the same type as our accumulator of type <code>a</code>.</p>
+
+<pre><code>foldLeft :: (function?) -&gt; a -&gt; [b] -&gt; a
+</code></pre>
+
+<p>The last type we need to figure out is the function that operates on the accumulator <code>acc</code> and the head of the list and returns the new value of the accumulator. For <code>add'</code>, this function was <code>acc + head</code>. We already decided that our accumulator is of type <code>a</code>. We also know our list elements are of type <code>b</code>, so the head of the list that gets passed into the function will be something of type <code>b</code>. And then our function returns the new value of the accumulator, which will need to be the same type <code>a</code> as our previous accumulator. So the function will need to have the type <code>a -&gt; b -&gt; a</code>.</p>
+
+<p>All this gives the following type definition:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">foldLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+</code></pre></div></figure>
+
+
+<p>Here we have 3 arguments: a function that takes an accumulator of type <code>a</code> and a list head of type <code>b</code> and returns the new accumulator; a value of type <code>a</code> as the seed for the accumulator; and a list <code>[b]</code>. Then our function will return the final accumulated value of type <code>a</code>.</p>
+
+<p>I find reasoning about all the types that go flying around quite tricky, but I&#8217;ve also found understanding them is a major part of the battle.</p>
+
+<h3>Implementing the left fold</h3>
+
+<p>Now we need to try and fit all of this together. I&#8217;m going to use our <code>add'</code>, <code>len</code> and <code>mapFn</code> examples as a template:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">foldLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">foldLeft</span> <span class="n">f</span> <span class="n">seed</span> <span class="n">list</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">accumulate</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">accumulate</span> <span class="p">(</span><span class="n">f</span> <span class="n">acc</span> <span class="n">head</span><span class="p">)</span> <span class="n">tail</span>
+        <span class="n">accumulate</span> <span class="n">acc</span> <span class="kt">[]</span>          <span class="ow">=</span> <span class="n">acc</span>
+    <span class="kr">in</span> <span class="n">accumulate</span> <span class="n">seed</span> <span class="n">list</span>
+</code></pre></div></figure>
+
+
+<p>This follows the same format as our previous functions. The only difference is that we&#8217;re passing in <code>f</code> and calling <code>f acc head</code> to get the new accumulator value, and that we&#8217;re passing in a <code>seed</code>. We can simplify this a bit because we already have the seed argument to <code>foldLeft</code> that we can use as the accumulator (so we don&#8217;t need to declare an inner <code>accumulate</code> function):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">foldLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">foldLeft</span> <span class="n">f</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">foldLeft</span> <span class="n">f</span> <span class="p">(</span><span class="n">f</span> <span class="n">acc</span> <span class="n">head</span><span class="p">)</span> <span class="n">tail</span>
+<span class="nf">foldLeft</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+</code></pre></div></figure>
+
+
+<p>If we trace through an example we&#8217;ll see it works exactly the same as our previous, loop-like recursion:</p>
+
+<pre><code>foldLeft (+) 0 [1,3,5]
+    = foldLeft (+) (0 + 1) [3,5]
+    = foldLeft (+) ((0 + 1) + 3) [5]
+    = foldLeft (+) (((0 + 1) + 3) + 5) []
+    = (((0 + 1) + 3) + 5)
+    = ...
+    = 9
+</code></pre>
+
+<p>Now we are able to rewrite our other functions without having to use explicit recursion:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">lenLeft</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Int</span>
+<span class="nf">lenLeft</span> <span class="n">list</span> <span class="ow">=</span> <span class="n">foldLeft</span> <span class="p">(</span><span class="nf">\</span><span class="n">acc</span> <span class="n">head</span> <span class="ow">-&gt;</span> <span class="n">acc</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="mi">0</span> <span class="n">list</span>
+
+<span class="nf">mapFnLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span>
+<span class="nf">mapFnLeft</span> <span class="n">f</span> <span class="n">list</span> <span class="ow">=</span> <span class="n">foldLeft</span> <span class="p">(</span><span class="nf">\</span><span class="n">acc</span> <span class="n">head</span> <span class="ow">-&gt;</span> <span class="n">acc</span> <span class="o">++</span> <span class="p">[</span><span class="n">f</span> <span class="n">head</span><span class="p">])</span> <span class="kt">[]</span> <span class="n">list</span>
+
+<span class="cm">{-</span>
+<span class="cm">*Main&gt; lenLeft [1..10]</span>
+<span class="cm">10</span>
+<span class="cm">*Main&gt; mapFnLeft (*2) [1..10]</span>
+<span class="cm">[2,4,6,8,10,12,14,16,18,20]</span>
+<span class="cm">-}</span>
+</code></pre></div></figure>
+
+
+<h2>Left or right?</h2>
+
+<p>We now have two versions of folding: <code>foldLeft</code> that works like a loop and accumulates values on the left hand side, and <code>foldRight</code> that accumulates values on the right.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class='highlight'><pre><code class='haskell'><span></span><span class="nf">foldLeft</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">a</span>
+<span class="nf">foldLeft</span> <span class="n">f</span> <span class="n">acc</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">foldLeft</span> <span class="n">f</span> <span class="p">(</span><span class="n">f</span> <span class="n">acc</span> <span class="n">head</span><span class="p">)</span> <span class="n">tail</span>
+<span class="nf">foldLeft</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+
+<span class="nf">foldRight</span> <span class="ow">::</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">b</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="n">b</span>
+<span class="nf">foldRight</span> <span class="n">f</span> <span class="n">seed</span> <span class="p">(</span><span class="n">head</span><span class="kt">:</span><span class="n">tail</span><span class="p">)</span> <span class="ow">=</span> <span class="n">f</span> <span class="n">head</span> <span class="p">(</span><span class="n">foldRight</span> <span class="n">f</span> <span class="n">seed</span> <span class="n">tail</span><span class="p">)</span>
+<span class="nf">foldRight</span> <span class="kr">_</span> <span class="n">seed</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">seed</span>
+</code></pre></div></figure>
+
+
+<p>These functions are provided in the standard Haskell Prelude library as <code>foldl</code> and <code>foldr</code>. Both are used to abstract away explicit recursion, and other than our observation about the order it evaluates expression, they both give the same results.</p>
+
+<p>It turns out that this order of evaluation can make a world of difference, especially in a lazily-evaluted language like Haskell. In the <a href="/2012/03/folds-pt3-left-fold-right.html">next post</a> in this series, we&#8217;ll look at some of these differences.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+<time datetime="2012-02-25T15:35:00+11:00" pubdate data-updated="true">25 Feb 2012</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-folds/'>+folds</a>, <a class='category' href='/categories/functional-programming/'>functional programming</a>, <a class='category' href='/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds.html" data-via="" data-counturl="http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2012/02/goals-for-devs.html" title="Previous Post: Goals for software developers">&laquo; Goals for software developers</a>
+      
+      
+        <a class="basic-alignment right" href="/2012/03/folds-pt3-left-fold-right.html" title="next Post: Folds Pt 3: Left fold, right?">Folds Pt 3: Left fold, right? &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds.html';
+        var disqus_url = 'http://davesquared.net/2012/02/folds-pt2-from-loops-to-folds.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

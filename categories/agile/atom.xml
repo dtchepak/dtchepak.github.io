@@ -1,0 +1,1430 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: agile | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/agile/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[There is no U in Collective Ownership]]></title>
+    <link href="http://davesquared.net/2010/08/there-is-no-u-in-collective-ownership.html"/>
+    <updated>2010-08-14T23:05:00+10:00</updated>
+    <id>http://davesquared.net/2010/08/there-is-no-u-in-collective-ownership</id>
+    <content type="html"><![CDATA[<p>
+One of the practices of Extreme Programming (XP) is <a href="http://www.extremeprogramming.org/rules/collective.html">collective ownership</a>. The general idea is that everyone can contribute to any part of the code or design: the entire team owns and is responsible for all segments of the project.</p>
+
+
+
+
+<p>I tend to extend this idea to even more extreme lengths (even by XP standards ;)): a team that works together takes joint ownership of and responsibility for the work done, including the decisions made along the way. If everyone is free to contribute to any part of the project, then everyone shares responsibility for the outcome. An &quot;incorrect&quot; decision made by an individual is made in the context of an environment created by the team: the team's coding standards and conventions, the existing design, the way architecture and coding practices have been communicated and taught to the team members.
+</p>
+
+
+
+
+<h2>Eroding collective ownership</h2>
+
+
+<p>The practice of collective ownership is one that is easy to pay lip service to, but I find that even in teams with the best of intentions it is quick to disintegrate in the face of pressure. Here's some examples of collective ownership breaking down:</p>
+
+
+
+
+<ul>
+<li>I've no idea what this is; Bob was working on that.</li>
+<li>Jane, you need to stop writing duplicate setup methods.</li>
+<li>Rob made that decision.</li>
+<li>I told you we shouldn't use a factory there, but you wouldn't listen to me.</li>
+</ul>
+
+
+
+
+<p>All these statements may be correct, or even said in good humour and with good intentions, but they all undermine the practice of collective ownership. The moment someone says &quot;you/him/her/them&quot;, rather than &quot;we&quot; or &quot;us&quot;, they are no longer taking collective ownership. They have moved responsibility to an individual or subset of the team, and away from the team as a whole.</p>
+
+
+
+
+<h2>What's the big deal?</h2>
+
+
+<p>So why is this a problem? Surely saying &quot;we&quot; instead of &quot;you&quot; is just unecessary political correctness; yet another symptom of a culture that seeks to diminish personal responsibility and accountability? In life and relationships-in-general I agree, but for a project team I've found a less-than-whole-of-team approach to be surprisingly damaging.</p>
+
+
+
+
+<p>What happens the moment someone says &quot;You did this&quot;? It is human nature to explain why; to explain the context in which the decision was made and why it made sense. In that instant the focus has moved from a legitimate issue to a discussion about the past, possibly to being defensive, or apologetic, or aggressive. This is valuable time that could be used to actually make progress on the issue. That's not to say the causes or context should be ignored, just that it should not be an individual justifying it, but the team examining it. The fact that Rob or Jane made the decision is largely irrelevant. They made it in the context of the time with, we trust, the best of intentions. It is with this trust that the team commits to take collective ownership for decisions. Instead of singling out individuals, the discussion should focus on how to fix the issue and prevent it from reocurring. In short: to improve as a team.</p>
+
+
+
+
+<p>Even writing this it sounds ridiculous that something that sounds so semantic should make a difference, but <i>I have seen this happen</i>. Many, many times. And it chokes momentum, it stifles creativity, it stops people from taking the chance and the opportunity to be wrong and to learn. And in extreme cases it can damage the team, creating different alliances and politicking between team members, which is time better spent working together to get this iteration done.</p>
+
+
+
+
+<h2>Keeping it collective</h2>
+
+
+<p>The key to keeping collective ownership alive and well is to remember there is no U in collective ownership. There is &quot;we&quot; and &quot;us&quot;.</p>
+
+
+<p></p>
+
+<p>Rather than singling out work that Bob did that you don't understand, tell the team that you are having trouble understanding this section of code and so it might be worth refactoring, or at least get the team to look at it together. Chances are you are not the only one struggling with it, so it becomes a good opportunity for the team to learn and share knowledge. If you are the only one struggling with it, then pairing will help spread the knowledge more effectively around the team.</p>
+
+
+
+
+<p>Instead of telling Jane to stop writing duplicate setup methods, tell the team you've found duplication in setup methods and show some refactorings to remove it. Maybe hold a lunch time brown-bag session on it if you feel it could benefit the team. The key is to avoid viewing the problem as Jane's, but instead as a problem with the team communicating how to keep the tests <a href="http://en.wikipedia.org/wiki/Don't_repeat_yourself">DRY</a>, or possibly that the test fixtures aren't organised in a way that makes the duplication obvious. Either of these approaches will lift the entire team, rather than just talking to Jane about it which only helps her.</p>
+
+
+
+
+<p>While simply changing the language used will help and is a very good place to start, it is more important to actually value and commit to collective ownership within the team. This is most challenging when the team is debating several approaches and having difficulty reaching a consensus. You may really strongly disagree with a particular approach, but if you can't convince your team of that and the team decides to pursue it, then you own this decision as part of your team. That means no gloating if things blow up; no &quot;I told you so&quot;; and definitely no sulky, half-hearted work on that section, which effectively amounts to sabotaging the team's choice. The team owns the decision, it is your job as part of the team to make it work. If it doesn't, then the team will come together to fix it.</p>
+
+
+<p></p>
+
+<p>If you don't have the expertise to make a decision, then you put your trust in the team members that do, and again once the decision is made, you own the responsibility for that decision along with the rest of the team.</p>
+
+
+
+
+<h2>When collective ownership is a waste of time...</h2>
+
+
+<p>There are times when collective ownership is never going to work. First, when it isn't real. If all the decisions get made by business analysts that hand requirements to an architecture team, that give a design to some code monkeys, then pretending everyone owns the decision is a completely useless lie. Similarly if you have a few team members that all work on separate modules then it will be the individuals that own those modules. Collective ownership relies on having a single, cohesive project team.</p>
+
+
+
+
+<p>Second, it won't work when the team does not commit to it. If you are in a poisonous team or environment, where people are more concerned with their career prospects, company politics or their own prestige, then trying to share both successes and failures is also going to be a waste of time. Less dramatically, if you have a dramatic power differential between parts of the team (real or imagined) then it is going to be very difficult for those with less power to feel responsible for the decisions, or in fact to offer their own contributions. There are ways to deal with this, but the power difference will need to be sorted out before the team can commit to practice collective ownership.</p>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+<p>I may have an atypical view of collective ownership, but to me it is more than just letting everyone contribute ideas to the design. To me it actually involves a fairly big shift in how we normally think and work in teams; from individuals all making their own contributions to a result, to a highly cohesive unit whose successes and failures are attributed to the entire entity, not to any individual. This can be tough to do as it involves everyone putting their egos aside, but I believe there is a lot of benefit in this ideal. I hope this has given you something to think about and potentially take back to your own team, even it is something as simple as saying &quot;we&quot; the next time you were going to say &quot;you&quot;.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Refactor or redesign?]]></title>
+    <link href="http://davesquared.net/2010/02/refactor-or-redesign.html"/>
+    <updated>2010-02-06T00:25:00+11:00</updated>
+    <id>http://davesquared.net/2010/02/refactor-or-redesign</id>
+    <content type="html"><![CDATA[<p>I've only very recently started to differentiate refactoring from redesigning, and I've found it a very useful (albeit somewhat artificial) delineation to keep in mind whenever changing code. </p>
+
+
+
+
+<p>Refactoring is the process of making small, behaviour-preserving changes to the design of your code. While refactoring can be considered a form of redesign, I'm beginning to separate both concepts along the lines of scope. When I talk about redesign I'm talking about a major change to the design, where the change has a large scope and the resulting design will bear little to no resembalance to the previous one.</p>
+
+
+
+
+<p>So why do I feel it is beneficial to separate these two ideas? Because I'm starting to think that redesign is rarely the right thing to do.</p>
+
+
+
+
+<p>Refactoring should probably rarely (if ever) take longer than an hour (hopefully much less -- it should probably fit into a <a href="http://www.pomodorotechnique.com/">pomodoro</a>), whereas redesign can take a full day, maybe even a week or more. Refactoring will probably touch a couple of classes. Redesign may touch a lot more, including across different levels of abstraction and along dependency chains. Refactoring will keep all tests passing and the code compiling (besides brief moments spent leaning on the compiler). Redesigns may go several minutes at a time with the local build breaking. Refactoring is generally motivated by removing a code smell such as duplicaton from code. Redesign is generally motivated by a feeling of "this is a complete mess, I'm never going to be able to work with this until it is tidied up", or sometimes "this will make it much easier to add features in future".</p>
+
+
+
+
+<p>One of the points I wrote about in my <a href="http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html">last post</a> was the importance of momentum to projects. A redesign is a big drain of momentum, as you are not actually adding features during that time. What's worse is that you'll tend to be redesigning for your perceived future needs, rather than as a direct response to your immediate requirements (e.g. "this is messy, so I'll need to clean it up otherwise it will cause trouble later"). Yes, you need to clean up your technical debt, but if you can do it with small refactorings toward a better design, then you can use the feedback you get during later stories to keep the design flexible. There is a real risk of a redesign turning into a big design upfront, with all the disadvantages that entails.</p>
+
+
+
+
+<p>On my last project I experienced the &quot;joy&quot; (admittedly all my own fault) of working for over a week on a redesign to allow a feature to be added more easily into the code, only to have a feature come up in the very next sprint that required us to undo a significant amount of the redesign work. Today I started to make a similar mistake, encouraging my pair to make a fairly big change to our presenters to make our feature easier to add. This required removing a whole lot of duplication, factoring out a common base class or extracting a whole lot of behaviour into strategies before we could even begin on the real work. It was only meant to take a day or so, but towards the end of the day it still wasn't coming together nicely.</p>
+
+
+
+
+<p>After a chat with our <a href="http://twitter.com/guywithbeard">bearded architect</a>, we decided to try just refactoring the part of the code that would be affected by the change. Rather than removing all the duplication, we just pulled out a base class for a small subset of the presenters and pushed and pulled a view members up and down to correct the inheritance relationship that was causing us problems. The effort took about an hour, including updating a whole lot of test code from the previous mess.</p>
+
+
+
+
+<p>Although still not really clean, our design is now a step closer to neat, and will allow us to add the feature with relative ease (the refactoring was guided entirely by that feature's needs, not by guesses as to what other features would also require). The next time we come across trouble with that section of code, we can take another refactoring step to remove even more duplication, but unlike my first misguided attempt we can be guided by the new requirement, so we'll have more information on which direction to coax the design.</p>
+
+
+
+
+<p>So from now on I'm going to be really careful to try and stick to refactoring, and resist the siren song of redesign. If there are parts of the code screaming out for redesign then I'll start making small refactorings in the right direction, but never make large changes to jump to a new design if I can possibly avoid it.  One thing I need to remember is that the design is never going to be perfect, so there is little point investing too much time on trying to get it there. If instead I concentrate on heading towards a better design by being careful to always leave the code cleaner than I found it, then I should be able to strike a good balance between cleaning the design and adding features, which should help both the overall design as well as my velocity.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Lessons learned from an Agile project]]></title>
+    <link href="http://davesquared.net/2010/01/lessons-learned-from-my-current-project.html"/>
+    <updated>2010-01-31T23:44:00+11:00</updated>
+    <id>http://davesquared.net/2010/01/lessons-learned-from-my-current-project</id>
+    <content type="html"><![CDATA[<div class="note"><b>Update 2010-11-17: </b> This post was included in the <a href="http://davidburela.wordpress.com/2010/11/14/developer-blog-banter-3-project-retrospective/">third instalment of David Burela's Developer Blog Banter series</a>. You can check there for other project post-mortems, and read <a href="http://en.wordpress.com/tag/developer-blog-banter/">developer conversations about other topics too</a>.</div>
+
+
+
+
+<p>We're at a pretty important milestone of my current project at the moment, so I thought it would be a good time to look back on some of the lessons I've learned about Agile projects over the last 18 months or so.</p>
+
+
+
+
+<p>Just to provide some context for this post, the project has been run from the outset as an Agile project based on Scrum and XP practices. We've been using 2 week iterations, user stories on index cards which are also recorded in Jira, and many, many whiteboards. </p>
+
+
+
+
+<p>Overall I'd have to say our process gave us a tremendous insight as to how we were tracking against features and timelines from very early on, and the iterative approach to development has resulted in the most pleasant code base I have ever worked on (this is not actually saying much ;)). Even after 18 months the code has proved very resilient to the code rot that I've normally seen on projects after just a couple of weeks.</p>
+
+
+
+
+<p>I won't go in to all the details of what worked and what didn't, but I would like to pick out the key things I've learned during the project.</p>
+
+
+
+
+<h2>Short stories</h2>
+
+
+<p>This has been the single most important thing I've learned during this project. Stories need to be short -- the shorter the better. I'm sure there's some theoretical minimum story size that is useful, but I've only ever seen stories that are right-sized or too big. Ideally each story can be done-done (i.e. developed, reviewed, tested, closed) in one or two days.</p>
+
+
+
+
+<p>We were pretty militant that, except under exceptional circumstances, all stories must have a clear value to our users. I still consider this an essential part of a feature or user story (if it is not valuable to the user then why are you doing it?), but where we went wrong was where we set the bar for &quot;valuable&quot;.</p>
+
+
+
+
+<p>As a contrived example, say the application needs to display a screen for entering the operator's details. This should include name, birth date, phone and address details. The entry fields should prefill based on the country, postcode, state etc. the operator enters. The screen also needs some validation to ensure the operator has entered the information properly before they can proceed. At first glance all aspects of this feature are very important and our users consider it all essential to the value of the feature.</p>
+
+
+
+
+<p>If you can get all this done in a day then it might be worth a shot, but we can actually divide this feature into smaller pieces that still provide <i>some</i> value to the users, even if it is not the entirity. Maybe our first story is just to enter a name and continue. The second might be to add the other fields, but with no autocompletion. Third might be to add validation. And forth might be some sub-set of the autocomplete. Some of these may only bear a tenuous link to the full value the user requires, but even the smallest amount of relevance is enough when story size is on the line.</p>
+
+
+
+
+<p>We started off with more of the former approach, and ended up at the latter. The difference was amazing. Although there were other contributing factors at work (maturity of the codebase, clarity of requirements etc), I'm pretty comfortable in ascribing much of the success later in the project with our shift to very short stories.</p>
+
+
+
+
+<p>Why is story size so important? For lots of reasons, but two big ones are momentum and feedback.</p>
+
+
+
+
+<h2>Momentum</h2>
+
+
+
+
+<p>This probably sounds a bit touchy-feely, but I think dismissing it on those grounds is ignoring a fairly fundamental part of human nature. If every day, every task is a thankless struggle, the intertia will pull down your team's morale, motivation, concentration, and reduce their creativity and ability to innovate. On the flip side, once the team gets up a bit of steam and starts churning through stories, seeing visible progress as they move across the task board and into the Done column, the team's enthusiasm and creativity soars. They start kicking around new ideas on how to remove some duplication from the code and reduce some overhead for future stories. </p>
+
+
+
+
+<p>It is really important to cultivate momentum early in the project, and work hard to sustain it. A great way of doing this is to make progress visible. Small stories and a task board and/or burn down chart really help with this.</p>
+
+
+
+
+<h2>Feedback</h2>
+
+
+
+
+<p>Agile revolves around rapid feedback cycles. The sooner you get feedback, the sooner you can adjust and improve. It is vitally important to ensure that you have feedback on as many of your decisions as possible, and the most important, difficult to change decisions should be deferred until you have enough feedback to make an informed decision.</p>
+
+
+
+
+<p>We had a very, very long Sprint 0, which sort of mushed up the envisioning phase of the project with a whole lot of process decisions, story identification, risk analysis and more. The problem was we did all this in a complete vaccuum -- we had little if any feedback to be able to sanity check the decisions being made. It turned out that alot of these decisions became irrelevant once we hit the trenches, and many of the good decisions could quite adequately been made just-in-time at the frontline, rather than behind a whiteboard several weeks prior.</p>
+
+
+
+
+<p>This is the other big reason to keep stories short -- you can get rapid feedback from your testers, users, PM, and/or fellow devs.</p>
+
+
+
+
+<h2>Acceptance testing</h2>
+
+
+
+
+<p>I don't think we had a clear idea of exactly what we wanted to achieve with acceptance tests. Instead of deciding what we needed them, and then running with it and refining it over subsequent iterations (based on the feedback we would get from trying it), we picked a wiki-based acceptance testing tool and tried to bludgeon it into some sembalance of what we actually needed.</p>
+
+
+
+
+<p>We had a fair bit of trouble moving between the application world and the acceptance test world.  Expressing what we wanted in the tool, and then piping that through a path in the application became a bit of a nightmare. I think this could have been alleviated by having our acceptance tests closer to the code, maybe even written in NUnit.</p>
+
+
+
+
+<p>Part of the reason for using a wiki-based tool was to let users write and review the acceptance tests. I am really skeptical of the idea that users are generally going to be intimately involved in authoring acceptance tests. I think it is great for the conversations to take place, and to have the resulting specifications in a format where users can easily review them, but the writing itself I think needs to be done by a programmer-type person. I am sure this isn't the case everywhere, but I think it is a reasonable guess that this best suits the majority. In our case it was great get the tests in a reviewable format, but I don't think we got any benefit from having user-editable specs.</p>
+
+
+
+
+<p>Another problem we faced was defining how deep we needed our tests to go. Because we were working with a few different bits of hardware returning non-deterministic results, we had to fake out some important behaviour to get tests to work. This led us to write tests which only went through sub-sections of the application, which made them less-than-reliable as integration tests. Sometimes the tests told us something was working which wasn't actually working when going through the real application path.</p>
+
+
+
+
+<p>I am still not sure how to do these right, but I think as close to end-to-end as you can get would be a good aim. If you need to fake external dependencies, spend a bit of time to do it effectively rather than avoid the issue until it is too late.</p>
+
+
+
+
+<h2>Do what works</h2>
+
+
+
+
+<p>The end goal of getting feedback is to respond to it. If you are getting feedback that something isn't working -- change it!</p>
+
+
+
+
+<p>At one point we realised that our stories were too large to get much done in a single, two week sprint. We tried to break them up, but couldn't (at that stage of our learning anyway). It wasn't until a few sprints later that someone suggested the simple, practical solution of increasing the sprint length to 3 weeks. The process is not sacred. You are not a slave to it. If it is not working, change it. :)</p>
+
+
+
+
+<p>As an aside, the three weeks worked well, but we ended up figuring out how to break up our stories better and reverting to two weeks.</p>
+
+
+
+
+<p>Another place this approach served us well was in moving to <a href="http://davesquared.net/2009/06/moving-to-scenario-based-unit-testing.html">scenario-based unit tests</a>. We had existing tests in place that did not follow this format, but the feedback we were getting was pushing us toward the scenario approach. We chose to do what works instead of keep consistency with the existing tests (consistently painful isn't a good thing :)), and it worked very well. When we touched some of the older tests we often ended up upgrading them to the new approach.</p>
+
+
+
+
+<p>We probably should have done this with our approach to acceptance testing and in a few other areas, but we had invested a too much to make it worth our while. If you don't respond to feedback early enough then sometimes you miss the boat.</p>
+
+
+
+
+<h2>Stay close to your domain</h2>
+
+
+<p>One of the hazards I found with trying to do the "simplest thing that could work" was straying too far from the domain. In our application we had to run through a number of different tests (where test is a domain concept, not a unit test test), but we held off from adding a <code>Test</code> class because we just didn't need it. Once we did, the concepts relating to tests were so scattered that it was not worth the redesign to put it right. Funnily enough, the <code>Test</code> concept would have been just as easy to implement at the start, but because it wasn't demanded by our current requirements we avoided it.</p>
+
+
+
+
+<p>More recently I've started following JP Boodhoo's alternative: "simplest thing that makes <i>sense</i>". When you're not sure where to put some behaviour or what to name it, pick the options that makes sense to your domain.</p>
+
+
+
+
+<h2>End-to-end as fast as possible</h2>
+
+
+<p>At the start of our project we took one small slice of the application and started getting it to a state we were happy with. I think the "happy with" part was our undoing. We were polishing up one slice without taking it end-to-end, and without the feedback of other slices to guide us (there's that need for feedback again).</p>
+
+
+
+
+<p>By end-to-end, I mean from the spot where the users fires off some behaviour, to the point where it is processed and back again. Not with any faked pieces. If the user fires up the application then the slices needs to function correctly. This doesn't mean polished, it just means working correctly.</p>
+
+
+
+
+<p>I think we would have faired better by keeping our slices thinner, making them completely end-to-end, and then not bloating them by unguided polish. Once you start bloating your slices then there is less room to slot in your remaining slices. </p>
+
+
+
+
+<p>And remember that until you get there, end-to-end is generally further than you think. There can be all sorts of nasty surprises lurking in the unreached parts of your slice of functionality. If you are basing future decisions on the feedback you've received from an incomplete slice then you are going to compound the problem.</p>
+
+
+
+
+<h2>Final thoughts</h2>
+
+
+
+
+<p>This project has been a fantastic and educational experience. I still can't believe that after 18 months the code is still malleable. I'm looking forward to trying to apply some of these lessons to future projects, and make a whole lot of new mistakes to learn from. :)</p>
+
+
+
+
+<p>Have you encountered any of the same problems in your Agile projects? What has been the most valuable lesson you've taken away from a recent project? Would love to get your comments. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Garden Race Pt 2: Adding multiple players]]></title>
+    <link href="http://davesquared.net/2008/05/garden-race-pt-2-adding-multiple.html"/>
+    <updated>2008-05-18T23:43:00+10:00</updated>
+    <id>http://davesquared.net/2008/05/garden-race-pt-2-adding-multiple</id>
+    <content type="html"><![CDATA[<p><i>This post is <a href="http://davesquared.net/2008/05/garden-race-series.html">part of a series</a> exploring the (very) basics of iterative development using the example of a simple <a href="http://en.wikipedia.org/wiki/Snakes_and_ladders">Snakes and Ladders</a>-like game. Links to each post in the series will be added to the <a href="http://davesquared.net/2008/05/garden-race-series.html">index page</a>.</i></p>
+
+
+
+
+<p>Um, ok, so the customers (firstborn and I) weren't overly impressed with the demo from <a href="http://davesquared.net/2008/05/garden-race-pt-1-snakes-ladders-and.html">part 1</a>. It did help illustrate the most pressing deficiencies though:</p>
+
+
+
+
+<ul>
+<li>Doesn't support multiple players</li>
+<li>Doesn't have anything even remotely resembling snakes or ladders, let alone fairies</li>
+<li>No gui</li>
+</ul>
+
+
+
+
+<p>Our story list currently looks like this:</p>
+
+
+
+
+<ol>
+<li><strike>A player can roll the die, and then move that many spaces along the board.</strike></li>
+<li>A player that ends his or her turn on a "feature square" (a square containing a creature or obstacle), will be moved to the square connected with that feature.</li>
+<li>There can be 1-4 players, and each player has their turn in sequence.</li>
+<li><strike>A player that reaches the final square wins the game.</strike></li>
+</ol>
+
+
+
+
+<p>There are no GUI stories currently defined, but we'll need <i>something</i> resembling a GUI eventually. I am tempted to start working on some GUI stories, because I don't want to get too far through the code and then find that it won't play nice with a graphical interface. It is really the main point of this software after all. On the other hand, the <code>Game</code> class is still very basic, so maybe it would be a good idea to knock over one of the original stories on our list. Story 2 seems like it could tie in with the GUI pretty strongly -- the view will have to show the player's move, then perform some kind of animation in the <i>event</i> that the player lands on a feature square. How about Story 3? Pretty basic, and essential to the game. At least that way firstborn and I can race each other to the end of the command line demo :)</p>
+
+
+
+
+<p>I'll just check with the customers... be right back.</p>
+
+
+
+
+<p>Ok, customer is asleep, so I'll take that as &quot;that's fine Dad&quot; :)</p>
+
+
+
+
+<p>Quick aside, normally we would estimate &quot;points&quot; or some other unit of how much effort each story would take, and how many units could be done in an iteration, then have the customer prioritise the stories for this iteration.</p>
+
+
+
+
+<h2>Our test list</h2>
+
+
+
+
+<p>What tests could we write for multiple players?</p>
+
+
+
+
+<ol>
+<li>Should be able to set the number of players for a new game</li>
+<li>For a new, 2 player game, both player's should be off-the-board (square 0)</li>
+<li>After first player's roll, current player should be player 2</li>
+<li>After first player's roll, current player's position should be off-the-board (square 0)</li>
+<li>First player rolls a 3, second player rolls a 2, then current player should be player 1 on square 3.</li>
+</ol>
+
+
+
+
+<p>Frankly, I don't really like how these look. Implementation details keep coming to mind, and I want to ignore them and focus on <i>what</i> I want to achieve (not <i>how</i> I want to achieve it). Let's start with these anyway and we'll see how it goes.</p>
+
+
+
+
+<h2>Starting iteration 2</h2>
+
+
+<p>Running all our tests shows we are all green, and all good to go. The first test on the list looks easy -- set the number of players in the game. Let's do that one.</p>
+
+
+
+
+<pre>//From GameSpec.cs
+[Fact]
+public void Should_be_able_to_create_2_player_game() {
+ var twoPlayerGame = new Game(10, 2);
+ Assert.Equal(2, twoPlayerGame.NumberOfPlayers);
+}
+//From Game.cs
+public int NumberOfPlayers { get { return numberOfPlayers; } }
+public Game(int boardSize) {
+ this.boardSize = boardSize;
+}
+public Game(int boardSize, int numberOfPlayers) {
+ this.boardSize = boardSize;
+ this.numberOfPlayers = numberOfPlayers;
+}</pre>
+
+
+
+
+<p>What about the previous constructor that just takes the <code>boardSize</code>? Well that should probably just start a new one player game I guess. Let's write a test for how we think it should work.</p>
+
+
+
+
+<pre>[Fact]
+public void New_game_should_have_1_player_by_default() {
+ var onePlayerGame = new Game(10);
+ Assert.Equal(1, onePlayerGame.NumberOfPlayers);
+}</pre>
+
+
+
+
+<p>This fails because the number of players initialises to zero.</p>
+
+
+
+
+<pre>
+public Game(int boardSize) {
+ this.boardSize = boardSize;
+ this.numberOfPlayers = 1;
+}</pre>
+
+
+
+
+<p>Fixed. Now let's look at test 2, checking the position of each player for a new game.</p>
+
+
+
+
+<pre>//From GameSpec.cs:
+[Fact]
+public void New_game_should_start_all_players_off_the_board() {
+ var newThreePlayerGame = new Game(10, 3);
+ var players = new[] {1, 2, 3};
+ foreach (var player in players) {
+  Assert.Equal(0, newThreePlayerGame.GetSquareFor(player));   
+ }            
+}
+
+//From Game.cs:
+public int GetSquareFor(int player) {
+ return 0;
+}</pre>
+
+
+
+
+<p>An obviously deficient implementation like this <code>GetSquareFor()</code> method suggests we need to writes some more tests to flesh out a better one.</p>
+
+
+<p></p>
+
+<pre>[Fact]
+public void Positions_should_be_correct_after_first_two_players_roll() {
+ var threePlayerGame = new Game(10, 3);
+ const int firstRoll = 3;
+ const int secondRoll = 5;
+ 
+ threePlayerGame.Roll(firstRoll);
+ threePlayerGame.Roll(secondRoll);
+ 
+ Assert.Equal(firstRoll, threePlayerGame.GetSquareFor(1));
+ Assert.Equal(secondRoll, threePlayerGame.GetSquareFor(2));
+ Assert.Equal(0, threePlayerGame.GetSquareFor(3));
+}</pre>
+
+
+<p></p>
+
+<p>Now we are potentially looking at a bigger step. We need <code>Roll()</code> to affect only the position of the current player. We don't have the concept of a current player. We'll also probably need an array or similar structure to store each player's position. <code>Roll()</code> will then store update the position of the current player, and change the current player to the next player. The <code>CurrentSquare</code> implementation will probably need to change to refer to the current player too. And then we'll have to add code to change the position in the event the player lands on a feature square! Argh!</p>
+
+
+
+
+<h2>Stop worrying! Try baby steps...</h2>
+
+
+
+
+<p>Let's back up a bit. I'm fairly confident we can write up the code above, but it will only be covered by one test and we are touching a lot of the <code>Game</code> class without direct guidance from the tests. We still have this test on our test list: "<i>After first player's roll, current player should be player 2</i>". This deals with the concept of the current player without requiring addition position arrays. It should only affect the <code>Roll()</code> implementation. Let's skip our last test by updating the attribute to <code>[Fact(Skip="Too big a step for now")]</code> (I could delete the test and rewrite it if we need it, but it did illustrate our need to deal with the current player concept, so I'll leave it for now). I started off coding our new test with two separate assertions:</p>
+
+
+
+
+<pre>var newTwoPlayerGame = new Game(10, 2);
+Assert.Equal(1, newTwoPlayerGame.CurrentPlayer);
+newTwoPlayerGame.Roll(2);
+Assert.Equal(2, newTwoPlayerGame.CurrentPlayer);</pre>
+
+
+
+
+<p>The split asserts are ugly, and we can split this into two more specific tests. Here's the passing code, which was written one step at a time (not shown is chaining the <code>Game(int)</code> constructor to <code>Game(int, int)</code>, so everything gets initialised properly in either case. Check the download at the end for the finished code):</p>
+
+
+
+
+<pre>//From GameSpec.cs:
+[Fact]
+public void Current_player_for_new_game_should_be_player_1() {
+ var newTwoPlayerGame = new Game(10, 2);
+ <b>Assert.Equal(1, newTwoPlayerGame.CurrentPlayer);</b>
+}
+[Fact]
+public void After_first_players_roll_it_should_be_the_second_players_turn() {
+ var newTwoPlayerGame = new Game(10, 2);
+ newTwoPlayerGame.Roll(2);
+ <b>Assert.Equal(2, newTwoPlayerGame.CurrentPlayer);</b>
+}
+//From Game.cs:
+<b>public int CurrentPlayer { get; private set; }</b>
+public Game(int boardSize, int numberOfPlayers) {
+ this.boardSize = boardSize;
+ this.numberOfPlayers = numberOfPlayers;
+ this.playerPositions = new int[numberOfPlayers];
+ <b>this.CurrentPlayer = 1;</b>
+}
+public void Roll(int dieValue) {
+ CurrentSquare += dieValue;
+ <b>CurrentPlayer++;</b>
+}</pre>
+
+
+
+
+<p>Before we go back to the test we skipped, I'd like to flesh out more of the <code>CurrentPlayer</code> property. Fifth test on our list was &quot;<i>First player rolls a 3, second player rolls a 2, then current player should be player 1 on square 3</i>&quot;. Let's do a simpler version and just verify that this scenario ends up with the correct <code>CurrentPlayer</code>.</p>
+
+
+
+
+<pre>//In GameSpec.cs:
+[Fact]
+public void After_all_players_have_had_a_turn_it_should_be_first_players_turn_again() {
+ var newThreePlayerGame = new Game(10, 3);
+ newThreePlayerGame.Roll(1);
+ newThreePlayerGame.Roll(1);
+ newThreePlayerGame.Roll(1);
+ Assert.Equal(1, newThreePlayerGame.CurrentPlayer);
+}
+//In Game.cs:
+public void Roll(int dieValue) {
+ CurrentSquare += dieValue;
+ CurrentPlayer++;
+ <b>if (CurrentPlayer > NumberOfPlayers) CurrentPlayer = 1;</b>
+}
+</pre>
+
+
+
+
+<h2>A quick refactor from the green bar</h2>
+
+
+<p>We now have a green bar (well, yellow if you count the skipped test I guess). Time to take a look for potential refactoring opportunities. I've been a bit slack about this up to now as I haven't noticed anything obvious while coding and haven't explicitly stopped to think about refactoring. I have a bad habit of doing this -- I do design work while writing the code to pass the test, rather than deferring it to the refactoring stage. This can lead me to generalising to early or changing the design without getting clear direction from the tests and passing implementation. Note to self: premature generalisation is one of the many roots of all evil :)</p>
+
+
+
+
+<p>In this case we've done the Right Thing<sup>TM</sup> and written simple code to pass the test, then looked at refactoring based on what the current implementation needs, rather than what we <i>think</i> it will need. The code within <code>Roll()</code> contains the logic for selecting the next player as well as for updating the current square. Let's <a href="http://www.refactoring.com/catalog/extractMethod.html">Extract Method</a> to make this more obvious.</p>
+
+
+
+
+<pre>public void Roll(int dieValue) {
+ CurrentSquare += dieValue;
+ <b>nextPlayer();</b>
+}
+private void nextPlayer() {
+ CurrentPlayer++;
+ if (CurrentPlayer > NumberOfPlayers) CurrentPlayer = 1;
+}</pre>
+
+
+
+
+<p>This is purely a matter of taste. I find it reflects the intention more. If you don't, then leave it un-refactored. :-) Either way, key lesson here (for me, you probably know it already :)) is to defer design stuff until the production code shows a clear need, or until a test is too hard to write. Either way, design from the green bar whenever possible.</p>
+
+
+
+
+<h2>Time to face the music...</h2>
+
+
+
+
+<p>We probably shouldn't put it off any longer. Let's re-enable the test we skipped earlier:</p>
+
+
+
+
+<pre>//In GameSpec.cs:
+[Fact]
+public void Positions_should_be_correct_after_first_two_players_roll() {
+ var threePlayerGame = new Game(10, 3);
+ const int firstRoll = 3;
+ const int secondRoll = 5;
+ 
+ threePlayerGame.Roll(firstRoll);
+ threePlayerGame.Roll(secondRoll);
+ 
+ Assert.Equal(firstRoll, threePlayerGame.GetSquareFor(1));
+ Assert.Equal(secondRoll, threePlayerGame.GetSquareFor(2));
+ Assert.Equal(0, threePlayerGame.GetSquareFor(3));
+}</pre>
+
+
+
+
+<p>This give the following assertion failure:</p>
+
+
+<pre>TestCase 'DaveSquared.GardenRace.Tests.GameSpec.Positions_should_be_correct_after_first_two_players_roll'
+failed: Assert.Equal() Failure
+Expected: 3
+Actual:   0</pre>
+
+
+
+
+<p>This is failing because our implementation for <code>GetSquareFor(...)</code> stinks -- it's just returning 0. My fault, not yours. Let's get back to the green bar as soon as possible, then we'll worry about getting the design right. My original guess for passing this test was that we would need an array of player positions, and <code>Roll()</code> would just update the position for the current player. We have a current player concept in the code now, so let's chuck in an array and see how it goes:</p>
+
+
+
+
+<pre>//Bits and pieces from Game.cs:
+public class Game {
+    //...
+ private readonly int[] playerPositions;
+ //...
+ public Game(int boardSize, int numberOfPlayers) {
+  this.boardSize = boardSize;
+  this.numberOfPlayers = numberOfPlayers;
+  <b>this.playerPositions = new int[numberOfPlayers];</b>
+  this.CurrentPlayer = 1;
+ }
+ public void Roll(int dieValue) {
+  CurrentSquare += dieValue;
+  <b>playerPositions[CurrentPlayer - 1] = CurrentSquare;</b>
+  nextPlayer();
+ }
+ //...
+ public int GetSquareFor(int player) {
+  <b>return playerPositions[player - 1];</b>
+ }
+}</pre>
+
+
+
+
+<p>Running this fails with a new message:</p>
+
+
+
+
+<pre>TestCase 'DaveSquared.GardenRace.Tests.GameSpec.Positions_should_be_correct_after_first_two_players_roll'
+failed: Assert.Equal() Failure
+Expected: 5
+Actual:   8</pre>
+
+
+
+
+<p>It is failing on our second assertion, <code>Assert.Equal(secondRoll, threePlayerGame.GetSquareFor(2));</code>. This gives us a good hint as to what's happening -- our first and second rolls of 3 and 5 are both being added to the same array index. Hold on, that's only half the story. Let's have a closer look at this:</p>
+
+
+
+
+<pre>public void Roll(int dieValue) {
+ <b>CurrentSquare += dieValue;</b>
+ playerPositions[CurrentPlayer - 1] = <b>CurrentSquare;</b>
+ nextPlayer();
+}</pre>
+
+
+
+
+<p>Brilliant Dave. What a fantastic coder I am :) I'm still adding all rolls to <code>CurrentSquare</code>, then assigning that to the current player position. In this case, <code>CurrentSquare</code> is 3+5=8 which fails our test. Why didn't you point this out? Luckily I had my tests to do it in your absence :) We'll fix it right now:</p>
+
+
+
+
+<pre>public void Roll(int dieValue) {
+ CurrentSquare += dieValue;
+ <b>playerPositions[CurrentPlayer - 1] += dieValue;</b>
+ nextPlayer();
+}</pre>
+
+
+
+
+<p>Tests pass. My own ineptitude aside, this test that was initially giving us troubles has been trivial to solve. We now have a green bar, so let's refactor. First obvious bit of duplication is the two square increments in the <code>Roll()</code> method. Let's update <code>CurrentSquare</code> to use our <code>GetSquareFor(int player)</code> method:</p>
+
+
+
+
+<pre>
+public int CurrentSquare { 
+ get { <b>return GetSquareFor(CurrentPlayer);</b> } 
+}
+//...
+public void Roll(int dieValue) {
+ playerPositions[CurrentPlayer - 1] += dieValue;
+ nextPlayer();
+}</pre>
+
+
+
+
+<p><code>CurrentSquare</code> is no longer a getter/setter, but is a convenient shorthand for <code>GetSquareFor(int player)</code>. Our <code>Roll()</code> method is fairly clear. We could make it a little bit clearer by extracting a <code>moveCurrentPlayer(int squares)</code> method, but would also mean more indirection. I'll make you a deal, if we end up with a few <code>playerPositions[CurrentPlayer - 1]</code> style array indexes (the -1 is pretty ugly), then we do something about it. For now it is probably ok.</p>
+
+
+
+
+<p>Looking at <code>Game</code> from the perspective of the <a href="http://butunclebob.com/ArticleS.UncleBob.PrinciplesOfOod">S.O.L.I.D. principles</a>, I think the main one we have to be wary of is violating the <a href="http://en.wikipedia.org/wiki/Single_responsibility_principle">Single Responsibility Principle (SRP)</a>. Current <code>Game</code> is responsible for:</p>
+
+
+
+
+<ul>
+<li>Number of squares on the board</li>
+<li>Number of players</li>
+<li>Keeping track of whose turn it is</li>
+<li>Keeping track of each player's position</li>
+<li>Knowing when the game has finished</li>
+</ul>
+
+
+
+
+<p>Are these cohesive enough to count under the banner of one responsibility? I'm not sure, but I can't currently think of a better abstraction (feel free to leave comments :-)). For now let's stay conscious of this and we'll revisit it if it starts becoming a problem.</p>
+
+
+
+
+<h2>We're done? No we're not!</h2>
+
+
+<p>So are we done for our multiple players story? After running a larger test it appears so. However, after updating the demo we see some strange behaviour. An extract of from the demo code and the output are shown below:</p>
+
+
+
+
+<pre>//From main() in Program.cs:
+const int numberOfSquares = 20;
+const int numberOfPlayers = 2;
+//...
+Console.WriteLine(&quot;Creating a new game with &quot; + numberOfSquares + &quot; squares and &quot; + numberOfPlayers + &quot; players.&quot;);
+var game = new Game(numberOfSquares, numberOfPlayers);
+Console.WriteLine(&quot;Press any key to roll the die.&quot;);
+while (!game.IsFinished) {
+ Console.ReadKey(interceptKey);
+ var dieRoll = GetDieValue();
+ <b>game.Roll(dieRoll);</b>
+ var currentState = (game.IsFinished) ? &quot;You won the game!&quot; : &quot;Now on square &quot; + game.CurrentSquare;
+ Console.WriteLine(&quot;Player &quot; + game.CurrentPlayer + &quot; rolled a &quot; + dieRoll + &quot;. &quot; + currentState);
+}
+//...</pre>
+
+
+
+
+<pre>Creating a new game with 20 squares and 2 players.
+Press any key to roll the die.
+<b>Player 2 rolled a 1. Now on square 0</b>
+Player 1 rolled a 3. Now on square 1
+Player 2 rolled a 2. Now on square 3
+...snip...
+Player 2 rolled a 2. Now on square 18
+Player 1 rolled a 2. Now on square 14
+Player 2 rolled a 3. You won the game!</pre>
+
+
+
+
+<p>Why does player 2 have the first go? And why do they roll a 1 and yet are on square 0? The reason is highlighted in the code snippet above -- the <code>Roll()</code> method updates the Game so that it is the next player's turn. When the demo gets to writing out the current player's position and state, it is actually writing the details for the next player who is about to have their turn.</p>
+
+
+
+
+<p>I believe this is a form of <i>temporal coupling</i>, or coupling in time. The <code>CurrentSquare</code> and <code>CurrentPlayer</code> methods depend on whether they are called before or after <code>Roll</code>. There is almost certainly going to be a problem with <code>IsFinished</code> as well, as that depends on the <code>CurrentPlayer</code> too.</p>
+
+
+
+
+<p>I've been worried about this for a little while actually, especially when thinking about how the GUI will probably want to animate the initial move, then an additional move up or down the snake/ladder/critter type thing. It looks like we'll either have to trigger events from <code>Roll</code>, or break it up and have some kind of coordinator object.</p>
+
+
+
+
+<p>I am quietly confident that we can change our design to support this when we get some tests around the &quot;feature square&quot; or GUI stories, and that these tests will drive us toward a decent design and implementation. Again, let's stay conscious of this coupling and work around it in our demo code. Remember that our demo code is not production code, so we are being a little less precious with it. Next iteration we'll make sure we write tests to cover this and drive a nicer design.</p>
+
+
+
+
+<p>Here's the new main loop in the demo code:</p>
+
+
+
+
+<pre>
+while (!game.IsFinished) {
+ var currentPlayer = game.CurrentPlayer;
+ Console.ReadKey(interceptKey);
+ var dieRoll = GetDieValue();
+ game.Roll(dieRoll);
+ var currentState = (<b>game.IsFinished</b>) ? &quot;You won the game!&quot; : &quot;Now on square &quot; + game.GetSquareFor(currentPlayer);
+ Console.WriteLine(&quot;Player &quot; + currentPlayer + &quot; rolled a &quot; + dieRoll + &quot;. &quot; + currentState);
+}
+</pre>
+
+
+
+
+<pre>Creating a new game with 20 squares and 2 players.
+Press any key to roll the die.
+Player 1 rolled a 5. Now on square 5
+Player 2 rolled a 3. Now on square 3
+(...snip...)
+Player 2 rolled a 1. Now on square 10
+Player 1 rolled a 5. <b>Now on square 23</b>
+Player 2 rolled a 5. You won the game!
+</pre>
+
+
+
+
+<p>As predicted, our <code>IsFinished</code> property is having problems because of the coupling issue. We'll fix this, then we're done.</p>
+
+
+
+
+<h2>Test-first debugging</h2>
+
+
+
+
+<p>Let's write a test to expose the bug with the <code>IsFinished</code> implementation:</p>
+
+
+
+
+<pre>[Fact]
+public void Game_should_finish_as_soon_as_any_player_reaches_the_end() {
+ var threePlayerGame = new Game(5, 3);
+ threePlayerGame.Roll(1);
+ threePlayerGame.Roll(6);
+ Assert.True(threePlayerGame.IsFinished);
+}</pre>
+
+
+
+
+<p>This fails. At the time the assertion is evaluated player 2 has finished, but the current player is player 3, who is yet to finish. This should be straight-forward to pass from here:</p>
+
+
+
+
+<pre>public bool IsFinished {
+ get {
+   return <b>playerPositions.Any(square => square >= boardSize)</b>;
+ }
+}</pre>
+
+
+
+
+<p>All the tests now pass. We've now removed the temporal coupling between <code>Roll</code> and <code>IsFinished</code>, and our demo now works as expected:</p>
+
+
+
+
+<pre>Creating a new game with 20 squares and 2 players.
+Press any key to roll the die.
+Player 1 rolled a 1. Now on square 1
+Player 2 rolled a 1. Now on square 1
+(...snip...)
+Player 1 rolled a 2. Now on square 17
+Player 2 rolled a 2. Now on square 15
+Player 1 rolled a 3. You won the game!
+
+Press a key to exit.
+</pre>
+
+
+
+
+<h2>That's a wrap!</h2>
+
+
+<p>Not sure if this looks like a lot of work to you, but it actually represents only a couple of minutes of coding time, and a couple of minutes of thinking time (plus lots of time to write it all down in excruciating detail :-)). Point is that each iteration so far has been really quick despite (or because of?) involving lots of small steps.</p>
+
+
+
+
+<p>You can browse or checkout the final code for this iteration from <a href="http://code.google.com/p/davesquared/source/browse/DaveSquared.GardenRace/tags/part2">here</a>. Thanks for making it this far! :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Garden Race Pt 1: Snakes, ladders and iterations]]></title>
+    <link href="http://davesquared.net/2008/05/garden-race-pt-1-snakes-ladders-and.html"/>
+    <updated>2008-05-16T00:04:00+10:00</updated>
+    <id>http://davesquared.net/2008/05/garden-race-pt-1-snakes-ladders-and</id>
+    <content type="html"><![CDATA[<p><i>This post is <a href="http://davesquared.net/2008/05/garden-race-series.html">part of a series</a> exploring the (very) basics of iterative development using the example of a simple <a href="http://en.wikipedia.org/wiki/Snakes_and_ladders">Snakes and Ladders</a>-like game. Links to each post in the series will be added to the <a href="http://davesquared.net/2008/05/garden-race-series.html">index page</a>.</i></p>
+
+
+
+
+<p>For a while now I've wanted to write a <a href="http://en.wikipedia.org/wiki/Snakes_and_ladders">Snakes and Ladders</a>-style game for my daughter, both to be a nice nerdy Dad, and to practice some dev stuff. I was going to create &quot;Warps and Wormholes&quot;, but firstborn was adamant she wanted fairies involved. And so I've ended up with &quot;Garden Race&quot;, which is going to be a race for players to make it to one end of the garden aided by fairies, butterflies and other girlie stuff, while hindered by lizards, hoses, and other less-girlie stuff.</p>
+
+
+
+
+<p>I intend to use iterative development for this project -- I'll start off with a thin slice of functionality and keep adding to it to build up a semi-usable game. This should accomplish two things: first, showcase my own ineptitude, and second, to help improve my TDD and development skills. While I'm not exactly sure how far I'll get with this project (free time is short at present), I can commit to being fairly honest during this process. If and when I stuff up, I'll write it down (I might excuse myself a quick spike here and there so the posts don't get bogged down to much, but the stuff ups will stay).</p>
+
+
+
+
+<p>Note: MS has a <a href="http://creators.xna.com/">free game design version of Visual Studio</a> that might be useful if your aim is to make a good game for your kids (instead of just playing with dev stuff). There are also a few open source frameworks out there (like <a href="http://childsplay.sourceforge.net/docs-manifesto.php">Childsplay</a>).</p>
+
+
+
+
+<p>For my starting point, I began with a rough solution structure (main Game project and a test project), chucked it in a local SVN repo, and setup some of the tools I'd need. I'm trying using a <code>/src</code> based configuration just for kicks, and might try nant just for something different. I am also trying <a href="http://www.codeplex.com/xunit/">XUnit.Net</a>, instead of my usual NUnit test framework.</p>
+
+
+
+
+<h2>Requirements</h2>
+
+
+<p>Our customers, i.e. my firstborn (after some prompting) and I, want a Snakes and Ladders-type game involving fairies and other garden-dwelling folk. Here is the basic statement of what we want:</p>
+
+
+
+
+<blockquote>&quot;Garden Race is a computer-based board game. Players take it in turns to roll a die, and then move the corresponding number of squares on the board. If the player lands on a square featuring a garden creature of obstacle at the end of their turn, then that creature or obstacle will move the player to a connected square on the board. The first player to reach the bottom of the garden (the end of the board) wins. We want fancy 3D graphics, surround sound, and it has to be ready yesterday.&quot;</blockquote>
+
+
+
+
+<p>Ever noticed how hard it is to succinctly describe a simple concept, even something as simple as this? Let's try and remove some ambiguity by boiling things down into user stories.</p>
+
+
+
+
+<ol>
+<li>A player can roll the die, and then move that many spaces along the board.</li>
+<li>A player that ends his or her turn on a "feature square" (a square containing a creature or obstacle), will be moved to the square connected with that feature.</li>
+<li>There can be 1-4 players, and each player has their turn in sequence.</li>
+<li>A player that reaches the final square wins the game.</li>
+</ol>
+
+
+
+
+<p>That should probably be enough to get us going.</p>
+
+
+
+
+<h2>Planning and design for this iteration</h2>
+
+
+
+
+<p>In the spirit of iterative design we are going to first try to deliver a slice of functionality. As we are currently unsure of exactly how to present the customer with fancy 3D graphics and sound (at this stage the dev team (me) would like to try WPF or QT4, but we don't know all the requirements yet), let's focus on the core game functionality, which is pretty much captured by the user stories above.</p>
+
+
+
+
+<p>For our first iteration we've agreed with the customer to deliver stories 1 and 4, which is basically a single player rolling a die and moving to the end of the board. Exciting game huh? But it should reveal some basics of how the game mechanics work, so it seems a safe place to start.</p>
+
+
+
+
+<p>If we are picking nouns for potential classes in our game we might come up with <code>Player</code>, <code>Die</code>, <code>Square</code>, and <code>Board</code>, but we're definitely <a href="http://steve-yegge.blogspot.com/2006/03/execution-in-kingdom-of-nouns.html">not going to use nouns as a basis for our design</a>. A nice place to start might just be a <code>Game</code> or <code>GameEngine</code> class. What tests could we come up with for our first story?</p>
+
+
+
+
+<ul>
+<li>A player should not be on the board until the roll the die and move.</li>
+<li>A player that rolls a 4 should then be on the 4th square from the start.</li>
+<li>A player that rolls a 2, and then a 6, should be on the 8th square from the start.</li>
+<li>The game should finish once the player reaches the end.</li>
+</ul>
+
+
+
+
+<p>We currently don't have enough information to implement all of this. How many squares are there on the board? What is the maximum value of the die used? What happens if the player is one square from the end, and rolls a 3? The first couple of points we will check with the customer, but it doesn't really affect our design. Let's test for the last case though, and we'll check with the customer if our assumption is correct:</p>
+
+
+
+
+<ul><li>A player that is one square from the end, and rolls a 3, should win the game.</li></ul>
+
+
+
+
+<p>Before we jump into this iteration, I'd be really interested to hear any up-front design ideas you have for this. If you were going to draw a UML class diagram or write up some CRC cards, what classes, data and relationships would you have? I've got my own ideas, but I don't want to influence my iterative design process too much at this point, nor do I want to deliberately come up with a shoddy upfront design and then marvel at how well my iterative design (hopefully) turns out. Please feel free to leave your design ideas in the comments or email me.</p>
+
+
+
+
+<p>Right, let's start.</p>
+
+
+
+
+<h2>First tests</h2>
+
+
+
+
+<p>Let's look at the second test on our test list. It looks like an easy thing to do and should help us learn a little about the problem domain.</p>
+
+
+<pre>public class GameSpec {
+    [Fact]
+    public void Player_should_be_on_fourth_square_after_rolling_a_four() {
+        var game = new Game();
+        game.Roll(4);
+        Assert.Equal(4, game.CurrentSquare);
+    }
+}</pre>
+
+
+
+
+<p>Not going to keep much of this, I'm pretty sure of that. But we need to start somewhere. By the way, if you aren't familiar with XUnit.Net, <code>[Fact]</code> == <code>[Test]</code>. Now let's pass the test:</p>
+
+
+
+
+<pre>public class Game {
+    public int CurrentSquare;
+
+    public void Roll(int dieValue) {
+        CurrentSquare += dieValue;
+    }
+}</pre>
+
+
+
+
+<p>Now let's test two rolls, which is the third test on our list.</p>
+
+
+
+
+<pre>[Fact]
+public void Player_should_be_on_eight_square_after_rolling_a_two_then_a_six() {
+ var game = new Game();
+ game.Roll(2);
+ game.Roll(6);
+ Assert.Equal(8, game.CurrentSquare);
+}</pre>
+
+
+
+
+<p>This works without change, as we jumped straight to an obvious implementation for <code>Roll()</code>. We could have taken smaller steps and initially used <code>CurrentSquare = dieValue;</code> to pass the first test, the updated it to pass the second test, but we don't need to do that unless we aren't really sure how to proceed.</p>
+
+
+
+
+<p>Let's add a third test to make sure the player starts off the board, or square 0.</p>
+
+
+
+
+<pre>var game = new Game();
+Assert.Equal(0, game.CurrentSquare);</pre>
+
+
+
+
+<p>Again, this passes without modification. We also have a test on our list about finishing the game. We don't have too much information about how this works, so let's look at what we can test.</p>
+
+
+
+
+<pre>
+[Fact]
+public void Game_should_finish_when_player_reaches_end_of_board() {
+ const int boardSize = 10;
+ var game = new Game(boardSize);
+ game.Roll(boardSize);
+ Assert.Equal(10, game.CurrentSquare);
+ Assert.True(game.IsFinished);
+}</pre>
+
+
+
+
+<p>This introduces two new concepts: board size, and the game state as finished or not finished. To get this to compile we need to add non-default constructor to <code>Game</code>, which means we also need to explicitly add a default constructor if we want to stop our other tests from breaking. We also need to add an <code>IsFinished</code> property to <code>Game</code>. The following implementation compiles and passes all the tests.</p>
+
+
+
+
+<pre>public class Game {        
+ public int CurrentSquare;
+ public Game(int boardSize) {}
+ public Game() {}
+ public bool IsFinished {
+  get { return true; }
+ }
+ public void Roll(int dieValue) {
+  CurrentSquare += dieValue;
+ }
+}</pre>
+
+
+
+
+<p>The <code>IsFinished</code> implementation obviously stinks, so let's also add a test around unfinished games.</p>
+
+
+
+
+<pre>[Fact]
+public void New_game_should_be_unfinished() {
+ const int boardSize = 10;
+ var game = new Game(boardSize);
+ Assert.False(game.IsFinished);
+}</pre>
+
+
+
+
+<p>I first did a trivial implementation:</p>
+
+
+
+
+<pre>public bool IsFinished {
+ get { return CurrentSquare == 0; }
+}</pre>
+
+
+
+
+<p>Which failed both my IsFinished tests. Oops, that should be <code>CurrentSquare != 0</code>. Tests now pass, but the implementation still stinks. Let's try this one:</p>
+
+
+
+
+<pre>[Fact]
+public void In_progress_game_should_be_unfinished() {
+ const int boardSize = 10;
+ var game = new Game(boardSize);
+ game.Roll(5);
+ Assert.False(game.IsFinished);
+}</pre>
+
+
+
+
+<p>Which we can pass with this:</p>
+
+
+
+
+<pre>public class Game {
+ private readonly int boardSize;  
+ public Game(int boardSize) {
+  this.boardSize = boardSize;
+ }
+ public bool IsFinished {
+  get { return CurrentSquare &gt;= boardSize; }
+ }
+ //...[snip]...</pre>
+
+
+
+
+<p>The last test on our list so far is to see what happens when we overrun the last square on the board.</p>
+
+
+
+
+<pre>[Fact]
+public void Game_should_still_finish_when_player_overruns_last_square() {
+ const int boardSize = 10;
+ var game = new Game(boardSize);
+ game.Roll(boardSize + 2);
+ Assert.True(game.IsFinished);
+}</pre>
+
+
+
+
+<p>This passes because we used &gt;= for the CurrentSquare/boardSize comparison. One thing I haven't been doing is the refactor step of the TDD red-green-refactor process. Let's look at <code>Game</code>:</p>
+
+
+
+
+<pre>public class Game {
+ private readonly int boardSize;
+ public int CurrentSquare;
+ public Game(int boardSize) {
+  this.boardSize = boardSize;
+ }
+ public Game() {}
+ public bool IsFinished {
+  get { return CurrentSquare &gt;= boardSize; }
+ }
+ public void Roll(int dieValue) {
+  CurrentSquare += dieValue;
+ }
+}</pre>
+
+
+
+
+<p>Not much to refactor there, right? The tests have some duplication in the <code>Game</code> setup though. And the default constructor of <code>Game</code> looks fairly useless. Normally I would just whack that into a <code>[SetUp]</code> method, but XUnit.Net discourages this as it can make for non-obvious test contexts. My GameSpec tests currently want to execute in the one test context -- a new <code>Game</code> with 10 squares. It seems reasonable that my GameSpec HAS-A context, so let's add a game as a field with a descriptive name. I can then replace the game initialisation in each test with a simple reference to <code>newTenSquareGame</code>, and get rid of Game's default constructor. </p>
+
+
+
+
+<pre>public class GameSpec {
+ private readonly Game newTenSquareGame = new Game(10);
+ //...[snip]...
+ [Fact]
+ public void Game_should_finish_when_player_reaches_end_of_board() {
+  newTenSquareGame.Roll(10);
+  Assert.Equal(10, newTenSquareGame.CurrentSquare);
+  Assert.True(newTenSquareGame.IsFinished);
+ }
+ //...[snip]...</pre>
+
+
+
+
+<p>If we start having lots of different contexts or complicated contexts we may want to revisit this, but the whole test fixture reads fairly well for now. Full disclosure: before this approach I mucked around with some crazy test structure ideas I have regarding tests and test contexts. I'm omitting that from this post as it was mainly for personal interest rather that something I would normally do.</p>
+
+
+
+
+<p>So what's next? Our test list is empty, and we seem to have completed most of our first iteration, stories 1 and 4. If you remember, these basically covered moving a single player around the board, and being able to finish the game. This isn't really something we can show our customer though. You don't go showing a youngin' a bunch of unit tests when they are expecting a fairyised version of Snakes and Ladders. And we haven't even dealt with the concept of &quot;rolling a die&quot;, we have just assumed a value. But we seem to have the basic functionality we promised for this iteration.</p>
+
+
+
+
+<h2>Customer demo</h2>
+
+
+<p>To finish this iteration, let's write a console app that will allow our customer to run through the current game logic. Here's what I'm thinking of:</p>
+
+
+
+
+<pre>
+  Creating new game with 20 squares.
+  Press a key to roll the dice.
+  You rolled a 4. Now on square 4.
+  You rolled a 6. Now on square 10.
+  ...
+  You rolled a 2. You won the game!</pre>
+
+
+
+
+<p>At first I was thinking about creating a <code>GameController</code> class and writing some tests around that, then calling that from a simple console app. But <a href="http://en.wikipedia.org/wiki/YAGNI">we don't need that yet</a>. So let's just do the simplest thing that will work for our demo. And because it is slapped together and not designed to specific requirements, let's just promise not to use any of this code in the actual product.</p>
+
+
+<p> <pre>namespace DaveSquared.GardenRace.ConsoleFrontEnd {
+    class Program {
+        private static readonly Random random = new Random();</p>
+
+<pre><code>    static void Main(string[] args) {
+        Console.WriteLine(&amp;quot;Welcome to Garden Race! It's like Snakes and Ladders, only without the copyright violation!&amp;quot;);
+        Console.WriteLine();
+
+        const int numberOfSquares = 20;
+        const bool interceptKey = true;
+
+        Console.WriteLine(&amp;quot;Creating a new game with &amp;quot; + numberOfSquares + &amp;quot; squares.&amp;quot;);
+        var game = new Game(numberOfSquares);
+        Console.WriteLine(&amp;quot;Press any key to roll the die.&amp;quot;);
+        while (!game.IsFinished) {                
+            Console.ReadKey(interceptKey);
+            var dieRoll = GetDieValue();
+            game.Roll(dieRoll);
+            var currentState = (game.IsFinished) ? &amp;quot;You won the game!&amp;quot; : &amp;quot;Now on square &amp;quot; + game.CurrentSquare;
+            Console.WriteLine(&amp;quot;You rolled a &amp;quot; + dieRoll + &amp;quot;. &amp;quot; + currentState);
+        }
+        Console.WriteLine();
+        Console.WriteLine(&amp;quot;Press a key to exit.&amp;quot;);
+        Console.ReadKey(interceptKey);
+    }
+
+    static int GetDieValue() {
+        return random.Next(1, 6);
+    }
+}
+</code></pre>
+
+<p>}</pre></p>
+
+<p>A now for the moment of truth:</p>
+
+
+
+
+<p><a href="http://davesquared.net/images/fromblogger/s1600-h-gardenRaceConsole.png"><img style="cursor:pointer; cursor:hand;" src="http://davesquared.net/images/fromblogger/s400-gardenRaceConsole.png" border="0" alt="Console app showing our demo" id="BLOGGER_PHOTO_ID_5200605521523294946" /></a>
+</p>
+
+
+
+
+<p>Fantastic! <code>Assert.That(this_game_rocks).SaidWith(sarcasm)</code>! On the other hand, it took about 12 minutes to code this iteration up as well as write out tests (plus lots of time for me to type out this narrative), and our story list made it clear when we could stop. So let's go show our customers. I'm sure they'll be impressed...</p>
+
+
+
+
+<p><i><a href="http://davesquared.net/2008/05/garden-race-pt-2-adding-multiple.html">To be continued...</a></i></p>
+
+
+
+
+<h2 id="GardenRacePart1-Download">Download</h2>
+
+
+<p>You can browse through or download this tremendously exiting code from <a href="http://code.google.com/p/davesquared/source/browse/DaveSquared.GardenRace/tags/part1/">davesquared.googlecode.com</a>.</p>
+
+]]></content>
+  </entry>
+  
+</feed>

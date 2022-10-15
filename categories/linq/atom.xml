@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: linq | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/linq/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Lazy&lt;T&gt; monad instance in C#]]></title>
+    <link href="http://davesquared.net/2012/12/lazy-monad-csharp.html"/>
+    <updated>2012-12-13T00:07:00+11:00</updated>
+    <id>http://davesquared.net/2012/12/lazy-monad-csharp</id>
+    <content type="html"><![CDATA[<p>One of the most surprising and useful things I've learned about .NET this year is that it has quite good support for <a href="http://davesquared.net/2012/06/fp-newbie-learns-monads.html">monads</a> as of .NET 3.5 (it's just missing higher-order polymorphism). What's more, for those allergic to monads, you don't need to understand anything in that previous sentence to follow this post. :)</p>
+
+<p>In this post we'll implement the couple of functions necessary to be able to compose instances of <a href="http://msdn.microsoft.com/en-us/library/dd642331.aspx"><code>Lazy&lt;T&gt;</code></a> together in interesting ways using LINQ and LINQ comprehensions.</p>
+
+<!-- more -->
+
+
+<h2>Motivation</h2>
+
+<p>As mentioned <a href="http://davesquared.net/2012/12/threading-and-lazy-t.html">last post</a>, I've been messing around with <code>Lazy&lt;T&gt;</code> as a way of performing one-time, long-running retrieval of values in an asynchronous way. Some of these values depend upon each other, so I'd like a way to build a new <code>Lazy&lt;T&gt;</code> from some existing lazy values, then hand them off to a background thread to populate. We'll see an example of this at the end of the post.</p>
+
+<h2>Lazy LINQ extension methods</h2>
+
+<p>To play nicely with LINQ we need to implement a couple of extension methods for <code>Lazy&lt;T&gt;</code>: <code>Select</code> and <code>SelectMany</code>. Types for which these functions are implemented are monads^[A monad also needs a function which takes a value of <code>T</code> and returns a new instance of the monad with that value. This is called <code>return</code> in Haskell. We can use the <code>Lazy&lt;T&gt;</code> constructor for this. There are also a few simple rules for how these functions should act and combine to make a valid monad instance, but we won't go into them here.], which means we can combine them in interesting ways. In Haskell, <code>Select</code> is known as <code>fmap</code>, <code>SelectMany</code> is known as <code>&gt;&gt;=</code> (pronounced "bind").</p>
+
+<h3>Mapping inside with <code>Select</code></h3>
+
+<p>The <code>Select</code> implementation for <code>Lazy&lt;T&gt;</code> works similarly to how it does for <code>IEnumerable&lt;T&gt;</code>. For <code>IEnumerable&lt;T&gt;</code>, it takes a <code>Func&lt;T, TResult&gt;</code> and maps it over each value inside, and returns a new <code>IEnumerable&lt;TResult&gt;</code>. For <code>Lazy&lt;T&gt;</code>, it applies the selector function to the single value inside, returning a new <code>Lazy&lt;TResult&gt;</code>.</p>
+
+<pre><code class="csharp">public static class LazyExtensions {
+    public static Lazy&lt;TResult&gt; Select&lt;T, TResult&gt;(this Lazy&lt;T&gt; value, Func&lt;T, TResult&gt; selector) {
+        return new Lazy&lt;TResult&gt;(() =&gt; selector(value.Value));
+    }
+}
+</code></pre>
+
+<h3>Mapping and flattening with <code>SelectMany</code></h3>
+
+<p>Now we come to <code>SelectMany</code>. Rather than taking a <code>Func&lt;T, TResult&gt;</code> like <code>Select</code>, it works on <code>Func&lt;T, Lazy&lt;TResult&gt;&gt;</code> instead.</p>
+
+<pre><code class="csharp">public static Lazy&lt;TResult&gt; SelectMany&lt;T, TResult&gt;(this Lazy&lt;T&gt; lazy, Func&lt;T, Lazy&lt;TResult&gt;&gt; selector) {
+    return new Lazy&lt;TResult&gt;(() =&gt; selector(lazy.Value).Value);
+}
+</code></pre>
+
+<p>The output of <code>selector(lazy.Value)</code> is a <code>Lazy&lt;TResult&gt;</code>. We don't want to return a <code>Lazy&lt;Lazy&lt;TResult&gt;&gt;</code>, so we need to flatten this out. We can do this by returning <code>selector(lazy.Value).Value</code>, to get the inner <code>Lazy&lt;TResult&gt;</code> out.^[This is a key part of how the monad interface works, so you'll see this pattern crop up all the time when implementing <code>SelectMany</code>.]</p>
+
+<p>To work well with the <code>from .. select</code> style of LINQ query we also want to implement another overload of <code>SelectMany</code> that has an additional result combining function. We can also re-write our previous <code>SelectMany</code> in terms of this new overload. Here's the finished static class:</p>
+
+<pre><code class="csharp">public static class LazyExtensions {
+    public static Lazy&lt;TResult&gt; Select&lt;T, TResult&gt;(this Lazy&lt;T&gt; lazy, Func&lt;T, TResult&gt; selector) {
+        return new Lazy&lt;TResult&gt;(() =&gt; selector(lazy.Value));
+    }
+
+    public static Lazy&lt;TResult&gt; SelectMany&lt;T, TResult&gt;(this Lazy&lt;T&gt; lazy, Func&lt;T, Lazy&lt;TResult&gt;&gt; selector) {
+        return SelectMany(lazy, selector, (a, b) =&gt; b);
+    }
+
+    public static Lazy&lt;TResult&gt; SelectMany&lt;T, TA, TResult&gt;(this Lazy&lt;T&gt; lazy, Func&lt;T, Lazy&lt;TA&gt;&gt; selector, Func&lt;T, TA, TResult&gt; resultSelector) {
+        return new Lazy&lt;TResult&gt;(() =&gt;
+                                 {
+                                     var first = lazy.Value;
+                                     var second = selector(first).Value;
+                                     return resultSelector(first, second);
+                                 });
+    }
+}
+</code></pre>
+
+<p>The last function is our new <code>SelectMany</code> overload, which has the additional step of combining the results of both the first lazy value, and the second lazy value returned from the <code>selector</code> function.</p>
+
+<h2>It's alive! It's alive!</h2>
+
+<p>We can now test out our abomination. Here's how <code>Select</code> works:</p>
+
+<pre><code class="csharp">[Test]
+public void Map() {
+    var lazyInt = new Lazy&lt;int&gt;(() =&gt; 42);
+    var newLazy = lazyInt.Select(x =&gt; (x * 2).ToString());
+    Assert.AreEqual("84", newLazy.Value);
+}
+</code></pre>
+
+<p>And here's how <code>SelectMany</code> works using LINQ comprehension syntax (we can also call the <code>SelectMany</code> extension method directly if we like):</p>
+
+<pre><code class="csharp">[Test]
+public void SelectMany() {
+    var first = new Lazy&lt;int&gt;(() =&gt; 42);
+    var second = new Lazy&lt;string&gt;(() =&gt; "nyan");
+
+    var third = from x in first
+                from str in second
+                select str + " cat " + x;
+
+    Assert.AreEqual("nyan cat 42", third.Value);
+}
+</code></pre>
+
+<p>The <code>from .. select</code> syntax gives us a nice way to express how we want to combine the values inside the <code>Lazy&lt;T&gt;</code> instances. We call the value in the <code>first</code> instance <code>x</code>, and the string in the <code>second</code> instance <code>str</code>, then create a new lazy that combines <code>str + " cat " + x</code>, all without ever really accessing the values until the <code>.Value</code> property is called.</p>
+
+<p>To illustrate that combining <code>Lazy&lt;T&gt;</code> instances does not trigger evaluation, let's write a test that increments a counter for each instance whenever evaluation occurs.</p>
+
+<pre><code class="csharp">[Test]
+public void ShouldDeferExecutionUntilValueCalled()
+{
+    var counters = new int[3];
+
+    var first = new Lazy&lt;int&gt;(() =&gt; { counters[0]++; return 10; });
+    var second = new Lazy&lt;string&gt;(() =&gt; { counters[1]++; return "nyan"; });
+    var third = from x in first
+                from str in second
+                let temp = counters[2]++
+                select str + " cat " + x;
+
+    //No values have been evaluated yet:
+    Assert.That(counters, Is.EquivalentTo(new[] { 0, 0, 0 }));
+
+    //Force values to be evaluated. 
+    //third.Value will force first and second to evaluate too.
+    var eval0 = third.Value;
+    var eval1 = third.Value;
+
+    //Each value only evaluated once
+    Assert.That(counters, Is.EquivalentTo(new[] { 1, 1, 1 }));
+}
+</code></pre>
+
+<p>This is just like the deferred execution we get using LINQ for <code>IEnumerable&lt;T&gt;</code>, where nothing is evaluated until we traverse the enumerable by using <code>foreach</code> or a method like <code>ToList()</code>.</p>
+
+<h2>Back to our motivating example</h2>
+
+<p>So back to our motivating example. We wanted to take several long-running operations, and calculate them once on a background thread. We'll specify all these operations using <code>Lazy&lt;T&gt;</code> instances, compose them together using our extension methods, and do the initialisation of the value using an async task (this is <a href="http://davesquared.net/2012/12/threading-and-lazy-t.html">thread-safe by default for <code>Lazy&lt;T&gt;</code></a>).</p>
+
+<p>The <code>Lazy&lt;T&gt;</code> handles caching the calculation value, so subsequent accesses to any of the lazy instances involved in the calculation will now return the pre-calculated value immediately.</p>
+
+<pre><code class="csharp">[Test]
+public void AsyncInitialisation() {
+    var key0Lookup = new Lazy&lt;string&gt;(FranticSearchForFirstKey);
+    var key1Lookup = new Lazy&lt;string&gt;(SearchingEverywhereForSecondKey);
+    var veryTrickyCalculation =
+        from key0 in key0Lookup
+        from key1 in key1Lookup
+        select LongRunningCalculation(key0, key1);
+
+    Task.Factory.StartNew(() =&gt; veryTrickyCalculation.Value);
+
+    //Blocks until async initialisation finished:
+    Assert.AreEqual(30, veryTrickyCalculation.Value);
+    //Returns immediately:
+    Assert.AreEqual(30, veryTrickyCalculation.Value);
+}
+
+private string FranticSearchForFirstKey() {
+    Console.WriteLine("frantic search for first key");
+    Thread.Sleep(1000);
+    return "10";
+}
+
+private string SearchingEverywhereForSecondKey() {
+    Console.WriteLine("where's the second key?");
+    Thread.Sleep(700);
+    return "20";
+}
+
+private int LongRunningCalculation(string key0, string key1) {
+    Console.WriteLine("stand back, i'm going to try science!");
+    Thread.Sleep(2000);
+    return int.Parse(key0) + int.Parse(key1);
+}
+</code></pre>
+
+<p>This test is just to show it working; for more realistic use we could try <a href="http://msdn.microsoft.com/en-us/library/hh211785(v=vs.103">wrapping the task in an <code>IObservable&lt;T&gt;</code></a>.aspx) and calling subscribers back with the result. The first result will take some time, but subsequent calls will return the value back to the subscriber straight away.</p>
+
+<h2>Conclusion</h2>
+
+<p>So we've now seen how to combine <code>Lazy&lt;T&gt;</code> instances in interesting ways using LINQ, <code>Select</code>, and <code>SelectMany</code>. This let us control evaluation of several lazy instances by composing them and pushing initialisation into an async task.</p>
+
+<p>More fundamentally, we've now got a bit of an idea about monads. A monad for a type is formed by a <code>Select</code> and <code>SelectMany</code> defined for the type, which enables the use of common composition patterns like <code>from .. select</code>. Between this, standard LINQ enumerables, and <a href="http://davesquared.net/2012/12/optional-fp-in-csharp.html">using F#'s Option type in C#</a> we can start to get an idea of how useful this pattern is.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Some optional, functional goodness in C#]]></title>
+    <link href="http://davesquared.net/2012/12/optional-fp-in-csharp.html"/>
+    <updated>2012-12-02T23:35:00+11:00</updated>
+    <id>http://davesquared.net/2012/12/optional-fp-in-csharp</id>
+    <content type="html"><![CDATA[<p>For this post I wanted to show you a small yet extremely useful bit of functional programming that you can apply right away to your current C# (or VB.NET) project. While there's solid theory underpinning it, we won't need any of that to be able to apply it, so we'll jump straight to the practice. (I love the theory, so this is quite a sacrifice I'm making for you! ;)) As an added bonus, we'll also get a good stepping stone for starting to apply more of these practical FP ideas in our everyday code.</p>
+
+<!-- more -->
+
+
+<h2>Are you null? If not then do stuff!</h2>
+
+<p>Dealing with a <a href="http://lambda-the-ultimate.org/node/3186">null</a> is a fact of life in our C# projects. It is not unusual to end up with code that has one or more null checks. Let's start with a small example:</p>
+
+<pre><code class="csharp">public Order GetOrderWhilePeckish(IWaiter waiter) {
+    var menu = waiter.GetCurrentMenu();
+    if (menu == null) {
+        return null;
+    }
+    return new Order(menu.Everything());
+}
+</code></pre>
+
+<p>Here we get the menu from a waiter. If there is no menu available, then we don't place an order. Otherwise, we order everything on the menu.</p>
+
+<p>There are two issues with this. First is the noise; the guard clause obscures much of what the method is doing. This gets worse as the number of nullable references increases (we can end up with an explosion of guard clauses, or <a href="http://www.codinghorror.com/blog/2006/01/flattening-arrow-code.html">arrow code</a>).</p>
+
+<p>The second issue is that we are using <code>null</code> to indicate that there is no current menu, which is a value of some significance. We can also get <code>null</code> because we haven't initialised a reference, which is generally due to a mistake rather than any particular significance. It would be nice to separate these cases, so that <code>GetCurrentMenu()</code> can return either <code>no menu</code> or <code>some menu</code>.</p>
+
+<p>Let's try and address these problems.</p>
+
+<h2>Null, or empty?</h2>
+
+<p>Rather than treating <code>GetCurrentMenu()</code> as something that returns a <code>Menu</code> object, let's treat its output as a list of menus. This list is either going to contain a single <code>Menu</code>, or be empty. But we'll make sure it never returns <code>null</code>.</p>
+
+<pre><code class="csharp">private IEnumerable&lt;Menu&gt; ToList(Menu menu) {
+    // Produce a single item or empty list; never null.
+    if (menu != null) yield return menu;
+}
+
+public Order GetOrderWhilePeckish(IWaiter waiter) {
+    var menuOrNothing = ToList(waiter.GetCurrentMenu());
+    return menuOrNothing
+            .Select(menu =&gt; new Order(menu.Everything()))
+            .SingleOrDefault();
+}
+</code></pre>
+
+<p>We're now dealing with a list of menus (that just happens to contain 0 or 1 items), so we can use all the standard LINQ extension methods like <code>Select</code> to transform each item in our list into the required order. Or if no menu is available, we get an empty list of orders back. To complete this step of the refactor, we need to convert our list back into a nullable reference to an <code>Order</code>, which we do using <code>SingleOrDefault()</code>. This will return our single order or <code>null</code>.</p>
+
+<div class="note">**Note:** You might be thinking it would be better to update our `GetOrderWhilePeckish` method to return a list of `Order` objects to indicate that it too can return no orders. This is a good line of thought! At this point though we're just making a small refactor; we don't have to change our callers, including those in our tests.</div>
+
+
+<p>And because we're all LINQified now, we can also use the LINQ query comprehension syntax:</p>
+
+<pre><code class="csharp">public Order GetOrderWhilePeckish(IWaiter waiter) {
+    var orderOrNothing =
+        from menu in ToList(waiter.GetCurrentMenu())
+        select new Order(menu.Everything());
+    return orderOrNothing.SingleOrDefault();
+}
+</code></pre>
+
+<h2>Intermission</h2>
+
+<p>It may be a bit hard to see the benefit of this refactor at this point. We've eliminated a null check, but the code isn't significantly simpler. We'll get to more complex examples in a minute, but first let's formalise the concept of "none or one", rather that commandeering lists for that purpose.</p>
+
+<h2>A little nuget</h2>
+
+<p>It turns out there is already a type in .NET to represent "none or one", but to use it effectively we'll want to install a nuget package or two: <a href="http://nuget.org/packages/FSharp.Core">FSharp.Core</a> and <a href="http://nuget.org/packages/FSharpx.Core">FSharpx.Core</a> (you can also use your existing F# installation instead of the FSharp.Core package).</p>
+
+<pre><code>PM&gt; Install-Package FSharp.Core
+PM&gt; Install-Package FSharpx.Core
+</code></pre>
+
+<p>Then we just need <code>using FSharpx;</code> at the top of our file, and we're ready to go.</p>
+
+<div class="note">**Aside:** Alternatively, we can always write our own option type without much trouble. Let me know if you'd like me to go through an implementation.</div>
+
+
+<h2>Another option</h2>
+
+<p>The type we want to represent our "none or one" value is called <a href="http://msdn.microsoft.com/en-us/library/dd233245.aspx"><code>option</code></a> from F#, and it is exposed to C# as <code>FSharpOption</code>. The FSharpx library gives us some convenient functions for working with this type. The only changes we need to make to our previous code is to call the <code>ToFSharpOption()</code> extension method instead of <code>ToList()</code>, and replace <code>SingleOrDefault()</code> with <code>GetOrDefault()</code>.</p>
+
+<pre><code class="csharp">public Order GetOrderWhilePeckish(IWaiter waiter) {
+    var orderOrNothing =
+        from menu in waiter.GetCurrentMenu().ToFSharpOption()
+        select new Order(menu.Everything());
+    return orderOrNothing.GetOrDefault();
+}
+</code></pre>
+
+<div class="note">**Note:** Calling `ToFSharpOption()` will work fine on a null reference because it is an extension method; it's syntactic sugar for calling `FSharpOption.ToFSharpOption(menu)`, just like our `ToList(menu)` call from before.</div>
+
+
+<p>Logically this works just like our list example. The only difference is we're using the <code>FSharpOption&lt;T&gt;</code> type instead of <code>IEnumerable&lt;T&gt;</code>.</p>
+
+<h2>Different type, same LINQ goodness</h2>
+
+<p>Let's look at a more complicated example. Our restaurant patron is down on their luck, but is desperate for a shot of bacon. They'll see if the waiter has a menu, and if so then check it for the cheapest item. If that item contains bacon, then we'll order it. In all other cases our patron will not place an order.</p>
+
+<pre><code class="csharp">public Order GetOrderForBaconFanWhoIsDownOnTheirLuck(IWaiter waiter) {
+    var currentMenu = waiter.GetCurrentMenu();
+    if (currentMenu == null) {
+        return null;
+    }
+    var cheapestItem = currentMenu.CheapestItem();
+    if (cheapestItem == null) {
+        return null;
+    }
+    return cheapestItem.Contains("Bacon") ? new Order(cheapestItem) : null;
+}
+</code></pre>
+
+<p>We can convert this from bottom-to-top in small steps, but I've found it easiest to start at the top and work down through the whole thing.</p>
+
+<pre><code class="csharp">public Order GetOrderForBaconFanWhoIsDownOnTheirLuck(IWaiter waiter) {
+    var maybeOrder = 
+        from currentMenu in waiter.GetCurrentMenu().ToFSharpOption()
+        from cheapestItem in currentMenu.CheapestItem().ToFSharpOption()
+        where cheapestItem.Contains("Bacon")
+        select new Order(cheapestItem);
+    return maybeOrder.GetOrDefault();
+}
+</code></pre>
+
+<p>This reads much like our initial description of this scenario: from current menu get cheapest item and place and order if it contains bacon. If any of these is <code>null</code> no order will be placed.</p>
+
+<p>The <code>FSharpOption</code> type supports all the standard LINQ: <code>Select</code>, <code>SelectMany</code>, <code>Where</code>, <code>let</code>-bindings etc, so there is nothing new to learn, we're just using options instead of lists.</p>
+
+<h2>More benefits</h2>
+
+<p>So far we've focussed on refactoring the insides of methods, rather than changing signatures. This has simplified our code a bit and also made our intentions more explicit by calling out places where we expect null.</p>
+
+<p>We can start getting a lot more benefit by pushing options into interfaces. Rather than <code>waiter.GetCurrentMenu()</code> returning <code>null</code> or a menu, we can make it return <code>FSharpOption&lt;Menu&gt;</code>. Callers then have to explicitly deal with the empty case, and the compiler will keep them honest.</p>
+
+<p>Having <code>FSharpOption&lt;T&gt;</code> in our APIs also clears up our calling code. We no longer need to use <code>.ToFSharpOption()</code> or <code>GetOrDefault()</code>.</p>
+
+<p>The other thing we gain is the ability to compose these types to perform some interesting operations. For example, say we want to check whether either of two properties is present, we can compose them using <code>first.OrElse(second)</code>, then use <code>HasValue()</code> to check if either are non-empty, or <code>GetOrElse(blah)</code> to use access the first value present (defaulting to <code>blah</code>).</p>
+
+<p>There are <a href="https://github.com/fsharp/fsharpx/blob/master/tests/FSharpx.CSharpTests/OptionTests.cs">lots of handy functions on <code>FSharpOption</code></a>, but for now I should just note that we can construct instances of options using <code>myObj.Some()</code> for non-empty, and <code>FSharpOption&lt;T&gt;.None</code> for empty values.</p>
+
+<h2>Gateway to functional programming</h2>
+
+<p>As we've seen, options can be introduced to clean up some null checks with zero impact on the rest of our code. As we become more comfortable with the ways of using options we can start using them in private fields, then in public interfaces, which starts making our code safer and more intention-revealing. After that, we can start trying other types that FSharp and FSharpx provide, such as <code>FSharpChoice</code>.</p>
+
+<p>This gives us a great, risk-free way of gradually becoming accustomed to some functional programming techniques. In turn this familiarity gives us new ways of thinking about problems which will undoubtedly come in handy, even if we don't end up using FP all the time.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Enumerables, LINQ and speed]]></title>
+    <link href="http://davesquared.net/2009/07/enumerables-linq-and-speed.html"/>
+    <updated>2009-07-24T15:06:00+10:00</updated>
+    <id>http://davesquared.net/2009/07/enumerables-linq-and-speed</id>
+    <content type="html"><![CDATA[<div class="note"><b>Warning:</b> This post contains an optimisation for a specific case that sacrifices readability in favour of performance, and should not be applied prematurely. Readability trumps performance until you've whacked a profiler on your code and determined it is too slow under realistic usage.</div>
+
+
+
+
+<p><a href="http://davesquared.net/2009/03/too-linqy.html">I love LINQ</a>. Especially since trying out Python, I find it a lot easier to think in terms of apply functions over iterators, rather than big loops with nested conditions. This has always worked really well for me. At least, it had done until yesterday, when we were tracking down a performance problem experienced when running through lots of buffers full of lots of data. Let's take a look at two options for adding data to an internal list (this isn't a realistic example, it's just for profiling purposes):</p>
+
+
+
+
+<pre name="code" class="csharp">
+private readonly List&lt;ushort&gt; _buffer = new List&lt;ushort&gt;();
+
+public void Add(ushort[] data, int count) {    
+    for (var i = 0; i &lt; count; i++) {
+        _buffer.Add(data[i]);
+    }
+}
+
+public void AddLinq(ushort[] data, int count) {
+    _buffer.AddRange(data.Take(count));
+}
+</pre>
+
+
+
+
+<div class="note"><b>Note:</b> these two methods aren't <i>exactly</i> the same. The second one won't fail if the <code>data</code> array has less than <code>count</code> elements. We could fix this by updating the condition used in the <code>for</code> of the first method, but the performance difference is negligible and it obscures what we are talking about.</div>
+
+
+
+
+<p>The <code>Add</code> method uses simple array traversal to add the first <code>count</code> elements to our internal <code>_buffer</code> list. The <code>AddLinq</code> method does the same thing, but uses the <code>Enumerable.Take(x)</code> extension method defined in <code>System.Linq</code>.</p>
+
+
+
+
+<p>If you don't think too hard about it you might assume these two have similarish performance. If I call both methods with a 10,000,000 element array and take the first 9,999,900 or so of those, I find the LINQ version takes around 370ms, while the non-LINQ version is around 135ms.</p>
+
+
+
+
+<p>Now if this was in the context of a web page loading or for smaller amounts of data then I don't think it's going to bother anyone, but this is in the context of large amounts of data coming in every 20ms or so, so faster is better and taking almost 3 times as long is definitely a worry. Regardless of whether we care about this additional time, where exactly is it coming from?</p>
+
+
+
+
+<p>Well the <code>Take()</code> extension method most likely uses something like this:</p>
+
+
+
+
+<pre name="code" class="csharp">
+public static IEnumerable&lt;T&gt; Take&lt;T&gt;(this IEnumerable&lt;T&gt; data, int numberOfItemsToTake) {
+    var itemsTaken = 0;
+    foreach (var item in data) {
+        if (itemsTaken &gt;= numberOfItemsToTake) yield break;        
+        itemsTaken++;
+        yield return item;
+    }
+}
+</pre>
+
+
+
+
+<p>If you're not familiar with how <code>yield return</code> works under-the-hood, have a look at Raymond Chen's discussion on the topic (<a href="http://blogs.msdn.com/oldnewthing/archive/2008/08/12/8849519.aspx">Part 1</a>,
+<a href="http://blogs.msdn.com/oldnewthing/archive/2008/08/13/8854601.aspx">Part 2</a>, and 
+<a href="http://blogs.msdn.com/oldnewthing/archive/2008/08/14/8862242.aspx">Part 3</a>), and <a href="http://csharpindepth.com/Articles/Chapter6/IteratorBlockImplementation.aspx">Jon Skeet's article</a>. Basically the compiler generates a class that implements <code>IEnumerable&lt;T&gt;</code> and <code>IEnumerator&lt;T&gt;</code>, and it keeps track of the state of the enumeration between yields from this method. With the overhead of another instance that has it's own internal state machine to maintain, it's never going to be as efficient as using a plain array index for state. Profiling two calls to each method gives the following:
+</p>
+
+
+
+
+<div><img src="http://davesquared.net/images/fromblogger/s800-AddingWithAndWithoutLinq.png" /></div>
+
+
+
+
+<p>In both cases the actual list insertion of each element is about the same (the <code>Insert</code> and <code>Add</code> calls), around 600ms in total. In the non-LINQ case, this leaves about another 600ms for interating over the list using <code>for</code> and our integer index. In the LINQ case, we have a large amount of time (2,310ms) spent in <code>MoveNext()</code> on our compiler generated iterator (<code>&lt;TakeInterator&gt;d__3a</code>). You'll notice that the slow <code>MoveNext()</code> call delegates to an <code>SZGenericArrayEnumerator&lt;T&gt;</code> which itself is reasonably fast, taking about 800 ms to iterate over the required elements compared with the 600ms of the non-LINQ version. The rest of the overhead is maintain the state machine, jumping between states and checking whether we have taken <code>count</code> number of elements yet. (It's really interesting to step through this stuff with Reflector, try searching for <code>&lt;TakeInterator&gt;</code> with private/internal classes displayed if you want to see what goes on).</p>
+
+
+
+
+<p>We ended up de-LINQing a couple of heavily used bits of code and solving most of the performance issues. Just remember that this is for a very specific scenario, and if you haven't measured it, don't optimise it away. But I think it is useful to have an idea of all the hard work happening under the hood of all that LINQy enumerable goodness.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Too LINQy?]]></title>
+    <link href="http://davesquared.net/2009/03/too-linqy.html"/>
+    <updated>2009-03-19T23:30:00+11:00</updated>
+    <id>http://davesquared.net/2009/03/too-linqy</id>
+    <content type="html"><![CDATA[<p>This post contains a tale of two methods. Well, more precisely, a tale of one method implemented in two different ways -- once using LINQ-based functional-fu, and once using old school procedural code.</p>
+
+
+
+
+<p>Recently I was pairing on a task that required us to keep a running average of multiple sets of samples that came through our app. Unfortunately it was more than likely that some sets of samples would be different lengths (depending on exactly when sampling stopped). In these situations where we were missing samples the requirements were to leave the averages for the missing samples unchanged. When we had extra samples, we should use them as the new average at that position. Here's some tests that hopefully show what we were trying to do:</p>
+
+
+
+
+<pre>
+[Test]
+public void ShouldAverageFirstTwoLotsOfSamples() {
+    var firstSamples = new float[] { 1, 2, 3 };
+    var secondSamples = new float[] { 3, 4, 5 };
+    var expectedAverages = new float[] {2, 3, 4};
+    _averager.AddSamples(firstSamples);
+    _averager.AddSamples(secondSamples);
+    Assert.That(_averager.GetAverages(), Is.EqualTo(expectedAverages));
+}  
+
+[Test]
+public void ShouldAddExtraSamplesToAverages() {
+    var firstSamples = new float[] { 1, 2, 3 };
+    var secondSamples = new float[] { 3, 4, 5, 2 };
+    var expectedAverages = new float[] { 2, 3, 4, 2 };    
+    /* ... snip ... */
+}
+
+[Test]
+public void ShouldHandleShorterNumberOfSamples() {
+    var firstSamples = new float[] { 1, 2, 3 };
+    var secondSamples = new float[] { 3, 4 };
+    var expectedAverages = new float[] { 2, 3, 3};
+    /* ... snip ... */
+}
+</pre>
+
+
+
+
+<h2>A LINQ implementation</h2>
+
+
+<p>After a brief flurry of <code>for</code> looping, we decided to muck around with LINQ to filter and transform the sets of data in a pseudo-functional kind of way.</p>
+
+
+
+
+<pre>
+public class AverageCalculator {
+    private float[] _averages = new float[0];
+    private uint _numberOfAverages;    
+
+    public void AddSamples(float[] samples) {
+        _numberOfAverages++;
+        var numberOfNewSamples = samples.Length;
+        var numberOfSamplesInLastAverage = _averages.Length;
+        var leftOverSamples = samples.Skip(numberOfSamplesInLastAverage);
+        var leftOverAverages = _averages.Skip(numberOfNewSamples);
+
+        <b>_averages = _averages
+            .Take(numberOfNewSamples)
+            .Select(
+                (average, sampleIndex) =&gt; CalculateNewAverage(average, samples[sampleIndex], _numberOfAverages)
+            )
+            .Concat(leftOverAverages)
+            .Concat(leftOverSamples)
+            .ToArray();</b>
+    }
+
+    private float CalculateNewAverage(float oldAverage, float newSample, uint totalSamples) {
+        return oldAverage + (newSample - oldAverage) / totalSamples;
+    }
+
+    public float[] GetAverages() {
+        return _averages;
+    }
+}
+</pre>
+
+
+
+
+<p>Stepping through the logic, we take a maximum of <code>numberOfNewSamples</code> from the running <code>_averages</code>, then calculate the new averages based on each new sample. To handle the possibility of mismatched array sizes, we concatenate any left over items from each array. In reality, one of these arrays of left overs will be empty (depending on which array is larger).</p>
+
+
+
+
+<p>My first thought once the tests went green was "wow that's evil!", but compared with the procedural approach we started with, this one really began to grow on me. It was surprisingly easy to write, but I was concerned about its readability (initially we had the local variables in <code>AddSamples(...)</code> inlined, but we extracted them out to try and make it more readable). We decided to test out the procedural equivalent and see if that was any clearer.</p>
+
+
+
+
+<h2>A procedural implementation</h2>
+
+
+<pre>
+public void AddSamples(float[] samples) {
+    _numberOfAverages++;
+
+    var largestArray = (samples.Length &gt;= _averages.Length) ? samples : _averages;
+    var smallestArray = (samples.Length &gt;= _averages.Length) ? _averages : samples;
+
+    var newAverages = new float[largestArray.Length];
+    for (int i = 0; i &lt; newAverages.Length; i++) {
+        newAverages[i] = (i &lt; smallestArray.Length) 
+                            ? CalculateNewAverage(_averages[i], samples[i], _numberOfAverages) 
+                            : largestArray[i];
+    }
+
+    _averages = newAverages;
+}
+</pre>
+
+
+
+
+<p>The logic used here is to find which array is largest, and to create a new array of that size. We loop through every possible index, calculating the average until all of the smallest array is used, then append the left overs from the largest array. This seems quite neat to me, although I should mention that this is a refactored, sanitised version (as is the LINQ version). The initial implementation was more verbose and the logic less clear, and it somehow managed to take longer to get it to a state where the tests all passed.</p>
+
+
+
+
+<h2>Who's right?</h2>
+
+
+
+
+<p>Which approach do you like best? It probably comes down to how much <a href="http://en.wikipedia.org/wiki/Imperative_programming">imperative</a> vs. <a href="http://en.wikipedia.org/wiki/Functional_programming">functional</a> programming you've done. (Or you hate both versions of the method, in which case please leave a comment with the correct approach. :)). Imperative programming concentrates on telling the computer <i>how</i> to do something, while functional is more about telling the computer <i>what</i> to do. For example, our LINQ version starts with some data and specifies what transformations we want to make to it. Our second version of the code focuses more on the mechanics -- create an array, loop, check the bounds etc.</p>
+
+
+
+
+<p>The second version's focus on implementation makes it fairly easy to mentally trace through how it works, but how clear is the intention behind the implementation? The LINQ version probably takes a bit more effort to understand how it works (especially as the first exposure most people have to programming tends to be to imperative-style control structures like <code>IF</code>, <code>FOR</code>, <code>WHILE</code> and even <CODE>GOTO</CODE>), but what it is doing might be a little clearer.</p>
+
+
+
+
+<p>Overall, I kind of prefer the LINQ version for its faint hint of functional elegance, but on the other hand the procedural version is just so darn familiar and comfortable to read for a C#/Java/C person like me. I'd love to hear any thoughts you have on these approaches, and how you are handling the encroachment of functional concepts into our formerly purely-procedural C# language.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[LINQ To SQL crippled prior to RTM]]></title>
+    <link href="http://davesquared.net/2008/05/linq-to-sql-crippled-prior-to-rtm.html"/>
+    <updated>2008-05-20T06:58:00+10:00</updated>
+    <id>http://davesquared.net/2008/05/linq-to-sql-crippled-prior-to-rtm</id>
+    <content type="html"><![CDATA[<p>I was reading Frans' post on the <a href="http://weblogs.asp.net/fbouma/archive/2008/05/19/why-use-the-entity-framework-yeah-why-exactly.aspx">marketing hype around Entity Framework</a> this morning. He left an <a href="http://weblogs.asp.net/fbouma/archive/2008/05/19/why-use-the-entity-framework-yeah-why-exactly.aspx#6201298">interesting comment</a> there, quoting Matt Warren's post on writing an <a href="http://blogs.msdn.com/mattwar/archive/2008/05/04/mocks-nix-an-extensible-linq-to-sql-datacontext.aspx">extensible LINQ to SQL DataContext</a>. Here's a snippet from Matt's original post (emphasis mine):</p>
+
+
+
+
+<blockquote>"If only LINQ to SQL had a public provider model, I could simply plug a new one in and use it to intercept all interaction with the database. Oh, double irony, as there is no such provider model, at least not a public one.  Grin.
+<br/><br/>
+LINQ to SQL was actually designed to be host to more types of back-ends than just SQL server. <b>It had a provider model targeted for RTM, but was disabled before the release.  Don’t ask me why.  Be satisfied to know that is was not a technical reason.</b> Internally, it still behaves that way."
+</blockquote>
+
+
+
+
+<p>Cue conspiracy theories! :)</p>
+
+]]></content>
+  </entry>
+  
+</feed>

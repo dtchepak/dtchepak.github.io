@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Example of deploying web apps using WiX - dave^2 = -1</title>
+  <meta name="author" content="David Tchepak">
+
+  
+  <meta name="description" content="As a follow up to my recent post on deploying web applications via MSBuild, I wanted to see how tough it was to do the same thing using a&nbsp;WiX- &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://davesquared.net/2007/08/example-of-deploying-web-apps-using-wix.html">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!-- MathJax config based on http://docs.mathjax.org/en/latest/config-files.html#the-mml-htmlormml-configuration-file
+       (local mathjax derived from https://ro-che.info/articles/2017-04-02-deploying-mathjax) -->
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    config: ["MMLorHTML.js"],
+    jax: ["input/MathML","output/HTML-CSS","output/NativeMML"],
+    extensions: ["mml2jax.js"],
+    "HTML-CSS": {
+      availableFonts: ["TeX"],
+      imageFont: null
+    },
+    MathMenu: {
+       showRenderer: false,
+       showFontMenu: false,
+       showLocale: false
+    }
+  });
+  </script>
+  <script type="text/javascript" src="/javascripts/mathjax-2.7.0/MathJax.js"></script>
+  <link href="http://feeds2.feedburner.com/davesquared" rel="alternate" title="dave^2 = -1" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-2217573-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body  class="no-sidebar">
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="http://feeds2.feedburner.com/davesquared" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<!-- Google CSE Search Box Begins  -->
+<form id="searchbox_005697633880271604295:snlx0l0dwf0" action="http://www.google.com/cse" onsubmit="davesquared_submitSearchBoxWidget()">
+  <fieldset role="search">
+  <input value="005697633880271604295:snlx0l0dwf0" name="cx" type="hidden"/>
+  <input value="" name="cof" type="hidden"/>
+  <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+<!-- Google CSE Search Box Ends -->
+<script type="text/javascript">
+function davesquared_submitSearchBoxWidget() {
+  var searchBox = document.getElementById("searchbox_005697633880271604295:snlx0l0dwf0");
+  searchBox.action = "/search";
+  searchBox.cof.value="FORID:11";
+}
+</script>
+  
+<ul class="main-navigation">
+  <li><a href="/" class="siteHome">dave^2 = -1</a></li>
+  <li><a href="/archives">Archives</a></li>
+  <li><a href="/categories">Categories</a></li>
+  <li><a href="/about">About</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Example of deploying web apps using WiX</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2007-08-22T15:22:00+10:00" pubdate data-updated="true">22 Aug 2007</time> 
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>As a follow up to my recent post on <a href="http://davesquared.net/2007/08/example-of-deploying-web-apps-using.html">deploying web applications via MSBuild</a>, I wanted to see how tough it was to do the same thing using a&nbsp;<a href="http://davesquared.net/2007/08/automating-releases-with-wix-and.html">WiX</a>-built installation package. My basic aim is to deploy a simple web applications to localhost, including configuring and IIS virtual directories and application. I am going to assume that the web application has already been compiled to a directory called PrecompiledWeb (which is the default when building via MSBuild). I am using the development build of <a href="http://sourceforge.net/projects/wix/">WiX 3.0</a> (3.0.2925.0).</p> <p>The first step was creating a new WiX Setup project in my VS 2005 solution (this VS integration package is called <a href="http://wix.sourceforge.net/votive.html">Votive</a>). This creates a .wixproj file, which stores the information necessary to build your installation package.&nbsp;As of WiX 3.0 it can be built using MSBuild.&nbsp;</p> <p>To this project I added references to WixIIsExtension.dll (found in C:\Program Files\Windows Installer XML v3\bin\ in my case). This is to get access to some of the IIS-related actions. The WixUtilExtension.dll is also useful for creating users (amongst other things). To get these extensions to work properly I had to work around a bug in the current build that causes the Cultures property to set incorrectly in the .wixproj file. Search for &#8220;bug&#8221; on <a href="http://blog.wharton.com.au/2007/06/windows-installer-xml-wix-30-snippets.html">Jeff Wharton&#8217;s post</a> for information on this. It basically just means manually setting the culture nodes to &#8220;en-US&#8221; or your current project&#8217;s culture.</p> <p>Next I edited the default .wxs file created by Votive (or create a new one using Add &#8211;&gt; New Item&nbsp;&#8211;&gt; WiX Product File).</p><pre>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:iis="http://schemas.microsoft.com/wix/IIsExtension"&gt;
+  &lt;Product Id="(your guid0 here)" Name="Sample"
+           Language="1033" Version="1.0.0.0" Manufacturer="Me"
+           UpgradeCode="(your guid1 here)"&gt;
+    &lt;Package InstallerVersion="200" Compressed="yes" /&gt;
+    &lt;Media Id="1" Cabinet="WixSample.cab" EmbedCab="yes" /&gt;
+    &lt;iis:WebSite Id='DefaultWebSite' Description='Default Web Site'&gt;
+      &lt;iis:WebAddress Id='AllUnassigned' Port='80' /&gt;
+    &lt;/iis:WebSite&gt;
+    &lt;Directory Id="TARGETDIR" Name="SourceDir"&gt;
+      &lt;Directory Id="INSTALLDIR" Name="Sample"&gt;
+        &lt;Directory Id="MyWebSiteDir" Name="MyWebSite" /&gt;        
+      &lt;/Directory&gt;
+    &lt;/Directory&gt;
+    &lt;Feature Id="SampleFeature" Title="Sample" Level="1"&gt;
+      &lt;ComponentGroupRef Id="MyWebSite" /&gt;           
+    &lt;/Feature&gt;
+  &lt;/Product&gt;
+&lt;/Wix&gt;
+</pre>
+<p>This file sets up the basic install package structure. The iis:WebSite node is there just to provide a reference to the default web site on localhost. The Directory tags define the directory structure that will be created by the installer. In this case, it is just going to going to create a structure like C:\Sample\MyWebSite. The Feature tag defines exactly which Component we are installing. In this case we are installing the group of Components called MyWebSite. We have not defined these yet, so lets add another .wks file to do this now (Add &#8211;&gt; New Item &#8211;&gt; WiX File).</p><pre>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:iis="http://schemas.microsoft.com/wix/IIsExtension"&gt;
+  &lt;Fragment&gt;
+    &lt;ComponentGroup Id="MyWebSite"&gt;
+      &lt;ComponentRef Id="MyWebSiteRoot" /&gt;
+      &lt;ComponentRef Id="MyWebSiteBin" /&gt;
+      &lt;ComponentRef Id="MyWebSiteVirtualDir" /&gt;
+    &lt;/ComponentGroup&gt;
+    &lt;DirectoryRef Id="MyWebSiteDir" FileSource="$(var.SolutionDir)\PrecompiledWeb\Sample.MyWebSite"&gt;
+      &lt;Component Id="MyWebSiteRoot" Guid="(your guid here)"&gt;
+        &lt;File Id="Default" Name="Default.aspx" /&gt;
+        &lt;File Id="Web.Config" Name="Web.Config" /&gt;
+        &lt;File Id="PrecompiledApp.Config" Name="PrecompiledApp.config" /&gt;        
+      &lt;/Component&gt;
+      &lt;Directory Id="MyWebSiteDir_Bin" Name="bin" FileSource="$(var.SolutionDir)\PrecompiledWeb\Sample.MyWebSite\bin"&gt;
+        &lt;Component Id="MyWebSiteBin" Guid="(your guid here)"&gt;
+          &lt;File Id="App_Web_gmetwu2v.dll" Name="App_Web_gmetwu2v.dll" /&gt;
+          &lt;File Id="App_Web_gmetwu2v.pdb" Name="App_Web_gmetwu2v.pdb"/&gt;
+        &lt;/Component&gt;
+      &lt;/Directory&gt;
+      &lt;Component Id="MyWebSiteVirtualDir" Guid="(your guid here)"&gt;
+        &lt;CreateFolder /&gt;
+        &lt;iis:WebVirtualDir Id='MyWebSiteVirtualDir' Alias='MyWebSite' Directory='MyWebSiteDir'
+                           WebSite='DefaultWebSite'&gt;
+          &lt;iis:WebApplication Id='MyWebSiteApp' Name='MyWebSiteApp' Isolation='medium' /&gt;
+        &lt;/iis:WebVirtualDir&gt;
+      &lt;/Component&gt;
+    &lt;/DirectoryRef&gt;
+  &lt;/Fragment&gt;	
+&lt;/Wix&gt;
+</pre>
+<p>This file explicitly lists every web site file that is going to be distributed within our installer. The reason why I have done this in a separate .wks&nbsp;file is because it is a giant PITA to do this, especially for large web sites, and double especially as the App_Web_*.dll file name will change on every build, so ideally you would automate the creation of this file as part of the initial project build. WiX 3.0 comes with the <a href="http://www.wixwiki.com/index.php?title=Heat">Heat utility</a>&nbsp;(formerly Tallow) that is meant to help with this.</p>
+<p>Other than the file definitions, you will also see the node that will create the IIS web virtual directory and application. You can also do neat things like configure application pools at this step. You&#8217;ll notice the WebSite attribute of the iis:WebVirtualDir node is &#8220;DefaultWebSite&#8221;, which was the ID of the iis:WebSite node in our&nbsp;first file, so this virtual directory will be hosted from our default IIS website on localhost. </p>
+<p>You can now build your .wixproj from VS, and you should end up with an installer.&nbsp;After running the installer, you should have the sample application available&nbsp;at http://localhost/MyWebSite (with source files at C:\Sample\MyWebSite). Uninstalling should remove the files and IIS configuration entirely.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">David Tchepak</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+
+<time datetime="2008-05-01T09:04:07+10:00" class="updated">Updated 01 May 2008</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/categories/-net/'>.net</a>, <a class='category' href='/categories/deployment/'>deployment</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://davesquared.net/2007/08/example-of-deploying-web-apps-using-wix.html" data-via="" data-counturl="http://davesquared.net/2007/08/example-of-deploying-web-apps-using-wix.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/2007/08/example-of-deploying-web-apps-using.html" title="Previous Post: Example of deploying web apps using MSBuild">&laquo; Example of deploying web apps using MSBuild</a>
+      
+      
+        <a class="basic-alignment right" href="/2007/08/groups-post-on-writing-csv-parser-using.html" title="next Post: Groups post on writing a CSV generator using TDD">Groups post on writing a CSV generator using TDD &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p class="disclaimer">All code and advice is provided without warranty -- use at your own risk! This is just a blog! Don't take it too seriously!<br/>
+Despite not being too serious, this blog has a <a href="http://davesquared.net/2007/07/privacy-policy.html">Privacy Policy</a>, because it uses Google Analytics to see if anyone drops by.</p>
+<p>
+  Copyright &copy; 2022 - David Tchepak -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+  
+<script type="text/javascript">
+      var disqus_shortname = 'davesquared';
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://davesquared.net/2007/08/example-of-deploying-web-apps-using-wix.html';
+        var disqus_url = 'http://davesquared.net/2007/08/example-of-deploying-web-apps-using-wix.html';
+        var disqus_script = 'embed.js';
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'https://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'https://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

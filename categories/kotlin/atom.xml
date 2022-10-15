@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: kotlin | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/kotlin/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Using phantom types to associate static values and generic types]]></title>
+    <link href="http://davesquared.net/2019/01/phantom-types.html"/>
+    <updated>2019-01-17T07:50:00+11:00</updated>
+    <id>http://davesquared.net/2019/01/phantom-types</id>
+    <content type="html"><![CDATA[<p>Phantom types seem to get used reasonably regularly in a variety of languages for ensuring the safe use of various values (as <a href="https://gekkio.fi/blog/2013-02-07-increased-compile-time-safety-with-phantom-types.html">identifiers</a>, for <a href="http://gabrielsw.blogspot.com/2012/09/phantom-types-in-java.html">state transitions</a> and <a href="http://kean.github.io/post/phantom-types#id-type">others</a>).</p>
+
+<p>A colleague and I recently found a case where they provided a slightly different benefit. They still helped provide some required type safety, but in this case they also helped to statically associate a value with a generic type parameter, avoiding a runtime lookup and keeping the code succinct using type inference.</p>
+
+<p>This post uses Kotlin, but should be applicable to Java or any other language with generics / parameterised types.</p>
+
+<!-- more -->
+
+
+<h2>What is a phantom type?</h2>
+
+<p>A phantom type is a type that has a type parameter in its declaration that is not actually used by the constructors or fields of that type.</p>
+
+<p>For (a fairly contrived) example:</p>
+
+<pre><code class="kotlin">data class Measure&lt;T&gt;(val value: Double)
+</code></pre>
+
+<p>Here we have a <code>Measure</code> type with a single <code>Double</code> field. It is parameterised by some type <code>T</code>, but we could quite easily remove this parameter and the class would still work (i.e. <code>data class Measure(val value: Double)</code>).</p>
+
+<p>Even though <code>T</code> isn't used in the class definition, it does let us tag references to this type with additional information. The type parameter does not change how the type itself works, but it does let us restrict how it can be used.</p>
+
+<p>Let's make a <code>plus</code> operator for <code>Measure</code>, but ensure it only works on values of the same measurement units:</p>
+
+<pre><code class="kotlin">data class Measure&lt;T&gt;(val value: Double) {
+    operator fun plus(other: Measure&lt;T&gt;): Measure&lt;T&gt; =
+            Measure(value + other.value)
+}
+
+object Metres
+object Kilograms
+
+@Test
+fun testMeasures() {
+    val first = Measure&lt;Metres&gt;(42.0)
+    val second = Measure&lt;Metres&gt;(4200.0)
+    val third = Measure&lt;Kilograms&gt;(1.0)
+
+    // Can add Metres:
+    assertEquals(Measure&lt;Metres&gt;(4242.0), first + second)
+
+    // Can not add Kilograms to Metres:
+    // assertEquals(Measure&lt;Kilograms&gt;(43.0), first + third)
+    // Type mismatch: inferred type is Measure&lt;Kilograms&gt; but Measure&lt;Metres&gt; was expected
+}
+</code></pre>
+
+<p>Within <code>Measure&lt;T&gt;</code> we just have a <code>Double</code>; the actual type of <code>T</code> makes no difference at all. But when we need to use <code>Measure&lt;T&gt;</code> values, we can ensure only compatible <code>T</code> values are combined, or define operations only for specific <code>T</code> (such as <code>convert: Measure&lt;Metres&gt; -&gt; Measure&lt;Inches&gt;</code>).</p>
+
+<h2>A problem associating a static value with a type</h2>
+
+<p>I'll strip back the actual problem we were facing to something that is convenient to write up, yet still hopefully within the realms of plausibility. Say we have several entity types we want to load from some data store. Values of each type are queried by some schema information.</p>
+
+<pre><code class="kotlin">/** Marker interface for persistable entities. */
+interface Entity
+
+/** Schema information used to query entities in their persisted state. */
+data class Schema(val name: String, val version: Int)
+
+data class Widget(val style: String, val barcode: Barcode) : Entity {
+    companion object {
+        /** Static property of Widget, representing that type's schema */
+        val SCHEMA = Schema("acme.Widget", 12)
+    }
+}
+
+data class Sprocket(val size: Int) : Entity {
+    companion object {
+        /** Schema for Sprockets. */
+        val SCHEMA = Schema("acme.Sprocket", 12)
+    }
+}
+
+class MagicalBucketOfData {
+    // ... magical persistence code here ...
+
+    // WILL NOT COMPILE!!!
+    fun &lt;T : Entity&gt; fetch(): List&lt;T&gt; =
+            // Need to get schema for T to query:
+            db.where("schema", T.SCHEMA.name) // ??? But can't access T.SCHEMA!
+              .map { it as T }
+}
+</code></pre>
+
+<p>The problem here is that we can't get the static <code>SCHEMA</code> property from <code>T</code>. There is no way for us to say "all types <code>T</code> where <code>T</code> has a static property <code>SCHEMA: Schema</code>" in Kotlin.</p>
+
+<p>There are a few options here. We can change our <code>fetch</code> method to be <code>fun &lt;T: Entity&gt; fetch(schema: Schema): List&lt;T&gt;</code>, but then we could call <code>fetch&lt;Sprocket&gt;(Widget.SCHEMA)</code> by accident, which will cause all sorts of troubles when we try to cast/convert our data to the wrong type. We could use Kotlin's <a href="https://kotlinlang.org/docs/reference/inline-functions.html#reified-type-parameters">reified type parameters</a> or pass in a <code>Class&lt;T&gt;</code>, and switch on type to lookup the correct schema for whatever <code>T</code> is passed in, but that gets a little messy and will add a runtime cost when we actually know what we want statically.</p>
+
+<h2>Phantom types to the rescue</h2>
+
+<p>Instead, let's make <code>Schema</code> a phantom type and tag it with the information about the specific entity type it represents.</p>
+
+<pre><code class="kotlin">data class Schema&lt;T: Entity&gt;(val name: String, val version: Int)
+</code></pre>
+
+<p>This gives a warning that <code>Type parameter "T" is never used</code>, a convincing indication we have a phantom type. Spooky.</p>
+
+<pre><code class="kotlin">data class Widget(val style: String, val barcode: Barcode) : Entity {
+    companion object {
+        // This isn't just any schema, it is a schema for a widget!
+        val SCHEMA = Schema&lt;Widget&gt;("acme.Widget", 12)
+    }
+}
+
+data class Sprocket(val size: Int) : Entity {
+    companion object {
+        val SCHEMA = Schema&lt;Sprocket&gt;("acme.Sprocket", 12)
+    }
+}
+</code></pre>
+
+<p>Now we can pass through a schema value to our instance, and the compiler will infer what <code>T</code> we're after:</p>
+
+<pre><code class="kotlin">fun &lt;T : Entity&gt; fetch(schema: Schema&lt;T&gt;): List&lt;T&gt; =
+        db.where("schema", schema.name)
+          .map { it as T }
+
+// Example uses:
+
+// Here widgets will be of type `List&lt;Widget&gt;`; the type will get
+// inferred by the schema we pass.
+val widgets = fetch(Widget.SCHEMA) 
+
+// Given a method that works on sprockets:
+fun handleSprockets(sprockets: List&lt;Sprocket&gt;) { ... }
+// This will fail as we're trying to use widgets for sprockets:
+handleSprockets(fetch(Widget.SCHEMA)) // Type mismatch!
+</code></pre>
+
+<p>Now we have schema values that are also associated with specific types, giving us the ability to write generic code that needs these values.</p>
+
+<h2>Conclusion</h2>
+
+<p>Adding an essentially unused type parameter to <code>Schema</code> here gives us an easy way to associate schema values with a particular type. It avoids runtime lookups on types, and does not compromise code safety by allowing us to pass through a value that is not appropriate for the expected type <code>T</code>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Aggregation]]></title>
+    <link href="http://davesquared.net/2017/11/aggregation.html"/>
+    <updated>2017-11-04T17:30:00+11:00</updated>
+    <id>http://davesquared.net/2017/11/aggregation</id>
+    <content type="html"><![CDATA[<p>Today I wanted to look at an approach for producing aggregate data from multiple measurements over a source. I'm learning <a href="https://kotlinlang.org/">Kotlin</a> at the moment so I'll use that for the examples in this post, but we can apply the same idea to pretty much any language (I've used similar approaches in F#, and it would work with C# albeit with a bit more code noise). <!-- more --> Any feedback on the approach in general and on my Kotlin-ing attempts is appreciated.</p>
+
+<h2>Motivating example</h2>
+
+<p>For this post we'll consider the example of a list of <code>Sample</code> values we want aggregate information for. A <code>Sample</code> includes the month and year it was collected, and an integer representing the value sampled. For each set of samples we are required to show the following information:</p>
+
+<ul>
+<li>The total value sampled for each month and year</li>
+<li>The earliest sample date in this data set</li>
+<li>The largest individual sample collected</li>
+<li>A count of how many samples where within a specific range.</li>
+</ul>
+
+
+<pre><code class="kotlin">data class MonthYear(val year: Int, val month: Int) : Comparable&lt;MonthYear&gt; { /* ... */ }
+data class Sample(val date: MonthYear, val value: Int)
+</code></pre>
+
+<h2>Initial attempts</h2>
+
+<p>We could neatly get each individual bit of information by using multiple queries<a href="Example">^multipleQueries</a>, but requiring multiple iterations seems quite wasteful, especially for larger data sets. Instead we could use multiple variables, or an aggregate type containing those variables, and update each as we loop or fold over the data set:</p>
+
+<pre><code class="kotlin">data class CandidateAggregate(var data: Map&lt;MonthYear, Int&gt;,
+                              var earliestSampleDate: MonthYear?,
+                              var largestSample: Int,
+                              var inRangeCount: Int)
+
+val result = samples.fold(
+        CandidateAggregate(emptyMap(), null, 0, 0), // empty case
+        { acc, s -&gt;
+            CandidateAggregate(
+                acc.data.insertOrUpdate(s.date) { if (it==null) s.value else it + s.value },
+                minOf(acc.earliestSampleDate ?: s.date, s.date),
+                maxOf(acc.largestSample, s.value),
+                acc.inRangeCount + if ((100..200).contains(s.value)) 1 else 0
+            )
+        })
+
+/** Helper for updating the value for a key in a map, or inserting it if it does not exist. */
+private fun &lt;K, V&gt; Map&lt;K, V&gt;.insertOrUpdate(key: K, transform: (V?) -&gt; V): Map&lt;K, V&gt; =
+        plus(key to transform(get(key)))
+</code></pre>
+
+<p>This seems a reasonable approach to me, and we'll take this and adapt it in an attempt to get a few additional benefits:</p>
+
+<ul>
+<li>Include more information about the type of calculation used for each field in the aggregate</li>
+<li>Enable reuse of specific calculations in other aggregates</li>
+<li>Enable independent testing of each calculation type</li>
+<li>Make it fairly simple to change existing aggregates, and to create new ones.</li>
+</ul>
+
+
+<h2>Representing aggregate calculations</h2>
+
+<p>First we'll create a type to represent values that can be combined. We'll use Kotlin's <code>plus</code> operator for this purpose.</p>
+
+<pre><code class="kotlin">/** A type [T] with an associative binary operation. Must satisfy the associative property:  `a + (b + c) == (a + b) + c` */
+interface Semigroup&lt;T&gt; {
+    operator fun plus(other: T): T
+}
+</code></pre>
+
+<p>We'll steal the term "<a href="https://en.wikipedia.org/wiki/Semigroup">semigroup</a>" from mathematics as its definition includes the constraints our <code>plus</code> operation needs<a href="A">^semigroup</a>, although we could also call it <code>Combinable</code> or <code>Addable</code> or something else if we prefer.</p>
+
+<p>If you haven't used Kotlin before, defining a <code>plus</code> operator function lets us also use the <code>+</code> symbol, so <code>a + b</code> will get translated to <code>a.plus(b)</code>. Whenever you see two semigroups being added using <code>+</code> for the remainder of this post, keep in mind it will be calling the <code>plus</code> function defined by that semigroup instance. (If you don't like co-opting <code>+</code> in this way feel free to change the interface to declare <code>fun combine(other: T): T)</code> or similar.)</p>
+
+<p>Next, we'll define instances that represent sum, max, and min aggregation:</p>
+
+<pre><code class="kotlin">data class Sum(val value: Int) : Semigroup&lt;Sum&gt; {
+    override fun plus(other: Sum): Sum = Sum(value + other.value)
+}
+
+data class Max&lt;T : Comparable&lt;T&gt;&gt;(val value: T) : Semigroup&lt;Max&lt;T&gt;&gt; {
+    override operator fun plus(other: Max&lt;T&gt;) = Max(maxOf(value, other.value))
+}
+
+data class Min&lt;T : Comparable&lt;T&gt;&gt;(val value: T) : Semigroup&lt;Min&lt;T&gt;&gt; {
+    override operator fun plus(other: Min&lt;T&gt;) = Min(minOf(value, other.value))
+}
+</code></pre>
+
+<p>Looking at our <code>CandidateAggregate</code> from earlier, we also need to handle nullable values (<code>earliestSampleDate: MonthYear?</code>), as well as combining <code>Map&lt;MonthYear, Int&gt;</code> values. Rather than building these specifically for this case, we can express these concepts more generally in terms of other semigroups, so they can be reused for different cases:</p>
+
+<pre><code class="kotlin">/**
+ * Combine nullable values. Use the semigroup instance to combine if both have values, or if only
+ * one value is present use that.
+ */
+data class Nullable&lt;T : Semigroup&lt;T&gt;&gt;(val value: T?) : Semigroup&lt;Nullable&lt;T&gt;&gt; {
+    override fun plus(other: Nullable&lt;T&gt;): Nullable&lt;T&gt; =
+            if (value != null &amp;&amp; other.value != null) {
+                Nullable(value + other.value) // Reminder: `+` here will call T.plus defined for the Semigroup&lt;T&gt;.
+            } else {
+                Nullable(this.value ?: other.value)
+            }
+}
+
+/**
+ * Merge [Map]s where the values have a semigroup instance. If both maps have an entry for the same key, these
+ * will be combined using the semigroup operation.
+ */
+data class Mapped&lt;K, V : Semigroup&lt;V&gt;&gt;(val value: Map&lt;K, V&gt;) : Semigroup&lt;Mapped&lt;K, V&gt;&gt; {
+    override fun plus(other: Mapped&lt;K, V&gt;): Mapped&lt;K, V&gt; =
+            value.entries.fold(other.value) { acc, entry -&gt;
+                acc.insertOrUpdate(entry.key) { if (it != null) it + entry.value else entry.value }
+            }.let { Mapped(it) }
+}
+</code></pre>
+
+<p>Each of these operations is implemented quite similarly to the code we used for each field in <code>CandidateAggregate</code>, but now we can reuse them for different aggregates, as well as test each in isolation. The cost is we have now spread this code across more types.</p>
+
+<p>We can also write some general functions, <code>concat</code> and <code>concatMap</code>, to combine any list of <code>Semigroup&lt;T&gt;</code> values into a single <code>Semigroup&lt;T&gt;</code> value, effectively combining aggregates^[Both <code>concat</code> and <code>concatMap</code> take an <code>empty: T</code> value for cases where the <code>items</code> lists are empty. We could use a <code>Monoid</code> constraint instead of <code>Semigroup</code>, which adds the concept of an empty identity element, but I found this messy to implement in Kotlin.]. Here is an example of how to define and use these functions (as well as an example of testing <code>Sum</code> and <code>Max</code> in isolation):</p>
+
+<pre><code class="kotlin">/** Reduce a list of `T` to a single `T` using a semigroup operation */
+fun &lt;T : Semigroup&lt;T&gt;&gt; concat(empty: T, items: Iterable&lt;T&gt;) = items.fold(empty) { acc, t -&gt; t + acc }
+
+/** Reduce a list of [A] by converting each item to a [T] with a semigroup instance, then combining to a single value using [concat]. */
+fun &lt;T : Semigroup&lt;T&gt;, A&gt; concatMap(empty: T, items: Iterable&lt;A&gt;, f: (A) -&gt; T) =
+        items.fold(empty) { acc, t -&gt; f(t) + acc }
+        /* Note: this is logically equivalent to the simpler:
+         *      concat(empty, items.map(f))
+         * But this would do two passes through the list.
+         */
+
+@Test
+fun examples() {
+    val list = listOf(42, 123, 19, 73)
+    assertEquals(Sum(257), Semigroup.concatMap(Sum(0), list) { Sum(it) })
+    assertEquals(Max(123), Semigroup.concatMap(Max(0), list) { Max(it) })
+}
+</code></pre>
+
+<h2>Using our aggregation types</h2>
+
+<p>Now we can rewrite <code>CandidateAggregate</code> using our aggregation types:</p>
+
+<pre><code class="kotlin">data class Aggregate(var data: Mapped&lt;MonthYear, Sum&gt;,
+                     var earliestSampleDate: Nullable&lt;Min&lt;MonthYear&gt;&gt;,
+                     var largestSample: Max&lt;Int&gt;,
+                     var inRange: Sum) : Semigroup&lt;Aggregate&gt; {
+    companion object {
+        val empty = Aggregate(Mapped(emptyMap()), Nullable(null), Max(0), Sum(0))
+    }
+
+    override fun plus(other: Aggregate): Aggregate =
+            Aggregate(data + other.data,
+                    earliestSampleDate + other.earliestSampleDate,
+                    largestSample + other.largestSample,
+                    inRange + other.inRange)
+}
+</code></pre>
+
+<p>The type of aggregation used appears explicitly for each field in <code>Aggregate</code>. For example <code>largestSample: Max&lt;Int&gt;</code> conveys both the type of the result (<code>Int</code>), as well as the process being used to calculated it (<code>Max</code>). In <code>CandidateAggregate</code> only the former was expressed. We also build some field types by composing semigroups, such as <code>Mapped&lt;MonthYear, Sum&gt;</code>, which specifies we will be adding values using <code>Sum</code> rather than some other approach. This also makes it very simple to update the method of aggregation (as illustrated <a href="#what-have-we-gained-for-the-price">below</a>).</p>
+
+<p>We have made <code>Aggregate</code> itself a semigroup to define how we combine these composite aggregates. We've also added an <code>empty</code> property to make it easier to call <code>concat</code> and <code>concatMap</code>.</p>
+
+<p>The last piece we need is to translate a single <code>Sample</code> into an <code>Aggregate</code>, then we can do the entire aggregation using <code>concatMap</code> as shown in the <code>aggregateSamples()</code> test. Each <code>Sample</code> gets transformed into an <code>Aggregate</code> representing that individual sample (an aggregate of 1), then each <code>Aggregate</code> in turn gets combined to calculate the required information across all the samples.</p>
+
+<pre><code class="kotlin">fun aggregateSample(sample: Sample): Aggregate =
+        Aggregate(Mapped(mapOf(sample.date to Sum(sample.value))),
+                Nullable(Min(sample.date)),
+                Max(sample.value),
+                sample.value.countWithin(100..200))
+
+fun &lt;T : Comparable&lt;T&gt;&gt; T.countWithin(range: ClosedRange&lt;T&gt;) =
+        Sum(if (range.contains(this)) 1 else 0)
+
+@Test
+fun aggregateSamples() {
+    // Aggregation
+    val result = Semigroup.concatMap(Aggregate.empty, samples) { aggregateSample(it) }
+
+    // Actual results are equivalent to the individual queries on the left:
+    assertEquals(samples.minBy { it.date }?.date, result.earliestSampleDate.value?.value)
+    assertEquals(samples.maxBy { it.value }?.value, result.largestSample.value)
+    assertEquals(samples.count { (100..200).contains(it.value) }, result.inRange.value)
+    val june2017 = MonthYear(2017, 6)
+    assertEquals(samples.filter { x -&gt; june2017 == x.date }.sumBy { it.value }, result.data.value[june2017]?.value)
+}
+</code></pre>
+
+<h2>What have we gained for the price?</h2>
+
+<p>This definitely has more pieces that the <code>CandidateAggregate</code> version (although the code for each piece has not changed much, it is now spread over multiple types). More pieces suggest a performance impact, but I have not measured this.</p>
+
+<p>We do get a few benefits for this price. Firstly, we now have some small, simple, genuinely reusable aggregation types (<code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Mapped</code> etc.). These can be combined into other aggregates, and they can be tested in isolation. Secondly, we explicitly define aggregate types in terms of the aggregates of which they are composed. We don't have an aggregate that contains an <code>Int</code>, we have a <code>Sum</code> or a <code>Max&lt;Int&gt;</code> which conveys more information as to the aggregation process, as well as preventing errors (summing two <code>Int</code> values that should have been combined using <code>maxOf</code> for example).</p>
+
+<p>We also make it simpler to change our aggregation. For example, if we wanted to change from reporting the total value to the maximum value for each month, we can change <code>Mapped&lt;MonthYear, Sum&gt;</code> to <code>Mapped&lt;MonthYear, Max&lt;Int&gt;&gt;</code> and the aggregation process will adjust accordingly.</p>
+
+<h2>Conclusion</h2>
+
+<p>We introduced a <code>Semigroup&lt;T&gt;</code> interface which represents values that can be combined with an associative, binary operation. We also introduced <code>concat</code> and <code>concatMap</code> operations that work for any instance of this interface. We created <code>Sum</code>, <code>Max</code>, <code>Min</code>, <code>Nullable</code> and <code>Mapped</code> instances of this interface to represent common methods of aggregation, then built a custom <code>Aggregate</code> semigroup composed of some of these instances.</p>
+
+<p>This is a bit more complex compared than manually aggregating a set of values over a loop or fold, but in return gives us reusable and testable aggregate types, more communicative types for our aggregate model, less opportunities for bugs in the aggregation process, as well as making the creation of new aggregates and modifications to existing aggregates simpler.</p>
+
+<h2>Suggested reading</h2>
+
+<ul>
+<li><p><a href="https://fsharpforfunandprofit.com/series/understanding-monoids.html">Understanding monoids</a>, a three part series on monoids (a special case of semigroup) by Scott Wlaschin at the excellent <a href="https://fsharpforfunandprofit.com/">F# for fun and profit</a> site.</p>
+
+<pre><code class="``kotlin">  val minDate = samples.map { it.date }.min()
+  val maxSample = samples.map { it.value }.max()
+  val inRangeCount = samples.count { (100..200).contains(it.value) }
+</code></pre>
+
+<pre><code class="``">  100 - (30 - 10) - 5 /= ((100 - 30) - 10) - 5
+  75 /= 55
+</code></pre>
+
+<p>  The end result is we can use associativity to combine values without having to also take evaluation order into account.</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

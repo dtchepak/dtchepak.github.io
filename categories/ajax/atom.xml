@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: ajax | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/ajax/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[ScottGu on templating, and using AJAX without UpdatePanels]]></title>
+    <link href="http://davesquared.net/2007/10/scottgu-on-templating-and-using-ajax.html"/>
+    <updated>2007-10-08T10:29:00+10:00</updated>
+    <id>http://davesquared.net/2007/10/scottgu-on-templating-and-using-ajax</id>
+    <content type="html"><![CDATA[<p>Had to bookmark this older post from ScottGu:&nbsp;</p>
+
+
+<p> <p><a href="http://weblogs.asp.net/scottgu/archive/2006/10/22/Tip_2F00_Trick_3A00_-Cool-UI-Templating-Technique-to-use-with-ASP.NET-AJAX-for-non_2D00_UpdatePanel-scenarios.aspx">Tip/Trick: Cool UI Templating Technique to use with ASP.NET AJAX for non-UpdatePanel scenarios - ScottGu's Blog</a> </p> <p>Scott first runs through letting the AJAX ScriptManager control generate JavaScript proxies for accessing server side code asynchronously. I didn't realise that it was quite that easy!</p> <p>The rest of the post covers a way of using&nbsp;this feature&nbsp;to render templates to pages. By using ASCX controls as templates this gives you an interesting way to separate controller and view code.</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ASP.NET AJAX 1.0 released]]></title>
+    <link href="http://davesquared.net/2007/01/aspnet-ajax-10-released.html"/>
+    <updated>2007-01-24T09:22:00+11:00</updated>
+    <id>http://davesquared.net/2007/01/aspnet-ajax-10-released</id>
+    <content type="html"><![CDATA[<p>Just wanted to join in with the other million people that posted this today: <a href="http://ajax.asp.net/">ASP.NET AJAX 1.0</a> has been released.</p>
+
+
+<p>
+<a href="http://weblogs.asp.net/scottgu/archive/2007/01/23/asp-net-ajax-1-0-released.aspx">Scott Guthrie</a>  has a really good summary of the release and is worth a read.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Writing MS AJAX compatible custom controls]]></title>
+    <link href="http://davesquared.net/2007/01/writing-ms-ajax-compatible-custom.html"/>
+    <updated>2007-01-18T14:32:00+11:00</updated>
+    <id>http://davesquared.net/2007/01/writing-ms-ajax-compatible-custom</id>
+    <content type="html"><![CDATA[<div xmlns="http://www.w3.org/1999/xhtml">Eilon Lipton has a great post on how to <a href="http://forums.asp.net/thread/1455130.aspx">write controls compatible with UpdatePanel without linking to the ASP.NET AJAX DLL</a> (and <a href="http://weblogs.asp.net/leftslipper/archive/2006/11/13/HOWTO_3A00_-Write-controls-compatible-with-UpdatePanel-without-linking-to-the-ASP.NET-AJAX-DLL.aspx">repost on his own blog</a>, in case it drops off the forums).</div>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ASP.NET AJAX RC1 released]]></title>
+    <link href="http://davesquared.net/2006/12/aspnet-ajax-rc1-released.html"/>
+    <updated>2006-12-15T13:26:00+11:00</updated>
+    <id>http://davesquared.net/2006/12/aspnet-ajax-rc1-released</id>
+    <content type="html"><![CDATA[<div xmlns="http://www.w3.org/1999/xhtml">Announcement by <a href="http://blogs.msdn.com/bgold/archive/2006/12/14/asp-net-ajax-rc-1-is-here-download-now.aspx">Brian Goldfarb</a>. <a href="http://ajax.asp.net/default.aspx?tabid=47">Download here</a>. Looks like I no longer have to live in fear of more CTP > Beta 1 > Beta 2 changes, as everything should be fairly stable from here until release.
+
+</div>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ASP.NET AJAX Beta 2: Changes from CTP]]></title>
+    <link href="http://davesquared.net/2006/12/aspnet-ajax-beta-2-changes-from-ctp.html"/>
+    <updated>2006-12-13T16:39:00+11:00</updated>
+    <id>http://davesquared.net/2006/12/aspnet-ajax-beta-2-changes-from-ctp</id>
+    <content type="html"><![CDATA[<div xmlns="http://www.w3.org/1999/xhtml">A <a href="http://ajax.asp.net/files/AspNet_AJAX_CTP_to_Beta_Whitepaper.aspx">overview of the changes</a> between ASP.NET AJAX ("Atlas") CTP and Beta 2 (and ultimately RTM) has been posted. Of particular interest are the changes to the UpdatePanel control and to the client API, and significant bug fixes like validators now working properly. Of academic interest is the change from <a href="http://ajax.asp.net/files/AspNet_AJAX_CTP_to_Beta_Whitepaper.aspx#link7">closures to prototypes</a> for objects defined in the client libraries.
+
+</div>
+
+]]></content>
+  </entry>
+  
+</feed>

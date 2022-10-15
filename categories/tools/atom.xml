@@ -1,0 +1,806 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: tools | dave^2 = -1]]></title>
+  <link href="http://davesquared.net/categories/tools/atom.xml" rel="self"/>
+  <link href="http://davesquared.net/"/>
+  <updated>2022-10-15T16:55:10+11:00</updated>
+  <id>http://davesquared.net/</id>
+  <author>
+    <name><![CDATA[David Tchepak]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Announcing NSubstitute]]></title>
+    <link href="http://davesquared.net/2010/06/announcing-nsubstitute.html"/>
+    <updated>2010-06-30T01:01:00+10:00</updated>
+    <id>http://davesquared.net/2010/06/announcing-nsubstitute</id>
+    <content type="html"><![CDATA[<p>Tonight at Sydney ALT.NET <a href="http://twitter.com/guywithbeard">Anthony Egerton</a> announced <a href="http://nsubstitute.github.com">NSubstitute</a>, his mocking framework for .NET 3.5+. I've been contributing some code to NSubstitute and I like to blog, so I thought I'd take it upon myself to do the written version of the announcement. :)</p>
+
+
+
+
+<p>This all started a few months ago during some pair programming where we started discussing how we would ideally like our mocking code to read. Anthony came up with some neat syntax ideas and we decided to start working on it as a hobby project in our spare time, the aim being to play around with a simple, succinct syntax for mocking, as well as to try out some different testing techiques and to learn a bit about DynamicProxy.</p>
+
+
+<p></p>
+
+<p>We liked the syntax so much we've started using it on work projects, and so we thought we'd <a href="http://github.com/nsubstitute/NSubstitute">put it out there</a> in case anyone else was interested or has some ideas on how to improve it. It's still a little rough around the edges (the exception message formatting needs lots of work, and it doesn't support Mono or Silverlight yet), but it's pretty usable in its current state and should be enough to give people an idea of what we're aiming for.</p>
+
+
+
+
+<h2>NSubstitute examples</h2>
+
+
+
+
+<p>Say we have an <code>ICalculator</code> interface:</p>
+
+
+
+
+<pre class="brush:csharp">
+public interface ICalculator {
+  int Add(int a, int b);
+  string Mode { get; set; }
+  event Action PoweringUp;
+}
+</pre>
+
+
+
+
+<p>We can ask NSubstitute to create a substitute instance for this type. We could ask for a stub, mock, fake, spy, test double etc., but why bother when we just want to substitute an instance we have some control over?</p>
+
+
+
+
+<pre class="brush:csharp">
+var calculator = Substitute.For&lt;ICalculator&gt;();
+</pre>
+
+
+
+
+<p>
+ Now we can tell our substitute to return a value for a call:
+</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Add(1, 2).Returns(3);
+Assert.That(calculator.Add(1, 2), Is.EqualTo(3));
+</pre>
+
+
+
+
+<p>
+We can check that our substitute received a call, and did not receive others:
+</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Add(1, 2);
+calculator.Received().Add(1, 2);     
+calculator.DidNotReceive().Add(5, 7);
+</pre>
+
+
+
+
+<p>If our <code>Received()</code> assertion fails, NSubstitute tries to give us some help as to what the problem might be:</p>
+
+
+
+
+<pre>
+NSubstitute.Exceptions.CallNotReceivedException : Expected to receive call:
+    Add(1, 2)
+Actually received:
+    Add(4, 5)
+    Add(3, 4)
+</pre>
+
+
+
+
+<p>We can also work with properties using the <code>Returns</code> syntax we use for methods, or just stick with plain old property setters (for read/write properties):</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Mode.Returns("DEC");
+Assert.That(calculator.Mode, Is.EqualTo("DEC"));
+
+calculator.Mode = "HEX";
+Assert.That(calculator.Mode, Is.EqualTo("HEX"));
+</pre>
+
+
+
+
+<p>NSubstitute supports argument matching for setting return values and asserting a call was received:</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Add(10, -5);
+calculator.Received().Add(10, Arg.Any&lt;int&gt;());
+calculator.Received().Add(10, Arg.Is&lt;int&gt;(x =&gt; x &lt; 0));
+</pre>
+
+
+
+
+<p>We can use argument matching as well as passing a function to <code>Returns()</code> to get some more behaviour out of our substitute (possibly too much, but that's your call):</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator
+  .Add(Arg.Any&lt;int&gt;(), Arg.Any&lt;int&gt;())
+  .Returns(x =&gt; (int)x[0] + (int)x[1]);
+Assert.That(calculator.Add(5, 10), Is.EqualTo(15));
+</pre>
+
+
+
+
+<p><code>Returns()</code> can also be called with multiple arguments to set up a sequence of return values.</p>
+
+
+
+
+<pre class="brush:csharp">
+calculator.Mode.Returns("HEX", "DEC", "BIN");
+Assert.That(calculator.Mode, Is.EqualTo("HEX")); 
+Assert.That(calculator.Mode, Is.EqualTo("DEC")); 
+Assert.That(calculator.Mode, Is.EqualTo("BIN")); 
+</pre>
+
+
+
+
+<p>Finally, we can raise events on our substitutes (unfortunately C# dramatically restricts the extent to which this syntax can be cleaned up):</p>
+
+
+
+
+<pre class="brush:csharp">
+bool eventWasRaised = false;
+calculator.PoweringUp += () =&gt; eventWasRaised = true;
+
+calculator.PoweringUp += Raise.Action();
+Assert.That(eventWasRaised);
+</pre>
+
+
+
+
+<h2>How can I try this out?</h2>
+
+
+<p>Easy, just head on over to <a href="http://nsubstitute.github.com">nsubstitute.github.com</a> and download the binary. Then add the <code>NSubstitute.dll</code> as a project reference, add <code>using NSubstitute;</code> to your CS file and start substituting. Or grab the source from the <a href="http://github.com/nsubstitute/NSubstitute">project site on GitHub</a> and start tinkering.</p>
+
+
+
+
+<p>If you try it out I'd love to hear how you go!</p>
+
+
+
+
+<h2>Some quick acknowledgements</h2>
+
+
+<p>It doesn't seem right to plug this and not give kudos to some of the people that made it possible, both directly and indirectly.</p>
+
+
+
+
+<p>First, <a href="http://twitter.com/guywithbeard">Anthony</a> deserves the credit for the awesome syntax ideas in NSub. I take full credit for all the implementation bugs, as well as for some of the ridiculous abstractions in the code (including a really dodgy, mini-IoC container for wiring up routes and handlers. Yuck. :)). <a href="http://troyhunt.com">Troy Hunt</a> did a great job of knocking out a logo for us. <a href="http://twitter.com/xerxesb">Xerxes</a> and <a href="http://twitter.com/shannoncornish">Shannon</a> also helped out with some code and suggestions respectively. <a href="http://kozmic.pl/">Krzysztof</a> also provided some much needed help over email and twitter on how to dynamically create delegates using .NET 3.5 expressions.</p>
+
+
+
+
+<p>There are also a few people and projects that NSubstitute owes its existence to. <a href="http://ayende.com">Ayende</a> and the awesome <a href="http://ayende.com/projects/rhino-mocks.aspx">Rhino Mocks</a> project really started us mocking in the first place, and did a great job making mocking viable on the .NET platform. Also thanks to <a href="http://www.clariusconsulting.net/blogs/kzu/">Daniel Cazzulino</a> and <a href="http://code.google.com/p/moq/">moq</a> for bringing Arrange Act Assert-style mocking  to .NET (to the world?). NSubstitute relies entirely on <a href="http://davesquared.net/2008/10/very-basics-of-aaa-with-rhino-mocks-35.html">AAA mocking</a> for its syntax, intentionally providing no support for strict mocks or record/replay. And finally to <a href="http://www.castleproject.org/">Castle Project's DynamicProxy</a> which we rely on (like almost everyone else) to generate our proxies.</p>
+
+
+
+
+<p>&nbsp;</p>
+
+
+<p>Happy substituting! :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Configuring dependencies' dependencies with StructureMap 2.5.1 [.NET,C#]]]></title>
+    <link href="http://davesquared.net/2009/09/configuring-dependencies-dependencies.html"/>
+    <updated>2009-09-10T23:39:00+10:00</updated>
+    <id>http://davesquared.net/2009/09/configuring-dependencies-dependencies</id>
+    <content type="html"><![CDATA[<p>To date I've generally only used the most basic of <a href="http://structuremap.sourceforge.net/Default.htm">StructureMap's</a> configuration options. Stuff like <code>init.ForRequestedType&lt;SomeInterface&gt;().TheDefaultIsConcreteType&lt;SomeImplementor&gt;()</code>. But I recently needed to resolve two types which needed different configurations of the same dependency type. Here is how I got it to work, but be aware that I'm a StructureMap newbie so there might be better ways of doing this.</p>
+
+
+
+
+<h2>A contrived example</h2>
+
+
+
+
+<p>Say we have two types that both require an <code>IController</code>:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class HelloView {
+    public HelloView(IController controller) {}
+}
+
+public class HowdyView {
+    public HowdyView(IController controller) {}
+}
+</pre>
+
+
+
+
+<p>Our <code>IController</code> implementation requires an <code>IStuffDoer</code>:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class Controller : IController {
+    public Controller(IStuffDoer stuffDoer) {}
+}
+</pre>
+
+
+
+
+<p>Finally, we have two <code>IStuffDoer</code> implementations:</p>
+
+
+
+
+<pre class="brush:csharp">
+    public class SayHelloWorldDoer : IStuffDoer {}
+    public class SayHowdyWorldDoer : IStuffDoer {}
+</pre>
+
+
+
+
+<h2>Configuration using StructureMap</h2>
+
+
+
+
+<p>Now we want our <code>HelloView</code> to have a <code>Controller</code> configured with a <code>SayHelloWorldDoer</code>, while our <code>HowdyView</code> controller needs a <code>SayHowdyWorldDoer</code>. Now this is obviously a silly, contrived example, but some semi-decent reasons to do something like this could be configuring an enumerable of <code>Specification</code> instances, or passing through different pipelines to change behaviour of dependencies. For now let's try and wire up our silly example:</p>
+
+
+
+
+<pre class="brush:csharp">
+public class Bootstrapper {
+    public static void WireUpApplication() {
+        ObjectFactory.Initialize(init =&gt; {
+            init.ForConcreteType&lt;HelloView&gt;()
+                .Configure.CtorDependency&lt;IController&gt;().Is(
+                    x =&gt; x.OfConcreteType&lt;Controller&gt;().CtorDependency&lt;IStuffDoer&gt;().Is&lt;SayHelloWorldDoer&gt;()
+                 );
+            init.ForConcreteType&lt;HowdyView&gt;()
+                .Configure.CtorDependency&lt;IController&gt;().Is(
+                    x =&gt; x.OfConcreteType&lt;Controller&gt;().CtorDependency&lt;IStuffDoer&gt;().Is&lt;SayHowdyWorldDoer&gt;()
+                 );
+        }
+        );
+    }
+}
+</pre>
+
+
+
+
+<p>Now when we try and resolve a <code>HelloView</code> with a call to <code>ObjectFactory.GetInstance&lt;HelloView&gt;()</code>, StructureMap will inject a <code>Controller</code> configured with a <code>SayHelloWorldDoer</code> for it's <code>IStuffDoer</code>.</p>
+
+
+
+
+<p>Another way to do this is with named instances in StructureMap, but I think the approach above reads reasonably neatly and reveals our intent. It's also worth pointing out that if our wireup logic becomes particularly complicated we may be better off moving parts of it into a factory or builder.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[NHibernate mappings using xml, attributes, and Fluent NHibernate]]></title>
+    <link href="http://davesquared.net/2008/09/nhibernate-mappings-using-xml.html"/>
+    <updated>2008-09-04T23:25:00+10:00</updated>
+    <id>http://davesquared.net/2008/09/nhibernate-mappings-using-xml</id>
+    <content type="html"><![CDATA[<p>A few of us at work have been looking at NHibernate 2.0 as a potential ORM tool for our next project. The initial reactions have included (but weren't limited to) shudders of horror at seeing the mass of angle brackets present in the <code>.hbm.xml</code> mapping files. I don't think this reaction is atypical -- I thought the same thing when I first tried NHibernate. However once I started using it (not for anything serious mind you, just for personal projects. I'm at pre-newbie stage still :)), I found the XML relatively painless. In fact once I'd set them up initially it was great to be able to deal with ordinary POCO (Plain Old C# Object) classes and only think about the persistence mappings when tweaking the DB.</p>
+
+
+
+
+<p>That said, there are alternatives hand coding the <code>.hbm.xml</code> mapping files. I thought I'd cover a few of the options here: NHibernate Mapping Attributes, and Fluent NHibernate.</p>
+
+
+
+
+<h2>Getting started</h2>
+
+
+<p></p>
+
+<p>I decided to reuse the extra-simple scenario from my <a href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">ORM roundup</a> posts. I have a table of suppliers, and a table of states (or provinces, territories, prefectures etc.). Both suppliers and states have names, which are stored as strings/varchars, and IDs, which are stored as Guids/uniqueidentifiers. Each supplier can service many states. So we have a simple many-to-many relationship between the two main entities. It looks a bit like this:</p>
+
+
+<p></p>
+
+<p><a href="http://davesquared.net/images/fromblogger/s1600-h-SampleSupplierSchema.png"><img id="BLOGGER_PHOTO_ID_5145922358406504498" style="cursor: pointer" alt="" src="http://davesquared.net/images/fromblogger/s400-SampleSupplierSchema.png" border="0"></a></p>
+
+
+<p></p>
+
+<p>Now let's create some POCOs for to model our suppliers and states. I've added these to an Entities folder in an otherwise blank C# Class Library project.</p>
+
+
+
+
+<pre>
+//State.cs
+using System;
+namespace Workshop.Entities {    
+    public class State {
+        public virtual Guid StateId { get; set; }        
+        public virtual String Name { get; set; }
+    }
+}
+//Supplier.cs
+using System;
+using System.Collections.Generic;
+namespace Workshop.Entities {
+    public class Supplier {
+        private IList&lt;State&gt; statesServiced = new List&lt;State&gt;();
+        
+        public virtual Guid SupplierId { get; set; }
+        public virtual String Name { get; set; }
+        public virtual IList&lt;State&gt; StatesServiced { get { return statesServiced; } set { statesServiced = value; } }
+    }
+}
+</pre>
+
+
+
+
+<p>These are nice ordinary classes, with no consideration given as to how they will be persisted. The only concession we have made is making everything <code>virtual</code> by default, so that it is easy for NHibernate to create proxies from these classes.</p>
+
+
+
+
+<p>I'll also throw in an App.config so NHibernate knows which database to talk to. This time around I'm using NHibernate 2.0, which has a <a href="http://davesquared.net/2008/08/configuration-changes-in-nhibernate-20.html">new configuration format</a> from the last time I looked at this example.</p>
+
+
+
+
+<h2>Hand coding Hibernate Mapping Files</h2>
+
+
+
+
+<p>Time to map our entity classes to our database. Let's start off with the standard, hand coded <code>.hbm.xml</code> approach. We'll create a <code>State.hbm.xml</code> file and a <code>Supplier.hbm.xml</code> file to hold our mappings. We'll also set these files to be compiled in as embedded resources so we can get NHibernate to load the mappings from our DLL (in VS, right click the files in the Solution Explorer and edit the Build Action property).</p>
+
+
+
+
+<pre>
+&lt;!-- State.hbm.xml --&gt;
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;hibernate-mapping xmlns=&quot;urn:nhibernate-mapping-2.2&quot; assembly=&quot;Workshop&quot; namespace=&quot;Workshop.Entities&quot;&gt;
+  &lt;class name=&quot;State&quot; table=&quot;State&quot;&gt;
+    &lt;id name=&quot;StateId&quot; type=&quot;guid&quot;&gt;
+      &lt;generator class=&quot;guid&quot; /&gt;
+    &lt;/id&gt;
+    &lt;property name=&quot;Name&quot; type=&quot;String&quot; /&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+
+&lt;!-- Supplier.hbm.xml --&gt;
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;hibernate-mapping xmlns=&quot;urn:nhibernate-mapping-2.2&quot; assembly=&quot;Workshop&quot; namespace=&quot;Workshop.Entities&quot;&gt;
+  &lt;class name=&quot;Supplier&quot; table=&quot;Supplier&quot;&gt;
+    &lt;id name=&quot;SupplierId&quot; type=&quot;guid&quot;&gt;
+      &lt;generator class=&quot;guid&quot; /&gt;
+    &lt;/id&gt;
+    &lt;property name=&quot;Name&quot; type=&quot;String&quot; /&gt;
+    &lt;bag name=&quot;StatesServiced&quot; table=&quot;Supplier_StatesServiced&quot;&gt;
+      &lt;key column=&quot;SupplierId&quot; /&gt;
+      &lt;many-to-many column=&quot;StateId&quot; class=&quot;State&quot; /&gt;
+    &lt;/bag&gt;
+  &lt;/class&gt;
+&lt;/hibernate-mapping&gt;
+</pre>
+
+
+
+
+<p>Here we are just telling NHibernate how to map each bit of entity data to the database schema. The HBM files include which main table is used to persist each entity, describes each entity's primary key and standard properties, as well as how the entities relate to each other (in this case we have a many-to-many mapping, using a <code>bag</code> collection). These files are explained in more detail in my <a href="http://davesquared.net/2007/12/messing-around-with-nhibernate.html">Messing around with NHibernate</a> post.
+</p>
+
+
+
+
+<h2>Testing our mappings</h2>
+
+
+<p>I've populated my database with some sample data (I actually did it using NHibernate -- I find it easier to fill in the relationships that way than with hand written SQL). Let's create an NHibernateTests.cs file and add a test to make sure the entities are mapped correctly.</p>
+
+
+
+
+<pre>
+public class NHibernateTests {
+ protected static readonly ISessionFactory SessionFactory = getSessionFactory();
+ 
+ <b>private static ISessionFactory getSessionFactory() {
+  Configuration config = new Configuration();
+  config.AddAssembly(Assembly.GetExecutingAssembly());
+  return config.BuildSessionFactory();
+ }</b>
+ 
+ [Fact]
+ public void Get_suppliers_servicing_NSW() {
+  using (ISession session = SessionFactory.OpenSession()) {
+   var suppliers = session
+    .CreateCriteria(typeof(Supplier))
+    .CreateCriteria(&quot;StatesServiced&quot;)
+    .Add( Restrictions.Eq(&quot;Name&quot;, &quot;NSW&quot;) )
+    .SetProjection( Projections.Property(&quot;Name&quot;) )
+    .List&lt;String&gt;();
+   session.Close();
+   Assert.NotEmpty(suppliers);
+   Assert.Equal(4, suppliers.Count);
+   Assert.Contains(&quot;Tea Ah Maria&quot;, suppliers);
+   Assert.Contains(&quot;Teas'r'us&quot;, suppliers);   
+  }
+ } 
+}
+</pre>
+
+
+
+
+<p>This code intialises a new <code>ISessionFactory</code> using the configuration settings in the <code>App.config</code>, and the <code>config.AddAssembly(Assembly.GetExecutingAssembly());</code> line adds the <code>.hbm.xml</code> mappings embedded in our DLL.</p>
+
+
+
+
+<p>I've also used the <code>Get_suppliers_servicing_NSW()</code> test to run a query against all the mapped entities. I'll run this test for each configuration change I make to ensure I haven't broken anything. The details of the test itself aren't really important, but if you are interested it just asks NHibernate to get suppliers that service the state of NSW, and then uses a projection to only bring back the name of the supplier. The assertions check that the expected number of supplier names are returned, and makes sure the list of names includes a couple of the expected values.</p>
+
+
+
+
+<h2>NHibernate Mapping Attributes</h2>
+
+
+
+
+<p><a href="http://nhforge.org/media/p/8.aspx">NHibernate Mapping Attributes</a> (also know as NHMA) is a part of the NHibernate Contrib project, and can be used to declare mappings via attributes directly on your entities classes. This sort of spoils the whole POCO idea, but has the advantage of allowing you to make changes to the entity and it's mapping in the one spot. Let's see how this changes our <code>Supplier</code> and <code>State</code> classes.</p>
+
+
+
+
+<pre>
+//State.cs
+[Class]
+public class State {
+ [Id(0, Name=&quot;StateId&quot;, TypeType=typeof(Guid), Column=&quot;StateId&quot;)]
+ [Generator(1, Class=&quot;guid&quot;) ]
+ public virtual Guid StateId { get; set; }        
+
+ [Property]
+ public virtual String Name { get; set; }
+}
+
+//Supplier.cs
+[Class]
+public class Supplier {
+ private IList&lt;State&gt; statesServiced = new List&lt;State&gt;();
+ 
+ [Id(0, Name=&quot;SupplierId&quot;, TypeType=typeof(Guid))]
+ [Generator(1, Class = &quot;guid&quot;)]        
+ public virtual Guid SupplierId { get; set; }
+ 
+ [Property]
+ public virtual String Name { get; set; }
+ 
+ [Bag(0, Table=&quot;Supplier_StatesServiced&quot;)]
+ [Key(1, Column=&quot;SupplierId&quot;)]
+ [ManyToMany(2, Column=&quot;StateId&quot;, ClassType = typeof(State))]
+ public virtual IList&lt;State&gt; StatesServiced { get { return statesServiced; } set { statesServiced = value; } }
+} 
+</pre>
+
+
+
+
+<p>We no longer need our <code>.hbm.xml</code> files, and have instead translated the relevant mapping information to attributes on the classes themselves. By using attributes NHMA can infer some of the mapping information we previously had to enter explicitly (for example, <code>&lt;property name=&quot;Name&quot; type=&quot;String&quot; /&gt;</code> just becomes <code>[Property] public virtual String Name {...}</code>), and we have traded our angle brackets for square ones :). There are also a few strange things going on here. Look at this extract from Supplier.cs:</p>
+
+
+
+
+<pre>
+ [Id(<b>0</b>, Name=&quot;SupplierId&quot;, TypeType=typeof(Guid))]
+ [Generator(<b>1</b>, Class = &quot;guid&quot;)]        
+ public virtual Guid SupplierId { get; set; }
+</pre>
+
+
+
+
+<p>Notice the element indexes on the attributes (<code>ID</code> is 0, <code>Generator</code> is 1)? This is because NHMA is actually generating your <code>.hbm.xml</code> on the fly from the attributes, and it needs to know the order in which to write out the XML elements (attribute order isn't maintained using reflection). To further illustrate this attribute to XML translation, let's look at how this affects our <code>ISessionFactory</code> initialisation for our tests:</p>
+
+
+
+
+<pre>
+//In NHibernateTests.cs
+private static ISessionFactory getSessionFactory() {
+ var config = new Configuration();            
+ HbmSerializer.Default.Validate = true;                        
+ HbmSerializer.Default.Serialize(System.Environment.CurrentDirectory, Assembly.GetExecutingAssembly());
+ config.AddDirectory(new DirectoryInfo(System.Environment.CurrentDirectory));            
+ return config.BuildSessionFactory();
+}
+</pre>
+
+
+
+
+<p>This is using the NHMA default <code>HbmSerializer</code> class to generate <code>.hbm.xml</code> files in the current working directory. We then load in these mapping files just like before (except we are using the file system and not embedded assembly resources).</p>
+
+
+
+
+<p>So to my way of thinking all we have really achieved is simply rewritten all our original <code>.hbm.xml</code> logic as attributes rather than XML, and made our previously nice clean POCO entities cluttered with persistence information and subsequently less readable. I really loved the idea of NHMA at first, but after trying it out I can't really see it providing much benefit over ye olde hand coded XML. As an added deterrent I couldn't really find much documentation on NHMA, so I ended up having to translate from the fairly well documented <code>.hbm.xml</code> format anyway.</p>
+
+
+
+
+<h2>Fluent NHibernate</h2>
+
+
+
+
+<p><a href="http://code.google.com/p/fluent-nhibernate/">Fluent NHibernate</a>, like NHMA, offers a non-XML way to configure your mappings. Instead of using attributes though, we are using standard .NET code via a fluent interface. This provides lots of neat advantages like automated refactoring and some compile time support, as well as being able to eliminate duplicated information between <code>.hbm.xml</code> and the POCO entities themselves by using customisable conventions and inferring the relevant property types and names. Before we dive into this it's worth noting that Fluent NHibernate hasn't been released yet and so still has some rough edges. I'm using revision 80 from the <a href="http://code.google.com/p/fluent-nhibernate/">project's SVN repository</a>, so much of this will probably change before it hits version 1.0.</p>
+
+
+
+
+<p>I've reverted our <code>Supplier</code> and <code>State</code> classes back to Plain Old CLR Objects (removed all the NHMA attributes) and also taken out the <code>.hbm.xml</code> files. The first thing we need to do is create some Fluent Nhibernate <code>ClassMap</code> classes.</p>
+
+
+
+
+<pre>
+public class StateMap : ClassMap&lt;State&gt; {
+ public StateMap() {                
+  Id(x =&gt; x.StateId);
+  Map(x =&gt; x.Name);
+ }
+}
+
+public class SupplierMap : ClassMap&lt;Supplier&gt; {
+ public SupplierMap() {                
+  Id(x =&gt; x.SupplierId);
+  Map(x =&gt; x.Name);
+  HasManyToMany&lt;State&gt;(x =&gt; x.StatesServiced)
+   .AsBag()
+   .WithTableName(&quot;Supplier_StatesServiced&quot;)
+   .WithParentKeyColumn(&quot;SupplierId&quot;)
+   .WithChildKeyColumn(&quot;StateId&quot;);  
+ }
+}
+</pre>
+
+
+
+
+<p>Each mapping class configures the mapping for an entity within the constructor (um, ignore the evil calls to virtual methods in the constructors :-\). This looks much, much neater than the previously approaches, as Fluent NHibernate does most of the work for us. Let's check the configuration for our test:</p>
+
+
+
+
+<pre>
+private static ISessionFactory getSessionFactory() {
+ var config = new Configuration();
+ config.AddMappingsFromAssembly(Assembly.GetExecutingAssembly());
+ return config.BuildSessionFactory();
+}
+</pre>
+
+
+
+
+<p>Looks pretty good to me. :) But it gets better -- say I always name my identifiers in the form <code><i>EntityName</i>Id</code>. If Fluent NHibernate knew that, then I could reduce my supplier class map to this:</p>
+
+
+
+
+<pre>
+public class SupplierMap : ClassMap&lt;Supplier&gt; {
+ public SupplierMap() {                
+  Id(x =&gt; x.SupplierId);
+  Map(x =&gt; x.Name);
+  <b>HasManyToMany&lt;State&gt;(x =&gt; x.StatesServiced)
+   .AsBag()
+   .WithTableName(&quot;Supplier_StatesServiced&quot;);</b>
+ }
+}
+</pre>
+
+
+
+
+<p>After all, we know the keys used to map suppliers and states are going to be <code>SupplierId</code> and <code>StateId</code>, so the many-to-many mapping becomes trivial.  Fluent NHibernate currently assumes the names will in the form <code>supplier_id</code>, but that's no big deal, because it also let's me change the conventions used:</p>
+
+
+<pre>
+private static ISessionFactory getSessionFactory() {
+ var config = new Configuration();
+ var model = <b>getFluentNhibernatePersistenceModel()</b>;
+ model.Configure(config);            
+ return config.BuildSessionFactory();
+}
+
+private static PersistenceModel getFluentNhibernatePersistenceModel() {
+ var model = new PersistenceModel();
+ <b>model.Conventions.GetForeignKeyName = prop => prop.Name + "Id";</b> //By default assumes prop.Name + "_id"
+ <b>model.Conventions.GetForeignKeyNameOfParent = type => type.Name + "Id";</b>
+ model.addMappingsFromAssembly(Assembly.GetExecutingAssembly());
+ return model;
+}
+</pre>
+
+
+
+
+<p>Pretty neat, huh? You can imagine how trivial you could get the mappings if you set your conventions correctly.</p>
+
+
+
+
+<p>There is work under way to make this even easier using <a href="http://groups.google.com/group/fluent-nhibernate/browse_thread/thread/5d7a524fb6ffcae/769430df684265da">AutoMap</a> functionality, which will be used to auto-magically infer mappings for your entities. You can then customise any special cases (like the many-to-many relationship we have in this case -- it will probably assume the more common one-to-many case by default).</p>
+
+
+
+
+<h2>Tools not covered here</h2>
+
+
+
+
+<p>I also had a quick look at <a href="http://using.castleproject.org/display/Contrib/ActiveWriter">ActiveWriter</a>, but couldn't get it working (failed when trying to save the model and generate the correct files. Possibly because I was using NH 2.0, more likely that I had no idea what I was doing with it :)). It provides a designer within Visual Studio that you can use to generate your mapping files and .NET entity classes. It has the usual drag-and-drop designer goodness -- dragging database tables onto the surface or using toolbox items to create classes and adjust the properties to map to tables etc. It is meant to work with both Castle ActiveRecord and NHibernate.</p>
+
+
+
+
+<p>The reason I didn't persevere with trying to get it to work is that I am well and truly over designers. I hate mousing all over a design surface and repeatedly hunting for the property you want and then repeatedly setting it over multiple boxes. No matter how nice the designer, I always seem to end up cursing it once the demo has finished and I start using it for real work. Of course this may just be a reflection on my advanced age and grumpy demeanor - YMMV. :) Oh yeah, and get off my lawn! :P</p>
+
+
+
+
+<p>There are a number of <a href="http://www.hibernate.org/hib_docs/nhibernate/1.2/reference/en/html/toolsetguide.html">other tools mentioned in the NHibernate 1.2 docs</a>, including <code>hbm2net</code> (generate classes from HBM), as well as generation tools like CodeSmith and MyGeneration, but most of these seem to focus on generating the C# classes or SQL scripts for creating the database schema from the <code>.hbm.xml</code>. I think I'd prefer to control my entity and database creation, and instead try and make the mapping itself easier.</p>
+
+
+
+
+<h2>Conclusion</h2>
+
+
+
+
+<p>Fluent NHibernate looks absolutely fantastic, but is still in very early stages of development. If you don't like living on the bleeding edge, then the standard <code>.hbm.xml</code> files really aren't that bad once you've set up a couple of them. The good thing is you can switch between all these mapping methods without changing anything but the <code>ISessionFactory</code> initialisation code, which only occurs in one place within your application. All these changes were made with a continuously green test light. :)</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Subversion 1.5.0 released]]></title>
+    <link href="http://davesquared.net/2008/06/subversion-150-released.html"/>
+    <updated>2008-06-20T09:20:00+10:00</updated>
+    <id>http://davesquared.net/2008/06/subversion-150-released</id>
+    <content type="html"><![CDATA[<p>Just saw that <a href="http://blogs.open.collab.net/svn/2008/06/subversion-150.html">Subversion 1.5.0 has been released</a>. There are quite a few new features, but the main ones of interest to me are:</p>
+
+
+<p>  <ul>   <li><a href="http://blog.red-bean.com/sussman/?p=92">basic merge tracking</a> (to be improved in 1.5.1) </li>    <li><a href="http://blogs.open.collab.net/svn/2007/07/one-quality-of-.html">changelist support</a> for working with common file groupings </li>    <li><a href="http://subversion.tigris.org/svn_1.5_releasenotes.html#sparse-checkouts">sparse checkouts</a> for working with large repos (say, one that includes multimedia assets) </li>    <li><a href="http://subversion.tigris.org/svn_1.5_releasenotes.html#externals">improvements to <code>svn:externals</code></a> </li>    <li>The usual performance improvements </li> </ul>  <p>See the <a href="http://subversion.tigris.org/svn_1.5_releasenotes.html">svn 1.5 release notes</a> for a run down of the main changes, or the <a href="http://svn.collab.net/repos/svn/tags/1.5.0/CHANGES">CHANGES file</a> for a complete list.</p>  <p>Oh yeah, and the usual, major version, <a href="http://subversion.tigris.org/svn_1.5_releasenotes.html#wc-and-repos-format-change">working copy and repository format provisos apply</a>... while the API is backwards compatible and svn 1.5 server and tools work with older repo versions, working copies are a different story. Older client tools will not work with svn 1.5 working copies, nor with 1.5 repositories. Your existing working copies will automatically upgrade to the 1.5 format when you access them with the new tools. <a href="http://subversion.tigris.org/svn_1.5_releasenotes.html#wc-and-repos-format-change">Read this</a> for more information.</p></p>
+
+<p>You'll also need to upgrade your repository format to 1.5 to take full advantage of the new features like merge tracking (although you'll get <a href="http://subversion.tigris.org/svn_1.5_releasenotes.html#new-feature-compatibility-table">a number of the improvements with older repo formats</a> as well).</p>
+
+
+<p>  <p>Certified binaries will be coming out over the next couple of days <a href="http://www.collab.net/downloads/subversion/">at CollabNet</a> (other binary maintainers listed <a href="http://subversion.tigris.org/getting.html#binary-packages">here</a>). The <a href="http://tortoisesvn.net/node/328">TortoiseSVN crew is pretty much ready</a> to go too.</p></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[BDD test naming with AutoHotKey]]></title>
+    <link href="http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey.html"/>
+    <updated>2008-05-28T09:14:00+10:00</updated>
+    <id>http://davesquared.net/2008/05/bdd-test-naming-with-autohotkey</id>
+    <content type="html"><![CDATA[<p><i><b>Updates:</b> See change log at the bottom of this post for the most recent updates.</i></p>
+
+
+<p><i><b>Update 2008-05-29:</b> <a href="http://www.jpboodhoo.com/blog">JP</a> has posted a <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">much better version of this script</a> (with suggestions from a few of his readers). I've updated the script on this post to work more like JP's version, but you're probably best off grabbing it from <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">his post</a>, or searching <a href="http://www.jpboodhoo.com/blog">his site</a> for his latest version.</i></p>
+
+
+
+
+<p>Was having a chat earlier with my good mate <a href="http://www.jpboodhoo.com/blog">JP Boodhoo</a>... er, well, more accurately, I left a comment on his blog and he was nice enough to email me back. Anyway, JP has <a href="http://www.jpboodhoo.com/blog/SoLongBDDMacroHelloAutohotkey.aspx">started trying AutoHotKey rather than his previous macro</a> for BDD-style test naming.</p>
+
+
+
+
+<p>I thought I'd post an extremely over-engineering version of this <a href="http://www.autohotkey.com/">AutoHotKey</a> script, which has a toggle-approach similar to the <a href="http://davesquared.net/2008/02/emacs-key-bindings-everywhere.html">Emacs Everywhere script</a> I posted earlier.</p>
+
+
+
+
+<p>Once you have <a href="http://www.autohotkey.com/">AHK</a> installed, you can just extract the ZIP below and double click the .AHK file to load the script. The script will let you toggle &quot;test-naming mode&quot; (i.e. replacing spaces with underscores) using Ctrl + Shift + U. You can cancel out of test naming mode by pressing ENTER, ESCAPE, TAB, starting the method signature by typing a '(', or typing a '{' or ':' for when you are naming a class. Pressing Ctrl + Alt + U will insert a new test template before switching on test naming mode (although you might be better off using R# templates for this). All this is simply to make it easier to type out tests like this:</p>
+
+
+
+
+<pre>[Test]
+public void Test_naming_mode_turns_spaces_to_underscores() {}
+</pre>
+
+
+
+
+<p>Version 2.2 of the script can be downloaded here: 
+<ul><li><a href="http://davesquared.googlecode.com/files/TestNamingMode-v2.2.zip">TestNamingMode-v2.2.zip</a></li></ul></p>
+
+
+
+
+<p>Feel free to change the hotkeys and the dodgy icons :). I haven't had a good test of it yet so use at your own risk.</p>
+
+
+
+
+<p>If you're happy with how it works you can add it to your Startup programs and have BDD-style test naming goodness whenever you like. Hope_this_helps! :-)</p>
+
+
+
+
+<p style="font-size: x-small"><b>Change log</b>
+<ul style="font-size: x-small">
+<li>2008-11-18: Uploaded v2.2, making TAB exit test naming mode. This is helpful when using Resharper live templates for tests.</li>
+<li>2008-08-13: Uploaded v2.1, making '{' and ':' exit test naming mode, based on <a href="http://scottcreynolds.com/archive/2008/08/11/tweak-of-bdd-naming-autohotkey-macro.aspx">Scott C Reynold's script modification</a>. I should probably make it exit on any punctuation, but calling YAGNI on it for now.</li>
+<li>2008-05-29: Uploaded v2, synching with <a href="http://www.jpboodhoo.com/blog/BDDAutoHotKeyScriptUpdateTake2.aspx">JP's version 2</a>, adding test templates, and made test mode exit after typing '(' for test method signature</li>
+<li>2008-05-28: Updated hotkeys to match JP's version</li>
+<li>2008-05-28: Original post</li>
+</ul>
+</p>
+
+]]></content>
+  </entry>
+  
+</feed>
